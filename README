@@ -1,0 +1,5 @@
+cpu/combinatorics_cpu.hpp is originally located at HMLP/primitives/. 
+
+To create shared library object, run 
+'''python setup_test.py build_ext --inplace'''
+ 
