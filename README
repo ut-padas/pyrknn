@@ -13,6 +13,12 @@ TODO(p1)[Will] Fix build system.
 Makefile -> copies to build directory
          -> runs makefile in kernels/cpu/makefile, kernels/cpu/makefile to compile object files and cython wrapper
 
+Currently missing in the current src:
+- Hongru's gpu kselect and scan
+- Will's CUDA median function
+
+
+
 Outline of File Structure
 --------------
 examples/
