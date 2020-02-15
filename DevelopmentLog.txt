@@ -1,0 +1,7 @@
+NOTE: Neighbors are not returned as a structured array because:
+1) CuPy does not support them
+2) This might make unpacking them for our custom kernels a challenge
+
+Questions:
+1) How should merge neighbors behave when k < leafsize?
+2) Is there a usecase for a merged build/all-NN in the taskgraph? i.e. Leaf search tasks generated as soon as leaf is built.

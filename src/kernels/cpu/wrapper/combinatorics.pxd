@@ -2,7 +2,7 @@
 
 from libcpp.vector cimport vector
 
-cdef extern from "../frame/primitives/combinatorics_cpu.hpp" namespace "hmlp::combinatorics" nogil:
+cdef extern from "../cpp/combinatorics_shared.hpp" namespace "hmlp::combinatorics" nogil:
     cdef vector[T] sampleWithoutReplacement[T]( int l, vector[T] v ) except + 
     cdef vector[T] Sum[T,Allocator]( size_t d, size_t n, vector[T, Allocator] & X, vector[size_t] & gids ) except +
     cdef T Accumulate[T](vector[T] &, T & sum_glb) except +

@@ -7,6 +7,9 @@ from combinatorics cimport Scan, sampleWithoutReplacement, Select, Accumulate, R
 from libcpp.vector cimport vector
 from cython.operator cimport dereference as deref
 
+#Some inline functions to test if it works
+#TODO: Remove these test functions
+
 # cdef int n = 10
 # cdef vector[int] vect = vector[int](n,1)
 
