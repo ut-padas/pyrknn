@@ -12,8 +12,6 @@ import numpy as np
 
 
 env = "PYTHON" #Coarse kernel context switching mechanism for debugging (this is a bad pattern, to be replace in #TODO 3)
-#Options are: PYTHON, CPU, GPU
-
 
 #TODO: Q2 and R2 could be precomputed and given as arguments to distance(), should make keyword parameters for this option
 def distance(R, Q):

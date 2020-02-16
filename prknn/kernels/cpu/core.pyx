@@ -3,7 +3,7 @@
 import numpy as np
 cimport numpy as np
 
-from combinatorics cimport Scan, sampleWithoutReplacement, Select, Accumulate, Reduce
+from primitives cimport Scan, sampleWithoutReplacement, Select, Accumulate, Reduce
 from libcpp.vector cimport vector
 from cython.operator cimport dereference as deref
 

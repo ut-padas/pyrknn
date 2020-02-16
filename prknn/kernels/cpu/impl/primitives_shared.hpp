@@ -1,5 +1,5 @@
-#ifndef COMBINATORICS_HPP
-#define COMBINATORICS_HPP
+#ifndef PRIMITIVES_CPU_HPP
+#define PRIMITIVES_CPU_HPP
 
 /** Use STL, and vector. */
 #include <stdlib.h>
@@ -17,9 +17,30 @@ namespace hmlp
 namespace combinatorics
 {
 
+template<typename T>
+using idx_type = typename vector<T>::size_type;
+
+template<typename T>
+std::vector<T> sampleWithoutReplacement(idx_type<T> l, std::vector<T> v)
+{
+    if( l >= v.size() )
+    {
+        return v;
+    }
+
+    std::random_device rd;
+    std::mt19937 generator( rd() );
+
+    std::shuffle(v.begin(), v.begin() + l, generator);
+    vector<T> ret(v.begin(), v.begin() + l);
+
+    return ret;
+}
+
+
 /** use default stl allocator */
 template<class T, class Allocator = std::allocator<T> >
-vector<T> Sum( size_t d, size_t n, vector<T, Allocator> &X, vector<size_t> &gids )
+vector<T> Sum(idx_type<T> d, idx_type<T> n, vector<T, Allocator> &X, vector<idx_type<T>> &gids )
 {
   bool do_general_stride = ( gids.size() == n );
 
@@ -33,17 +54,17 @@ vector<T> Sum( size_t d, size_t n, vector<T, Allocator> &X, vector<size_t> &gids
 
   /** compute partial sum on each thread */
   #pragma omp parallel for num_threads( n_split )
-  for ( int j = 0; j < n_split; j ++ )
-    for ( int i = j; i < n; i += n_split )
-      for ( int p = 0; p < d; p ++ )
+  for ( idx_type<T> j = 0; j < n_split; j ++ )
+    for ( idx_type<T> i = j; i < n; i += n_split )
+      for ( idx_type<T> p = 0; p < d; p ++ )
         if ( do_general_stride )
           temp[ j * d + p ] += X[ gids[ i ] * d + p ];
         else
           temp[ j * d + p ] += X[ i * d + p ];
 
   /** reduce all temporary buffers */
-  for ( int j = 0; j < n_split; j ++ )
-    for ( int p = 0; p < d; p ++ )
+  for ( idx_type<T> j = 0; j < n_split; j ++ )
+    for ( idx_type<T> p = 0; p < d; p ++ )
       sum[ p ] += temp[ j * d + p ];
 
   return sum;
@@ -64,7 +85,7 @@ template<class T>
 T Reduce(std::vector<T> &v, T & sum_glb)
 {
   #pragma omp parallel for reduction(+:sum_glb)
-  for (int i=0; i<v.size(); i++){
+  for (idx_type<T> i = 0; i < v.size(); i++){
     sum_glb += v[i];
   }
   return sum_glb;
@@ -80,13 +101,13 @@ void Scan( std::vector<TA> &A, std::vector<TB> &B )
   assert( A.size() == B.size() - 1 );
 
   /** number of threads */
-  size_t p = omp_get_max_threads();
+  idx_type<TA> p = omp_get_max_threads();
 
   /** problem size */
-  size_t n = B.size();
+  idx_type<TB> n = B.size();
 
   /** step size */
-  size_t nb = n / p;
+  idx_type<TB> nb = n / p;
 
   /** private temporary buffer for each thread */
   std::vector<TB> sum( p, (TB)0 );
@@ -97,43 +118,43 @@ void Scan( std::vector<TA> &A, std::vector<TB> &B )
   /** small problem size: sequential */
   if ( n < 100 * p ) 
   {
-    size_t beg = 0;
-    size_t end = n;
-    for ( size_t j = beg + 1; j < end; j ++ ) 
+    idx_type<TB> beg = 0;
+    idx_type<TB> end = n;
+    for ( idx_type<TB> j = beg + 1; j < end; j ++ ) 
       B[ j ] = B[ j - 1 ] + A[ j - 1 ];
     return;
   }
 
   /** parallel local scan */
   #pragma omp parallel for schedule( static )
-  for ( size_t i = 0; i < p; i ++ ) 
+  for ( idx_type<TB> i = 0; i < p; i ++ ) 
   {
-    size_t beg = i * nb;
-    size_t end = beg + nb;
+    idx_type<TB> beg = i * nb;
+    idx_type<TB> end = beg + nb;
     /** deal with the edge case */
     if ( i == p - 1 ) end = n;
     if ( i != 0 ) B[ beg ] = (TB)0;
-    for ( size_t j = beg + 1; j < end; j ++ ) 
+    for ( idx_type<TB> j = beg + 1; j < end; j ++ ) 
     {
       B[ j ] = B[ j - 1 ] + A[ j - 1 ];
     }
   }
 
   /** sequential scan on local sum */
-  for ( size_t i = 1; i < p; i ++ ) 
+  for ( idx_type<TB> i = 1; i < p; i ++ ) 
   {
     sum[ i ] = sum[ i - 1 ] + B[ i * nb - 1 ] + A[ i * nb - 1 ];
   }
 
   #pragma omp parallel for schedule( static )
-  for ( size_t i = 1; i < p; i ++ ) 
+  for ( idx_type<TB> i = 1; i < p; i ++ ) 
   {
-    size_t beg = i * nb;
-    size_t end = beg + nb;
+    idx_type<TB> beg = i * nb;
+    idx_type<TB> end = beg + nb;
     /** deal with the edge case */
     if ( i == p - 1 ) end = n;
     TB sum_ = sum[ i ];
-    for ( size_t j = beg; j < end; j ++ ) 
+    for ( idx_type<TB> j = beg; j < end; j ++ ) 
     {
       B[ j ] += sum_;
     }
@@ -160,8 +181,9 @@ std::vector<TB> Scan( std::vector<TA> &A )
  *         I need something like a parallel scan.
  */ 
 template<typename T>
-T Select( size_t n, size_t k, std::vector<T> &x )
+T Select(idx_type<T> n, idx_type<T> k, std::vector<T> &x )
 {
+
   /** assertion */
   // size_t n = x.size()
   assert( k <= n && n == x.size());
@@ -175,13 +197,13 @@ T Select( size_t n, size_t k, std::vector<T> &x )
   T mean = std::accumulate(x.begin(), x.end(), static_cast<T>(0)) / x.size();
 
   std::vector<T> lhs, rhs;
-  std::vector<size_t> lflag( n, 0 );
-  std::vector<size_t> rflag( n, 0 );
-  std::vector<size_t> pscan( n + 1, 0 );
+  std::vector<idx_type<T>> lflag( n, 0 );
+  std::vector<idx_type<T>> rflag( n, 0 );
+  std::vector<idx_type<T>> pscan( n + 1, 0 );
 
   /** mark flags */
   #pragma omp parallel for
-  for ( size_t i = 0; i < n; i ++ )
+  for ( idx_type<T> i = 0; i < n; i ++ )
   {
     if ( x[ i ] > mean ) rflag[ i ] = 1;
     else                 lflag[ i ] = 1;
@@ -198,7 +220,7 @@ T Select( size_t n, size_t k, std::vector<T> &x )
   lhs.resize( pscan[ n ] );
 
   #pragma omp parallel for 
-  for ( size_t i = 0; i < n; i ++ )
+  for (idx_type<idx_type<T>> i = 0; i < n; i ++ )
   {
 	  if ( lflag[ i ] ) 
       lhs[ pscan[ i ] ] = x[ i ];
@@ -215,14 +237,14 @@ T Select( size_t n, size_t k, std::vector<T> &x )
   rhs.resize( pscan[ n ] );
 
   #pragma omp parallel for 
-  for ( size_t i = 0; i < n; i ++ )
+  for (idx_type<T> i = 0; i < n; i ++ )
   {
 	  if ( rflag[ i ] ) 
       rhs[ pscan[ i ] ] = x[ i ];
   }
 
-  int nlhs = lhs.size();
-  int nrhs = rhs.size();
+  idx_type<T> nlhs = lhs.size();
+  idx_type<T> nrhs = rhs.size();
 
   if ( nlhs == k || nlhs == n || nrhs == n ) 
   {
@@ -243,7 +265,7 @@ T Select( size_t n, size_t k, std::vector<T> &x )
 
 
 template<typename T>
-T Select( size_t k, std::vector<T> &x )
+T Select( idx_type<T> k, std::vector<T> &x )
 {
   return Select(x.size(), k, x);
 }
@@ -325,4 +347,4 @@ std::vector< std::vector<uint64_t> > MedianSplit(std::vector<T> &v)
 }; /* end namespace combinatorics */
 }; /* end namespace hmlp */
 
-#endif /* define COMBINATORICS_HPP */
+#endif /* define PRIMITIVES_CPU_HPP */
