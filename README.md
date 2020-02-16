@@ -1,27 +1,18 @@
 
 
 
-Will's Note (Feb 14):
-Currently, only the the reference implementation will work. A copy has been put in the knn/ directory.
+Will's Note (Updated Feb 15):
 Adding this to your PYTHON_PATH env variable i.e. `export PYTHON_PATH=$PYTHON_PATH:$(pwd)/knn` should work.
 Then you can run the example script: example/test_accuracy.py
 
-This knn/ directory will be removed once I fix the build system and module. Please do not commit any changes there. 
-The version that will be kept is in src/kdforest/reference
+TODO(p1)[Will] Fix build system.
 
-TODO(p1)[Will] Fix build system. 
-Makefile -> copies to build directory
-         -> runs makefile in kernels/cpu/makefile, kernels/cpu/makefile to compile object files and cython wrapper
-
-Currently missing in the current src:
+Currently missing in the current src (need to merge in):
 - Hongru's gpu kselect and scan
 - Will's CUDA median function
 
 
-
->Outline of File Structure
---------------
-``
+Outline of File Structure
 examples/
     - For example scripts showing functionality. Eventually include scripts to reproduce results. 
 test/
@@ -37,13 +28,12 @@ src/kernels/gpu/
 src/kernels/gpu/impl
 - source files for cpp/cuda impl of kernels
 src/kdforest/reference/
-    - Pure Python Implementation of KNN Scripts
-    - The important file here is: util.py, it contains kernels to be replaced with specific variants
-    - TODO(p1)[Will] Test and switch all kernels in util.py to specific variants
+- Pure Python Implementation of KNN Scripts
+- The important file here is: util.py, it contains kernels to be replaced with specific variants
+- TODO(p1)[Will] Test and switch all kernels in util.py to specific variants
 src/kdforest/parla/
-    - Parla Tasking Implementation
-    - TODO(p2)[Will] Do this. (Side task: parallelize python parts within tasks using numba, avoid using dictionary to gather query ids)
-``
+- Parla Tasking Implementation
+- TODO(p2)[Will] Do this. (Side task: parallelize python parts within tasks using numba, avoid using dictionary to gather query ids)
 
 A quick note on TODO format:
     Very informally, mostly so I can set reminders for myself to without going through the git issue system. 
