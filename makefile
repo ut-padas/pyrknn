@@ -3,8 +3,11 @@
 .PHONY: prknn
 
 
-target: prknn
-	python setup.py --setup build_ext --inplace
+target: prknn prknn/kernels/gpu/impl/obj/primitives.o
+	python setup.py --gpu_obj prknn/kernels/gpu/impl/obj/primitives.o --setup build_ext --inplace
+
+prknn/kernels/gpu/impl/obj/primitives.o:
+	nvcc -shared -c prknn/kernels/gpu/impl/primitives.cu -o prknn/kernels/gpu/impl/obj/primitives.o -Xcompiler -fPIC
 
 prknn:
 	rsync -rupE --delete src/prknn/. prknn

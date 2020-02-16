@@ -10,6 +10,6 @@ __global__ void vector_add_kernel(float *out, float *a, float*b, size_t n){
 /*Impl of function to be wrapped by Cython*/
 /*Assume given data is on device*/
 void addition(float *out, float *a, float *b, size_t n){
-    vector_add_cu<<<1, 1>>>(out, a, b, n);
+    vector_add_kernel<<<1, 1>>>(out, a, b, n);
 }
     

@@ -2,7 +2,6 @@ import numpy as np
 cimport numpy as np
 
 import cupy as cp
-cimport cupy as cp
 
 import cython
 
@@ -12,14 +11,14 @@ from primitives cimport *
 def add_vectors(a, b):
     """Adds two vectors on the gpu. """
 
-    cdef size_t N = len(a):
+    cdef size_t N = len(a)
     cdef long device_a
     cdef long device_b
     
     #Assert that the vectors are the same length
     assert(N == len(b))
 
-    if isinstance(array, (np.ndarray, np.generic)):
+    if isinstance(a, (np.ndarray, np.generic)) or isinstance(b, (np.ndarray, np.generic)):
         raise Exception(" GPU `add_vectors` kernel requires data is already on the gpu. Please pass a cupy array.")
     else: #At the time of writing I'm actually not sure what the cupy type is...
         device_a = <long> a.data.device.id
@@ -34,11 +33,11 @@ def add_vectors(a, b):
         c_b = <float *> temp_b
 
         #allocate space for return array out
-        with cupy.cuda.Device(device_a):
+        with cp.cuda.Device(device_a):
             out = cp.zeros(N)
             temp_out = <long> out.data.mem.ptr
             c_out = <float *> temp_out
 
-            vector_add(c_a, &c_b, N)
+            vector_add(c_out, c_a, c_b, N)
 
     return out

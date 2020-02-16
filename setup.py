@@ -94,7 +94,7 @@ def makeExtension(extName):
                 runtime_library_dirs = gpu_lib_dirs,
                 extra_objects=args.gpu_obj,
                 extra_compile_args=["-std=c++11", "-O3", "-fPIC"],
-                extra_link_args=["-Wl, --no-as-needed", "-Wl, --verbose", "-ldl", "-lpthread", "-lcuda", "-lcudart"]
+                extra_link_args=["-ldl", "-lpthread", "-lcuda", "-lcudart"]
                 )
     return Extension(
             extName,
@@ -116,6 +116,8 @@ extensions = [makeExtension(name) for name in reversed(extNames) if name is not 
 
 for e in extensions:
     print(e)
+
+print("Linking against", args.gpu_obj)
 
 setup(
         name="prknn",
