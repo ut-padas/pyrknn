@@ -2,11 +2,6 @@ NOTE: Neighbors are not returned as numpy structured array because:
 1) CuPy does not support them
 2) This might make unpacking them for our custom kernels a challenge
 
-Current Bugs (2/16 2:46 AM):
-1) The CUDA object file of the impl is not linking properly. 
-  - Run setup.py script manually to check this locally, is the path wrong?
-  - Change linker to verbose mode
-
 Needed Quality of Life Improvements:
 1) Handle module imports at the __init__.py level. (so we don't have to write .core or .kdforest.reference after everything)
 2) Write __str__ functions for trees and forests (for debugging)
