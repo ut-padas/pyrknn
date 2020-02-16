@@ -3,8 +3,8 @@
 
 
 Will's Note (Updated Feb 15):
-
-Adding this to your PYTHON_PATH env variable i.e. `export PYTHON_PATH=$PYTHON_PATH:$(pwd)/knn` should work.
+Set the appropriate enviornment variables in `set_env.sh`. Run make to build. 
+Adding this to your PYTHON_PATH env variable i.e. `export PYTHON_PATH=$PYTHON_PATH:$(pwd)/prknn` should work.
 Then you can run the example script: example/test_accuracy.py
 
 TODO(p1)[Will] Fix build system.
