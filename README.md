@@ -3,6 +3,7 @@
 
 
 Will's Note (Updated Feb 15):
+
 Adding this to your PYTHON_PATH env variable i.e. `export PYTHON_PATH=$PYTHON_PATH:$(pwd)/knn` should work.
 Then you can run the example script: example/test_accuracy.py
 
@@ -13,7 +14,7 @@ Currently missing in the current src (need to merge in):
 - Will's CUDA median function
 
 
-#Outline of File Structure
+##Outline of File Structure
 
 examples/
 
@@ -52,7 +53,7 @@ src/kdforest/parla/
     - Parla Tasking Implementation
     - TODO(p2)[Will] Do this. (Side task: parallelize python parts within tasks using numba, avoid using dictionary to gather query ids)
 
-#A quick note on TODO format:
+##A quick note on TODO format:
 
 Very informally, mostly so I can set reminders for myself to without going through the git issue system. 
 TODO(p#)[user] where # marks the priority of the work (vague 1 - 5) to be completed and user is assigned the work. User is optional.
