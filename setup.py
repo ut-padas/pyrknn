@@ -40,8 +40,6 @@ parser.add_argument('--gpu_obj', '--cuda_obj', nargs="+", help='Pass a list of f
 parser.add_argument('--cpu_obj', nargs="+", help='Pass a list of file names to link as cuda objects to the cython script', required=False, dest="cpu_obj", default=[])
 parser.add_argument("--setup", nargs="+", help="Pass setuptools arguments into setup.py (Required)", required=True, dest="setup")
 args, unknown = parser.parse_known_args()
-print(args.setup)
-print(unknown)
 
 sys.argv = ['setup.py'] + args.setup + unknown
 
@@ -72,7 +70,6 @@ gpu_lib_dirs = lib_dirs + [CUDA_LIB+'/stubs/']
 def scandir(directory, files=[]):
     for f in os.listdir(directory):
         path = os.path.join(directory, f)
-        print(path)
         if os.path.isfile(path) and path.endswith(".pyx"):
             f_to_add = path.replace(os.path.sep, ".")[:-4]
             if 'gpu' in f_to_add:
@@ -87,7 +84,6 @@ def scandir(directory, files=[]):
 #For each pyx file setup an Extension object with compilation details
 def makeExtension(extName):
     extPath = extName.replace(".", os.path.sep) + ".pyx"
-    print(extPath)
     if 'gpu' in extPath:
         return Extension(
                 extName,
@@ -114,7 +110,7 @@ def makeExtension(extName):
 
 
 extNames = scandir("prknn")
-print("Found the following cython extensions (to be built): ", extNames)
+print("Found the following cython extensions (to be built): ")
 
 extensions = [makeExtension(name) for name in reversed(extNames) if name is not None]
 
