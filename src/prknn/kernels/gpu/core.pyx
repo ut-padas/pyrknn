@@ -34,7 +34,7 @@ def add_vectors(a, b):
 
         #allocate space for return array out
         with cp.cuda.Device(device_a):
-            out = cp.zeros(N)
+            out = cp.zeros(N, dtype=cp.float32)
             temp_out = <long> out.data.mem.ptr
             c_out = <float *> temp_out
 
