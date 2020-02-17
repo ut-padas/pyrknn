@@ -93,7 +93,7 @@ def makeExtension(extName):
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
                 extra_objects=args.gpu_obj,
-                extra_compile_args=["-std=c++11", "-O3", "-fPIC"],
+                extra_compile_args=["-std=c++11", "-O3", "-fPIC", "--expt-extended-lambda", "-Xcudafe", "--diag_suppress=esa_on_defaulted_function_ignored"],
                 extra_link_args=["-ldl", "-lpthread", "-lcuda", "-lcudart"]
                 )
     return Extension(

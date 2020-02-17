@@ -18,6 +18,7 @@ using idx_type = typename vector<T>::size_type;
 template<typename T>
 using neigh_type = typename std::
 
+/*
 //Nearest Neighbor Kernel (from GOFMM Not Fused)
 //This actually wasn't parallel in GOFMM and it uses a pretty costly sort
 //TODO(p2)[Will] Really need to use GSKNN here or from Bo Xiao's code
@@ -56,6 +57,72 @@ bool NeighborSearch(
     return true;
 } 
 
+//Kernel from Bo Xiao's Code (for arb n, high memory)
+pair<double, long> *knn::directKQuery
+           ( double *ref, double *query, long n, long m, long k, int dim )
+{
+   double *dist = new double[m*n];
+   pair<double, long> *pdists =NULL;
+   pair<double, long> *result = new pair<double, long>[m*k];
+   int num_neighbors = (k<n) ? k : n;
+
+   knn::compute_distances( ref, query, n, m, dim, dist );
+
+   pdists = new pair<double, long>[m*n];
+   //Copy each distance into a pair along with its index for sorting
+   #pragma omp parallel for
+   for( int i = 0; i < m; i++ )
+     for( int j = 0; j < n; j++ )
+       pdists[i*n+j] = pair<double, long>(dist[i*n+j], j);
+
+
+   //Find nearest neighbors and copy to result.
+   #pragma omp parallel for
+   for( int h = 0; h < m; h++ ) {
+     int curr_idx = 0;
+     double curr_min = DBL_MAX;
+     int swaploc = 0;
+     for(int j = 0; j < num_neighbors; j++) {
+       curr_min = DBL_MAX;
+       for(int a = curr_idx; a < n; a++) {
+         if(pdists[h*n+a].first < curr_min) {
+            swaploc = a;
+            curr_min = pdists[h*n+a].first;
+         }
+       }
+       result[h*k+j] = pdists[h*n+swaploc];
+       pdists[h*n+swaploc] = pdists[h*n+curr_idx];
+       curr_idx++;
+     }
+   }
+
+   if(num_neighbors < k) {
+     //Pad the k-min matrix with bogus values that will always be higher than real values
+     #pragma omp parallel for
+     for( int i = 0; i < m; i++ )
+       for( int j = num_neighbors; j < k; j++ )
+         result[i*n+j] = pair<double, long>(DBL_MAX, -1L);
+   }
+
+   delete [] dist;
+   if(pdists)
+     delete [] pdists;
+
+   return result;
+}
+
+void knn::sqnorm ( double *a, long n, int dim, double *b) {
+  int one = 1;
+  bool omptest = n*(long)dim > 10000L;
+
+  #pragma omp parallel if(omptest)
+  {
+    #pragma omp for schedule(static)
+    for(int i = 0; i < n; i++) {
+       b[i] = ddot(&dim, &(a[dim*i]), &one, &(a[dim*i]), &one);
+    }
+  }
+}
 //Distance Kernel
 template<typename T>
 float* Distances(float* Q, float* R){
@@ -63,7 +130,7 @@ float* Distances(float* Q, float* R){
     T* D = &T(0);
     return D;
 }
-
+*/
 
 template<typename T>
 std::vector<T> sampleWithoutReplacement(idx_type<T> l, std::vector<T> v)
