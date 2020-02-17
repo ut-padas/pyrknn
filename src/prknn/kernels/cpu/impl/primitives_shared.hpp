@@ -9,16 +9,61 @@
 #include <algorithm>
 
 #include <omp.h>
-
+//#include <mkl.h>
 using namespace std;
-
-namespace hmlp
-{
-namespace combinatorics
-{
 
 template<typename T>
 using idx_type = typename vector<T>::size_type;
+
+template<typename T>
+using neigh_type = typename std::
+
+//Nearest Neighbor Kernel (from GOFMM Not Fused)
+//This actually wasn't parallel in GOFMM and it uses a pretty costly sort
+//TODO(p2)[Will] Really need to use GSKNN here or from Bo Xiao's code
+template<typename T>
+bool NeighborSearch(
+    idx_type<T> kappa, 
+    T *Q, 
+    T *R,
+    const idx_type<T> N,
+    const idx_type<T> d, 
+    vector<idx_type<T>> neighbor_list,
+    vector<idx_type<T>> neighbor_dist)
+{
+   auto DRQ = Distances(R, Q, N, d);
+
+    //Loop over query points
+    for(idx_type<T> j = 0; j < N; ++j){
+        vector<idx_type<T>> candidate_list( N );
+        vector<T> candidate_dist( N );
+        for(idx_type<T> i = 0; i < N; ++i){
+            candidate_list[ i ] ;
+            candidate_dist[ i ] = DRQ[ j, i ];
+         }
+
+         sort(candidates_list.begin(), candidates_list.end(), 
+            [] (const idx_type<T> a, const idx_type<T> b){ return candidate_list[a] < candidate_list[b]});
+         sort(candidates_dist.begin(), candidates_dist.end());
+
+        //Fill in the neighbor list
+        for( idx_type<T> i = 0; i < kappa; i++){
+            neighbor_list = candidates_list[ i ];
+            neighbor_dist = candidates_dist[ i ];
+        }
+    }
+
+    return true;
+} 
+
+//Distance Kernel
+template<typename T>
+float* Distances(float* Q, float* R){
+    ///cblas_sgemm(LAYOUT, TRANSA, TRANSB, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+    T* D = &T(0);
+    return D;
+}
+
 
 template<typename T>
 std::vector<T> sampleWithoutReplacement(idx_type<T> l, std::vector<T> v)
@@ -342,9 +387,5 @@ std::vector< std::vector<uint64_t> > MedianSplit(std::vector<T> &v)
   }
   return two_ways;
 }; /* end MedianSplit() */
-
-
-}; /* end namespace combinatorics */
-}; /* end namespace hmlp */
 
 #endif /* define PRIMITIVES_CPU_HPP */
