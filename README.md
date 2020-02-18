@@ -7,6 +7,10 @@ Set the appropriate enviornment variables in `set_env.sh`. Run make to build.
 Adding this to your PYTHON_PATH env variable i.e. `export PYTHON_PATH=$PYTHON_PATH:$(pwd)/prknn` should work.
 Then you can run the example script: example/test_accuracy.py
 
+Numba works on Frontera with CUDA/10.0
+Set: CUDA_HOME=$TACC_CUDA_DIR
+You might need to set: NUMBA_CUDA_DRIVER=/usr/lib64/libcuda.so.1
+
 TODO(p1)[Will] Fix build system.
 
 Currently missing in the current src (need to merge in):
