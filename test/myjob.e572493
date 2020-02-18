@@ -1,0 +1,15 @@
+
+Currently Loaded Modules:
+  1) git/2.24.1      4) pmix/3.1.4      7) TACC              10) ucx/1.6.1
+  2) autotools/1.2   5) hwloc/1.11.12   8) intel/19.0.5      11) impi/19.0.5
+  3) cmake/3.16.1    6) xalt/2.7.28     9) cuda/10.1    (g)  12) python3/3.7.0
+
+  Where:
+   g:  built for GPU
+
+ 
+
+Traceback (most recent call last):
+  File "cupy_test.py", line 4, in <module>
+    import prknn.kernels.gpu.core as gpu
+ModuleNotFoundError: No module named 'prknn'

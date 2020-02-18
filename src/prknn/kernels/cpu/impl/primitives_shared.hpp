@@ -15,9 +15,6 @@ using namespace std;
 template<typename T>
 using idx_type = typename vector<T>::size_type;
 
-template<typename T>
-using neigh_type = typename std::
-
 /*
 //Nearest Neighbor Kernel (from GOFMM Not Fused)
 //This actually wasn't parallel in GOFMM and it uses a pretty costly sort

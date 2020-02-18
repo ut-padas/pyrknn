@@ -1,7 +1,7 @@
 
 import cupy as cp
 from numba import cuda
-import prknn.kernels.gpu.core as gpu
+#import prknn.kernels.gpu.core as gpu
 
 @cuda.jit
 def add(x, y, out):
@@ -14,7 +14,7 @@ N = 10
 #a = cp.ones(N, dtype=cp.float32)
 #b = cp.ones(N, dtype=cp.float32) + 1
 a = cp.ones(N)
-b = cp.ones(N)
+b = cp.ones(N)+1
 out = cp.zeros_like(a)
 #c = gpu.add_vectors(a, b)
 

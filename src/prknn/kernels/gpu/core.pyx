@@ -43,37 +43,38 @@ def add_vectors(a, b):
 
     return out
 
-#Function to test is thrust is working for me
-def sort(a):
-    """Sort a vectors on the gpu. """
 
+#Ignoring any type checking (#TODO: Do this?)
+def median(a):
     cdef size_t N = len(a)
-    cdef long device_a
-    
-    if isinstance(a, (np.ndarray, np.generic)):
-        raise Exception(" GPU `sort` kernel requires data is already on the gpu. Please pass a cupy array.")
-    else: #At the time of writing I'm actually not sure what the cupy type is...
-        device_a = <long> a.data.device.id
-
+    cdef float* c_a
+    cdef float median
+    with cp.cuda.Device(a.data.device.id):
         temp_a = <long> a.data.mem.ptr
         c_a = <float *> temp_a
 
-        #TODO(p2): How to make sure that the device being called by thrust is the same as the one the device is on? (Can this be done on the python layer)
-        thrust_sort(c_a, N, device_a)
+        median = <float> device_kelley_cutting(c_a, N)
 
-    return a
+    return median
 
-@cuda.jit
-def numba_add(x, y, out):
-    start = cuda.grid(1)
-    stride = cuda.gridsize(1)
-    for i in range(start, x.shape[0], stride):
-        out[i] = x[i] + y[i]
 
-@cuda.jit
-def numba_increment(a):
-    """ Perform vector increment by 1 """
 
-    pos = cuda.grid(1)
-    if pos < a.size:
-        a[pos] += 1
+#For go type checking
+def reduce_float(a):
+    cdef size_t N = len(a)
+    cdef float* c_out
+    cdef float* c_a
+    
+    with cp.cuda.Device(a.data.device.id):
+        out = cp.zeros(1, dtype=cp.float32)
+        temp_out = <long> out.data.mem.ptr
+        temp_a = <long> a.data.mem.ptr
+
+        c_a = <float *> temp_a
+        c_out = <float *> temp_out
+
+        device_reduce_warp_atomic(c_a, c_out, N)
+
+    return out
+
+
