@@ -1,4 +1,5 @@
 import numpy as np
+import cupy as cp
 
 """File that contains key kernels to be replaced with high performance implementations"""
 
@@ -172,6 +173,23 @@ def merge_neighbors(a, b, k):
             a_dist[i] = merged_dist
 
         return (a_list, a_dist), changes
+
+def knn_stream_kernel1(querys, refs, k):
+    results = []
+    streams = []
+    for i in range(len(querys)):
+        streams.append(cp.cuda.stream.Stream())
+    for i in range(len(streams)):
+        with streams[i]:
+            r = cp.linalg.norm(refs, axis=1)**2 - 2*cp.dot(querys[i],refs)
+            indices = cp.argpartition(r, k)
+            results.append(cp.asnumpy(indices, stream=streams[i]))
+    for stream in streams:
+        stream.synchronize()
+    return results
+
+
+
 
 #This isn't really an HPC kernel, just a useful utility function I didn't know where else to put
 def neighbor_dist(a, b):

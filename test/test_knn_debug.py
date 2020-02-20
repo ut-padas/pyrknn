@@ -1,6 +1,7 @@
 from knn.tree import *
 from knn.util import *
 import numpy as np
+import cupy as cp
 
 #This is a large collection of helper function I wrote to debug and verify the reference implementation
 #This will not be maintained but you (or most likely me) may find it useful
@@ -244,6 +245,12 @@ def test_distance():
     print(dist)
     if dist < 5:
         print("True")
+
+def test_knn_stream_kernel1():
+    querys = cp.array([[0,0],[1,1], dtype="float32")
+    refs = cp.array([[0,0.5], [0.5,0], [1,1.5]])
+    results = test_knn_stream_kernel1(querys, refs, 1)
+
 
 #test_distance()
 #test_node_split()
