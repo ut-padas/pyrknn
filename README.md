@@ -29,30 +29,30 @@ test/
     - For now, just for debugging scripts. Ideally, clean this up and use a unittest module. (Save this for after PARLA implementation.)
     - TODO(p1)[ALL] We need test and timing scripts for kernels
  
-src/kernels/cpu
+src/prknn/kernels/cpu
 
     - cython wrapper for functions in impl (pxd, pyx, setup.py)
 
-src/kernels/cpu/impl/
+src/prknn/kernels/cpu/impl/
 
     - source files for cpp impl of kernels
 
-src/kernels/gpu/
+src/prknn/kernels/gpu/
 
     - cython wrapper for functions in impl (pxd, pyx, setup.py)
     - pure python gpu functions (NUMBA, CuPy, etc)
 
-src/kernels/gpu/impl
+src/prknn/kernels/gpu/impl
 
     - source files for cpp/cuda impl of kernels
 
-src/kdforest/reference/
+src/prknn/kdforest/reference/
 
     - Pure Python Implementation of KNN Scripts
     - The important file here is: util.py, it contains kernels to be replaced with specific variants
     - TODO(p1)[Will] Test and switch all kernels in util.py to specific variants
 
-src/kdforest/parla/
+src/prknn/kdforest/parla/
 
     - Parla Tasking Implementation
     - TODO(p2)[Will] Do this. (Side task: parallelize python parts within tasks using numba, avoid using dictionary to gather query ids)
