@@ -1,10 +1,3 @@
-from parla import Parla
-from parla.array import copy
-from parla.cuda import gpu
-from parla.cpu import cpu
-from parla.function_decorators import specialized
-from parla.ldevice import LDeviceSequenceBlocked
-from parla.tasks import spawn, TaskSpace, CompletedTaskSpace
 #import numpy as np
 from collections import defaultdict
 
