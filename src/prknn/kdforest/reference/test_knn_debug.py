@@ -5,13 +5,15 @@ import cupy as cp
 
 #This is a large collection of helper function I wrote to debug and verify the reference implementation
 #This will not be maintained but you (or most likely me) may find it useful
+libpy = np
+
 
 def test_node_print():
     arr = np.arange(100)
-    x = RKDT(pointset=arr)
+    x = RKDT(libpy, pointset=arr)
 
     arr2 = np.random.rand(100)
-    y = RKDT(pointset=arr2)
+    y = RKDT(libpy, pointset=arr2)
 
     RKDT.set_verbose(True)
 
@@ -22,7 +24,7 @@ def test_node_split():
     N = 20
     arr = np.random.rand(N, 10)
     RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=5, leafsize=5)
+    tree = RKDT(libpy,pointset=arr, levels=5, leafsize=5)
     root = RKDT.Node(tree, idx=0, level=0, size=N, gids=np.arange(N))
     children = root.split()
     print(root)
@@ -36,7 +38,7 @@ def test_build():
     N = 101
     arr = np.random.rand(N, 5)
     RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=5, leafsize=5)
+    tree = RKDT(libpy,pointset=arr, levels=5, leafsize=5)
     tree.build()
 
     for i in range(tree.get_levels()):
@@ -54,7 +56,7 @@ def test_query():
     arr = np.random.rand(N, d)*1000
     q = arr[idx, ...].reshape((1, d))
     RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=5, leafsize=5)
+    tree = RKDT(libpy,pointset=arr, levels=5, leafsize=5)
     tree.build()
 
     for i in range(tree.get_levels()):
@@ -77,7 +79,7 @@ def test_neighbor_node():
     arr = np.random.rand(N, d)
     q = arr[idx, ...].reshape((1, d))
     RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=5, leafsize=50)
+    tree = RKDT(libpy,pointset=arr, levels=5, leafsize=50)
     tree.build()
 
     for i in range(tree.get_levels()):
@@ -109,7 +111,7 @@ def test_direct():
     arr = np.random.rand(N, d)
     q = arr[idx, ...].reshape((len(idx), d))
     RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=7, leafsize=5)
+    tree = RKDT(libpy,pointset=arr, levels=7, leafsize=5)
     tree.build()
 
     neighbors = tree.knn(q, k)
@@ -125,7 +127,7 @@ def test_neighbor():
     arr = np.random.rand(N, d)
     q = arr[idx, ...].reshape((len(idx), d))
     RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=7, leafsize=5)
+    tree = RKDT(libpy, pointset=arr, levels=7, leafsize=5)
     tree.build()
 
     neighbors = tree.knn(q, k)
@@ -145,10 +147,10 @@ def test_merge():
     arr = np.random.rand(N, d)
     q = arr[idx, ...].reshape((len(idx), d))
     RKDT.set_verbose(True)
-    treeA = RKDT(pointset=arr, levels=7, leafsize=5)
+    treeA = RKDT(libpy, pointset=arr, levels=7, leafsize=5)
     treeA.build()
 
-    treeB = RKDT(pointset=arr, levels=7, leafsize=5)
+    treeB = RKDT(libpy, pointset=arr, levels=7, leafsize=5)
     treeB.build()
 
     print("True Neighbors")
@@ -178,7 +180,7 @@ def test_converge():
     q = arr[idx, ...].reshape((len(idx), d))
     RKDT.set_verbose(True)
 
-    tree = RKDT(pointset=arr, levels=0)
+    tree = RKDT(libpy, pointset=arr, levels=0)
     tree.build()
     tneighbors = tree.knn(q, k)
 
@@ -186,7 +188,7 @@ def test_converge():
     change_arr = np.zeros(lmax)
     result = None
     for l in range(lmax):
-        tree = RKDT(pointset=arr, levels=12, leafsize=512)
+        tree = RKDT(libpy, pointset=arr, levels=12, leafsize=512)
         tree.build()
 
         neighbors = tree.aknn(q, k)
@@ -219,7 +221,7 @@ def test_all_nearest():
     arr = np.random.rand(N, d)
     q = arr[idx, ...].reshape((len(idx), d))
     RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=15, leafsize=512)
+    tree = RKDT(libpy, pointset=arr, levels=15, leafsize=512)
     tree.build()
 
     #neighbors = tree.aknn(q, k)
@@ -252,16 +254,16 @@ def test_knn_stream_kernel1():
     results = knn_stream_kernel1(querys, refs, 1)
     print(results)
 
-#test_distance()
-#test_node_split()
-#test_build()
-#test_query()
-#test_neighbor_node()
-#test_neighbor()
+test_distance()
+test_node_split()
+test_build()
+test_query()
+test_neighbor_node()
+test_neighbor()
 test_knn_stream_kernel1()
-#test_all_nearest()
-#test_merge()
+test_all_nearest()
+test_merge()
 
-#test_converge()
+test_converge()
 
 

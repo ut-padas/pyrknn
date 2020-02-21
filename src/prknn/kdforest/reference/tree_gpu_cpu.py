@@ -1,5 +1,7 @@
 #import numpy as np
 from collections import defaultdict
+import numpy as np
+import cupy as cp
 
 class RKDT:
     """Class for Randomized KD Tree Nearest Neighbor Searches"""
