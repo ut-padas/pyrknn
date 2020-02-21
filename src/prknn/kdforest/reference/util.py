@@ -181,12 +181,12 @@ def knn_stream_kernel1(querys, refs, k):
         streams.append(cp.cuda.stream.Stream())
     for i in range(len(streams)):
         with streams[i]:
-            print("shape of norm is ",cp.linalg.norm(refs,axis=1).shape)
-            print("shape of querys[i] is ", querys[i].shape)
-            print("shape of refs is ", refs.shape)
+            #print("shape of norm is ",cp.linalg.norm(refs,axis=1).shape)
+            #print("shape of querys[i] is ", querys[i].shape)
+            #print("shape of refs is ", refs.shape)
             r = cp.linalg.norm(refs, axis=1)**2 - 2*cp.dot(refs,querys[i])
             indices = cp.argpartition(r, k)
-            results.append(cp.asnumpy(indices, stream=streams[i]))
+            results.append(cp.asnumpy(indices[:k], stream=streams[i]))
     for stream in streams:
         stream.synchronize()
     return results
