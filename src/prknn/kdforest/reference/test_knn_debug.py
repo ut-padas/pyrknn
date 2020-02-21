@@ -251,7 +251,8 @@ def test_distance():
 def test_knn_stream_kernel1():
     querys = cp.array([[0,0],[1,1]], dtype="float32")
     refs = cp.array([[0,0.5], [0.5,0], [1,1.5]])
-    results = knn_stream_kernel1(querys, refs, 1)
+    refs_norm_sq = cp.linalg.norm(refs, axis = -1)
+    results = knn_stream_kernel1(querys, refs, refs_norm_sq, 1)
     print(results)
 
 test_distance()
