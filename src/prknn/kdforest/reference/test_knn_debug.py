@@ -25,7 +25,7 @@ def test_node_split():
     arr = np.random.rand(N, 10)
     RKDT.set_verbose(True)
     tree = RKDT(libpy,pointset=arr, levels=5, leafsize=5)
-    root = RKDT.Node(tree, idx=0, level=0, size=N, gids=np.arange(N))
+    root = RKDT.Node(libpy, tree, idx=0, level=0, size=N, gids=np.arange(N))
     children = root.split()
     print(root)
     for child in children:

@@ -25,8 +25,8 @@ def distance(R, Q):
     global env
     if env == "PYTHON":
         D= -2*np.dot(Q, R.T)                    #Compute -2*<q_i, r_j>, Note: Python is row-major
-        Q2 = np.linalg.norm(Q, axis=1)**2       #Compute ||q_i||^2
-        R2 = np.linalg.norm(R, axis=1)**2       #Compute ||r_j||^2
+        Q2 = np.linalg.norm(Q, axis=-1)**2       #Compute ||q_i||^2
+        R2 = np.linalg.norm(R, axis=-1)**2       #Compute ||r_j||^2
 
         D = D + Q2[:, np.newaxis]               #Add in ||q_i||^2 row-wise
         D = D + R2                              #Add in ||q_i||^2 colum-wise

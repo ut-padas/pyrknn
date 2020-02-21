@@ -2,6 +2,7 @@
 from collections import defaultdict
 import numpy as np
 import cupy as cp
+import util
 
 class RKDT:
     """Class for Randomized KD Tree Nearest Neighbor Searches"""
@@ -128,7 +129,7 @@ class RKDT:
 
         verbose = False
 
-        def __init__(self, libpy, tree, idx=0, level=0, size=0, gids=None, libpy="numpy"):
+        def __init__(self, libpy, tree, idx=0, level=0, size=0, gids=None):
             """Initalize a member of the RKDT.Node class
 
             Arguments:
@@ -216,7 +217,7 @@ class RKDT:
             """
             #TODO: Replace with gpu kernel
             self.anchors = self.libpy.random.choice(self.gids, 2, replace=False)
-            dist = Primitives.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
+            dist = util.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
             self.local_ = dist[0] - dist[1]
 
         def average(self, idx=0):
@@ -297,7 +298,7 @@ class RKDT:
                 k -- number of nearest neighbors
             """
             R = self.tree.data[self.gids, ...]
-            return Primitives.direct_knn(self.gids, R, Q, k)
+            return util.direct_knn(self.gids, R, Q, k)
 
         def exact_all_nearest_neighbors(self, k):
             """
@@ -307,7 +308,7 @@ class RKDT:
                 k -- number of nearest neighbors (Limitation: k < leafsize)
             """
             R = self.tree.data[self.gids, ...]
-            return Primitives.direct_knn(self.gids, R, R, k)
+            return util.direct_knn(self.gids, R, R, k)
 
         def single_query(self, q):
             """
@@ -322,8 +323,8 @@ class RKDT:
                 return self.id
 
             #compute distance to anchors
-            q = q.reshape((1, len(q)))
-            dist = Primitives.distance(q, self.tree.data[self.anchors, ...])
+            #q = q.reshape((1, len(q)))
+            dist = util.distance(q, self.tree.data[self.anchors, ...])
             dist = dist[0] - dist[1]
 
             #compare against splitting plane
