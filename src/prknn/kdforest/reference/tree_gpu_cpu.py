@@ -323,10 +323,12 @@ class RKDT:
                 return self.id
 
             #compute distance to anchors
-            #q = q.reshape((1, len(q)))
+            q = q.reshape((1, q.shape[1]))
             dist = util.distance(q, self.tree.data[self.anchors, ...])
             dist = dist[0] - dist[1]
-
+            print(q.shape)
+            print(dist.shape)
+            print("1x1")
             #compare against splitting plane
             return 2*self.id+1 if dist < self.plane else 2*self.id+2
 

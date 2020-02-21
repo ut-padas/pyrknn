@@ -54,7 +54,7 @@ def test_query():
     d = 5
     idx = 10
     arr = np.random.rand(N, d)*1000
-    q = arr[idx, ...].reshape((1, d))
+    #q = arr[idx, ...].reshape((1, d))
     RKDT.set_verbose(True)
     tree = RKDT(libpy,pointset=arr, levels=5, leafsize=5)
     tree.build()
@@ -77,7 +77,7 @@ def test_neighbor_node():
     k = 4
     idx = 5
     arr = np.random.rand(N, d)
-    q = arr[idx, ...].reshape((1, d))
+    #q = arr[idx, ...].reshape((1, d))
     RKDT.set_verbose(True)
     tree = RKDT(libpy,pointset=arr, levels=5, leafsize=50)
     tree.build()
@@ -254,16 +254,16 @@ def test_knn_stream_kernel1():
     results = knn_stream_kernel1(querys, refs, 1)
     print(results)
 
-#test_distance()
-#test_node_split()
-#test_build()
-#test_query()
-#test_neighbor_node()
-#test_neighbor()
+test_distance()
+test_node_split()
+test_build()
+test_query()
+test_neighbor_node()
+test_neighbor()
 test_knn_stream_kernel1()
-#test_all_nearest()
-#test_merge()
+test_all_nearest()
+test_merge()
 
-#test_converge()
+test_converge()
 
 
