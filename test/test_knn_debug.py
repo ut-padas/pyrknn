@@ -247,10 +247,10 @@ def test_distance():
         print("True")
 
 def test_knn_stream_kernel1():
-    querys = cp.array([[0,0],[1,1], dtype="float32")
+    querys = cp.array([[0,0],[1,1]], dtype="float32")
     refs = cp.array([[0,0.5], [0.5,0], [1,1.5]])
     results = test_knn_stream_kernel1(querys, refs, 1)
-
+    print(results)
 
 #test_distance()
 #test_node_split()
@@ -258,8 +258,8 @@ def test_knn_stream_kernel1():
 #test_query()
 #test_neighbor_node()
 #test_neighbor()
-
-test_all_nearest()
+test_knn_stream_kernel1()
+#test_all_nearest()
 #test_merge()
 
 #test_converge()
