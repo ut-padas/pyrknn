@@ -5,7 +5,7 @@ import cupy as cp
 
 #This is a large collection of helper function I wrote to debug and verify the reference implementation
 #This will not be maintained but you (or most likely me) may find it useful
-libpy = np
+libpy = cp
 
 
 def test_node_print():
@@ -255,16 +255,16 @@ def test_knn_stream_kernel1():
     results = knn_stream_kernel1(querys, refs, refs_norm_sq, 1)
     print(results)
 
-test_distance()
-test_node_split()
+#test_distance()
+#test_node_split()
 test_build()
-test_query()
-test_neighbor_node()
-test_neighbor()
-test_knn_stream_kernel1()
-test_all_nearest()
-test_merge()
+#test_query()
+#test_neighbor_node()
+#test_neighbor()
+#test_knn_stream_kernel1()
+#test_all_nearest()
+#test_merge()
 
-test_converge()
+#test_converge()
 
 

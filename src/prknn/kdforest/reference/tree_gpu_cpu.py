@@ -276,7 +276,7 @@ class RKDT:
 
             stream = cp.cuda.Stream()
             with stream:
-                cp.random.randomState(1001)
+                cp.random.RandomState(1001)
                 p = self.libpy.random.random((self.tree.data[0].shape))
                 proj = self.libpy.dot(self.tree.data, p)
                 lids = self.libpy.argpartition(proj, middle)
