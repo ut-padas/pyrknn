@@ -5,6 +5,10 @@ import numpy as np
 import cupy as cp
 import util
 
+def split_node(node):
+    node.split()
+    return 
+
 class RKDT:
     """Class for Randomized KD Tree Nearest Neighbor Searches"""
 
@@ -297,9 +301,7 @@ class RKDT:
             children = [left, right]
             self.set_children(children)
             self.tree.treelist[self.id] = self
-            def split_node(node):
-                node.split()
-                return
+            
             with mp.Pool(processes=2) as p:
                 p.map(split_node, children)
             return children
