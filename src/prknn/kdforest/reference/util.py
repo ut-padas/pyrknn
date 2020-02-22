@@ -47,8 +47,11 @@ def direct_knn(gids, R, Q, k):
     global env
     if env == "PYTHON":
         #Note: My Pure python implementation is quite wasteful with memory.
-
-        N, d, = Q.shape
+        if len(Q.shape) == 1:
+            N = 1
+            d = Q.shape[0]
+        else:
+            N, d, = Q.shape
 
         #Allocate storage space for neighbor ids and distances
         neighbor_list = np.zeros([N, k])                #TODO: Change type to int

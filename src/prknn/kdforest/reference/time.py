@@ -19,10 +19,10 @@ cp.random.RandomState(1001)
 refs = cp.random.random((ref_size,d))
 refs_norm_sq = cp.linalg.norm(refs, axis = -1)
 
-for query_size in range(10, 2001, 10):
+for query_size in range(5, 64, 2):
     cp.random.RandomState(1001)
     querys = cp.random.random((query_size,d))
     t0 = time.time()
     globals()[kernel](querys,refs,refs_norm_sq,k)
     t1 = time.time()
-    csv_writer.writerow([ref_size,t1-t0])
+    csv_writer.writerow([query_size,t1-t0])

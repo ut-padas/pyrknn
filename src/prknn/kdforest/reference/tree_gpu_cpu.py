@@ -323,7 +323,7 @@ class RKDT:
                 return self.id
 
             #compute distance to anchors
-            q = q.reshape((1, q.shape[1]))
+            q = q.reshape((1, q.shape[0]))
             dist = util.distance(q, self.tree.data[self.anchors, ...])
             dist = dist[0] - dist[1]
             print(q.shape)

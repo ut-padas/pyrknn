@@ -54,7 +54,7 @@ def test_query():
     d = 5
     idx = 10
     arr = np.random.rand(N, d)*1000
-    #q = arr[idx, ...].reshape((1, d))
+    q = arr[idx, ...]
     RKDT.set_verbose(True)
     tree = RKDT(libpy,pointset=arr, levels=5, leafsize=5)
     tree.build()
@@ -77,7 +77,7 @@ def test_neighbor_node():
     k = 4
     idx = 5
     arr = np.random.rand(N, d)
-    #q = arr[idx, ...].reshape((1, d))
+    q = arr[idx, ...]#.reshape((1, d))
     RKDT.set_verbose(True)
     tree = RKDT(libpy,pointset=arr, levels=5, leafsize=50)
     tree.build()
