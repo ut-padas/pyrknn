@@ -1,5 +1,6 @@
 #import numpy as np
 from collections import defaultdict
+import multiprocessing as mp
 import numpy as np
 import cupy as cp
 import util
@@ -110,14 +111,15 @@ class RKDT:
 
         #Build tree in in-order traversal
         #TODO: Key area for PARLA Tasks
-        for l in range(N):
-            current_node = self.treelist[l]
-            if current_node is not None:
-                children = current_node.split()
-                children = list(filter(None, children))
-                for child in children:
-                    idx = child.get_id()
-                    self.treelist[idx]=child
+        root.split()
+        # for l in range(N):
+        #     current_node = self.treelist[l]
+        #     if current_node is not None:
+        #         children = current_node.split()
+        #         children = list(filter(None, children))
+        #         for child in children:
+        #             idx = child.get_id()
+        #             self.treelist[idx]=child
 
         self.built=True
 
@@ -266,14 +268,22 @@ class RKDT:
                 return [None, None]
 
             #project onto line (projection stored in self.local_)
-            self.select_hyperplane()
+            # Commented-out is the code by Will
+            # self.select_hyperplane()
 
-            self.lids = self.libpy.argpartition(self.local_, middle)  #parition the local ids
-            self.gids = self.gids[self.lids]                  #partition the global ids
+            # self.lids = self.libpy.argpartition(self.local_, middle)  #parition the local ids
+            # self.gids = self.gids[self.lids]                  #partition the global ids
 
-            #TODO: When replacing this with Hongru's kselect the above should be the same step in a key-value pair
+            stream = cp.cuda.Stream()
+            with stream:
+                cp.random.randomState(1001)
+                p = self.libpy.random.random((self.tree.data[0].shape))
+                proj = self.libpy.dot(self.tree.data, p)
+                lids = self.libpy.argpartition(proj, middle)
+                self.gids = self.gids[lids]
 
-            self.plane = self.local_[self.lids[middle]]       #save the splitting line
+            stream.synchronize()
+            self.plane = (p, proj[lids[middle]]) #self.local_[self.lids[middle]]       #save the splitting hyperplane and median value
 
             self.cleanup()                                    #delete the local projection (it isn't required any more)
 
@@ -286,7 +296,12 @@ class RKDT:
 
             children = [left, right]
             self.set_children(children)
-
+            self.tree.treelist[self.id] = self
+            def split_node(node):
+                node.split()
+                return
+            with mp.Pool(processes=2) as p:
+                p.map(split_node, children)
             return children
 
         def knn(self, Q, k):
