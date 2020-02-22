@@ -304,8 +304,12 @@ class RKDT:
             self.set_children(children)
             self.tree.treelist[self.id] = self
             
-            with mp.Pool(processes=2) as p:
-                p.map(split_node, children)
+            p1 = mp.Process(target=split_node,args=(left,))
+            p2 = mp.Process(target=split_node,args=(right,))
+            p1.start()
+            p2.start()
+            p1.join()
+            p2.join()
             return children
 
         def knn(self, Q, k):
