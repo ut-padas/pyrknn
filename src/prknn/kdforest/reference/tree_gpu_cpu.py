@@ -6,6 +6,8 @@ import cupy as cp
 import util
 
 def split_node(node):
+    if node is None:
+        return
     node.split()
     return 
 

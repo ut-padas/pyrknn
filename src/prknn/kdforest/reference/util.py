@@ -184,7 +184,7 @@ def knn_stream_kernel1(querys, refs, ref_norm_sq, k):
     results = []
     streams = []
     for i in range(len(querys)):
-        streams.append(cp.cuda.stream.Stream())
+        streams.append(cp.cuda.stream.Stream(null=False,non_blocking=True))
     for i in range(len(streams)):
         with streams[i]:
             r = ref_norm_sq - 2*cp.dot(refs,querys[i])
