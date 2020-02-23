@@ -267,7 +267,8 @@ class RKDT:
             middle = int(self.size/2)
 
             #Stop the split if the leafsize is too small, or the maximum level has been reached
-            if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:
+            if (middle < self.tree.leafsize):
+                '''if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:'''
                 self.plane = None
                 self.anchors = None
                 self.isleaf=True
@@ -280,7 +281,7 @@ class RKDT:
             # self.lids = self.libpy.argpartition(self.local_, middle)  #parition the local ids
             # self.gids = self.gids[self.lids]                  #partition the global ids
 
-            stream = cp.cuda.Stream()
+            stream = cp.cuda.Stream(null=False,non_blocking=True)
             with stream:
                 cp.random.RandomState(1001)
                 p = self.libpy.random.random((self.tree.data[0].shape))
@@ -302,12 +303,19 @@ class RKDT:
 
             children = [left, right]
             self.set_children(children)
-            self.tree.treelist[self.id] = self
-            
-            p = threading.Thread(target=split_node,args=(right,))
-            p.start()
-            left.split()
-            p.join()
+            '''self.tree.treelist[self.id] = self'''
+           
+            '''print("The current thread id is ", threading.get_ident())'''
+            if self.level < 4:
+                p = threading.Thread(target=split_node,args=(right,))
+                p.start()
+                if left is not None:
+                    left.split()
+                p.join()
+            else:
+                if left is not None:
+                    left.split()
+                    right.split()
             return children
 
         def knn(self, Q, k):
