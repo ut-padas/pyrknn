@@ -1,6 +1,6 @@
 #import numpy as np
 from collections import defaultdict
-import multiprocessing as mp
+import threading
 import numpy as np
 import cupy as cp
 import util
@@ -304,12 +304,10 @@ class RKDT:
             self.set_children(children)
             self.tree.treelist[self.id] = self
             
-            p1 = mp.Process(target=split_node,args=(left,))
-            p2 = mp.Process(target=split_node,args=(right,))
-            p1.start()
-            p2.start()
-            p1.join()
-            p2.join()
+            p = threading.Thread(target=split_node,args=(right,))
+            p.start()
+            left.split()
+            p.join()
             return children
 
         def knn(self, Q, k):

@@ -40,7 +40,6 @@ def test_build():
     RKDT.set_verbose(True)
     tree = RKDT(libpy,pointset=arr, levels=5, leafsize=5)
     tree.build()
-
     for i in range(tree.get_levels()):
         level = tree.get_level(i)
         gids = []
@@ -81,7 +80,7 @@ def test_neighbor_node():
     RKDT.set_verbose(True)
     tree = RKDT(libpy,pointset=arr, levels=5, leafsize=50)
     tree.build()
-
+    
     for i in range(tree.get_levels()):
         level = tree.get_level(i)
         gids = []
@@ -101,7 +100,6 @@ def test_neighbor_node():
     root = tree.treelist[0]
     true_neighbors = root.knn(q, k)
     print(true_neighbors)
-
 
 def test_direct():
     N = 20000000
