@@ -284,13 +284,12 @@ class RKDT:
             stream = cp.cuda.Stream(null=False,non_blocking=True)
             with stream:
                 cp.random.RandomState(1001)
-                p = self.libpy.random.random((self.tree.data[0].shape))
-                proj = self.libpy.dot(self.tree.data, p)
+                p = self.libpy.random.random((self.tree.data[0].shape),dtype='float32')
+                proj = self.libpy.dot(self.tree.data[self.gids,...], p)
                 lids = self.libpy.argpartition(proj, middle)
                 self.gids = self.gids[lids]
-
+                self.plane = (p, proj[lids[middle]]) #self.local_[self.lids[middle]]       #save the splitting hyperplane and median value
             stream.synchronize()
-            self.plane = (p, proj[lids[middle]]) #self.local_[self.lids[middle]]       #save the splitting hyperplane and median value
 
             self.cleanup()                                    #delete the local projection (it isn't required any more)
 
