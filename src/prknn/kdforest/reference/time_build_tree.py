@@ -14,7 +14,7 @@ csv_writer = csv.writer(
 
 csv_writer.writerow(["size", "time"])
 libpy = cp
-for size in range(3000000, 10000001, 1000000):
+for size in range(1000000, 1000001, 1000000):
     cp.random.RandomState(1001)
     data_set = cp.random.random((size,d),dtype='float32')
     t0 = time.time()

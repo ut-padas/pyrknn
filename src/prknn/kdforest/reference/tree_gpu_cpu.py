@@ -112,7 +112,7 @@ class RKDT:
         self.treelist = [None] * N
 
         #Create the root node
-        root = self.Node(self.libpy, self, idx=0, level=0, size=self.size, gids=self.gids)
+        root = self.Node(self.libpy, self.tree.data, self, idx=0, level=0, size=self.size)
         self.treelist[0] = root
 
         #Build tree in in-order traversal
@@ -137,7 +137,7 @@ class RKDT:
 
         verbose = False
 
-        def __init__(self, libpy, tree, idx=0, level=0, size=0, gids=None):
+        def __init__(self, libpy, data, tree, idx=0, level=0, size=0):
             """Initalize a member of the RKDT.Node class
 
             Arguments:
@@ -149,17 +149,20 @@ class RKDT:
                 size -- the number of points that this node corresponds to
                 gids -- the list of global indicies for the owned points
             """
+            self.data = self.libpy.copy(data) # permuted data for the tree node
             self.libpy = libpy
             self.tree = tree
             self.id = idx
             self.level = level
             self.size = size
-            self.gids = gids
+            #self.gids = gids
             self.isleaf = True
             self.parent = None
             self.children = [None, None]
             self.anchors = None
-            self.plane = None
+            cp.random.RandomState(1001+self.id)
+            #p = self.libpy.random.random((self.tree.data[0].shape),dtype='float32')
+            self.plane = [self.libpy.random.random((data[0].shape),dtype='float32'),0.0]
 
         def __str__(self):
             """Overloading the print function for a RKDT.Node class"""
@@ -281,21 +284,30 @@ class RKDT:
             # self.lids = self.libpy.argpartition(self.local_, middle)  #parition the local ids
             # self.gids = self.gids[self.lids]                  #partition the global ids
 
+            if (self.level == 0 or self.level == 1 or self.level == 2):
+                mem_pool = cp.get_default_memory_pool()
+                print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
+
             stream = cp.cuda.Stream(null=False,non_blocking=True)
             with stream:
-                cp.random.RandomState(1001)
-                p = self.libpy.random.random((self.tree.data[0].shape),dtype='float32')
-                proj = self.libpy.dot(self.tree.data[self.gids,...], p)
+                proj = self.libpy.dot(self.data, p)
                 lids = self.libpy.argpartition(proj, middle)
-                self.gids = self.gids[lids]
-                self.plane = (p, proj[lids[middle]]) #self.local_[self.lids[middle]]       #save the splitting hyperplane and median value
+                self.plane[1] = proj[lids[middle]]
+                data_left = self.data[lids[:middle]]
+                data_right = self.data[lids[middle:]]
             stream.synchronize()
+
+            if (self.level == 0 or self.level == 1 or self.level == 2):
+                mem_pool = cp.get_default_memory_pool()
+                print('total bytes at level ', self.level,' are ', mem_pool.total_bytes())
 
             self.cleanup()                                    #delete the local projection (it isn't required any more)
 
             #Initialize left and right nodes
-            left = self.tree.Node(self.libpy, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle, gids=self.gids[:middle])
-            right = self.tree.Node(self.libpy, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle), gids=self.gids[middle:])
+            #has one extra copy of data
+            left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
+            right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
+            mem_pool.free_all_blocks(stream)
 
             left.set_parent(self)
             right.set_parent(self)
