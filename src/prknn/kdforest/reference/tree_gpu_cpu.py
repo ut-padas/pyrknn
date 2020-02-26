@@ -297,11 +297,12 @@ class RKDT:
                 self.plane[1] = proj[lids[middle]]
                 data_left = self.data[lids[:middle]]
                 data_right = self.data[lids[middle:]]
+                del proj
+                del lids
+                del self.data
             stream.synchronize()
-            del proj
-            del lids
 
-            self.cleanup()                                    #delete the local projection (it isn't required any more)
+            #self.cleanup()                                    #delete the local projection (it isn't required any more)
 
             #Initialize left and right nodes
             #has one extra copy of data
@@ -309,7 +310,6 @@ class RKDT:
             right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
             del data_left
             del data_right
-            del self.data
             '''
             if (self.level == 0 or self.level == 1 or self.level == 2):
                 mem_pool = cp.get_default_memory_pool()
