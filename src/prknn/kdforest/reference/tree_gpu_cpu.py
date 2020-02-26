@@ -8,7 +8,7 @@ import util
 def split_node(node):
     if node is None:
         return
-    node.split()
+    node.split(cp.cuda.Stream())
     return 
 
 class RKDT:
@@ -28,6 +28,7 @@ class RKDT:
         self.id = id(self)                      #unique id for instance of this class
         self.levels = levels
         self.leafsize = leafsize
+        self.nodelist = []
         if (pointset is not None):
             self.size = len(pointset)           #the number of points in the pointset
             self.gids = self.libpy.arange(self.size)    #the global ids of the points in the pointset (assign original ordering)
@@ -102,37 +103,13 @@ class RKDT:
         if self.levels < 0:
             raise ErrorType.InitializationError('Invalid max levels parameter: Cannot build a tree of '+str(self.levels)+' levels')
 
-
-        #Find out the maximum number of levels required
-        #TODO: Fix definition of leafsize to make this proper. Can often overestimate level by one.
-        self.levels = int(min( self.libpy.ceil(self.libpy.log2(self.libpy.ceil(self.size/self.leafsize))), self.levels ))
-
-        #Create treelist to store nodes in binary tree array order
-        N = 2 ** int(self.levels+1) - 1
-        self.treelist = [None] * N
-
         #Create the root node
         root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
-        self.treelist[0] = root
-        self.data = None
-        #Build tree in in-order traversal
-        #TODO: Key area for PARLA Tasks
-        root.split()
-        
-        # for l in range(N):
-        #     current_node = self.treelist[l]
-        #     if current_node is not None:
-        #         children = current_node.split()
-        #         children = list(filter(None, children))
-        #         for child in children:
-        #             idx = child.get_id()
-        #             self.treelist[idx]=child
+        del self.data
+        root.split(cp.cuda.Stream())
 
         self.built=True
 
-        #Fix overestimate of tree levels (see #TODO above)
-        if self.get_level(self.levels)[0] is None:
-            self.levels -= 1
 
     class Node:
 
@@ -156,13 +133,13 @@ class RKDT:
             self.id = idx
             self.level = level
             self.size = size
-            #self.gids = gids
             self.isleaf = True
             self.parent = None
             self.children = [None, None]
             self.anchors = None
             cp.random.RandomState(1001+self.id)
             #p = self.libpy.random.random((self.tree.data[0].shape),dtype='float32')
+            self.tree.nodelist.append(self)
             self.plane = [self.libpy.random.random((data[0].shape),dtype='float32'),0.0]
 
         def __str__(self):
@@ -256,7 +233,7 @@ class RKDT:
             else:
                 return self.libpy.median(self.local_)
 
-        def split(self):
+        def split(self, stream):
             """Split a node and assign both children.
 
             Return value:
@@ -268,7 +245,7 @@ class RKDT:
                 Partition gids and assign to children. left < median, right > median
             """
 
-            middle = int(self.size/2)
+            middle = self.size//2
 
             #Stop the split if the leafsize is too small, or the maximum level has been reached
             if (middle < self.tree.leafsize):
@@ -278,19 +255,13 @@ class RKDT:
                 self.isleaf=True
                 return [None, None]
 
-            #project onto line (projection stored in self.local_)
-            # Commented-out is the code by Will
-            # self.select_hyperplane()
-
-            # self.lids = self.libpy.argpartition(self.local_, middle)  #parition the local ids
-            # self.gids = self.gids[self.lids]                  #partition the global ids
             '''
             if (self.level == 0 or self.level == 1 or self.level == 2):
                 mem_pool = cp.get_default_memory_pool()
                 print('before creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
                 print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
             '''
-            stream = cp.cuda.Stream(null=False,non_blocking=True)
+            #project onto line (projection stored in self.local_)
             with stream:
                 proj = self.libpy.dot(self.data, self.plane[0])
                 lids = self.libpy.argpartition(proj, middle)
@@ -300,41 +271,36 @@ class RKDT:
                 del proj
                 del lids
                 del self.data
-            stream.synchronize()
-
-            #self.cleanup()                                    #delete the local projection (it isn't required any more)
-
+            
             #Initialize left and right nodes
-            #has one extra copy of data
             left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
             right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
             del data_left
             del data_right
-            '''
-            if (self.level == 0 or self.level == 1 or self.level == 2):
-                mem_pool = cp.get_default_memory_pool()
-                print('after creating stream and deleting, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
-                print('after creating stream and deleting, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
-            '''
 
             left.set_parent(self)
             right.set_parent(self)
 
             children = [left, right]
             self.set_children(children)
-            '''self.tree.treelist[self.id] = self'''
-           
-            '''print("The current thread id is ", threading.get_ident())'''
+
+            '''
+            if (self.level == 0 or self.level == 1 or self.level == 2):
+                mem_pool = cp.get_default_memory_pool()
+                print('after creating stream and deleting, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
+                print('after creating stream and deleting, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
+            '''
             if self.level < 4:
                 p = threading.Thread(target=split_node,args=(right,))
                 p.start()
                 if left is not None:
-                    left.split()
+                    left.split(stream)
                 p.join()
             else:
                 if left is not None:
-                    left.split()
-                    right.split()
+                    left.split(stream)
+                    right.split(stream)
+            stream.synchronize()
             return children
 
         def knn(self, Q, k):
