@@ -291,7 +291,7 @@ class RKDT:
 
             stream = cp.cuda.Stream(null=False,non_blocking=True)
             with stream:
-                proj = self.libpy.dot(self.data, p)
+                proj = self.libpy.dot(self.data, self.plane[0])
                 lids = self.libpy.argpartition(proj, middle)
                 self.plane[1] = proj[lids[middle]]
                 data_left = self.data[lids[:middle]]
@@ -309,7 +309,6 @@ class RKDT:
             #has one extra copy of data
             left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
             right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
-            mem_pool.free_all_blocks(stream)
 
             left.set_parent(self)
             right.set_parent(self)
