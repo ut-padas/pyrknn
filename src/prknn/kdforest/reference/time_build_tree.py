@@ -3,11 +3,11 @@ import numpy as np
 import time
 import csv
 from util import *
-from tree_gpu_cpu import *
+from tree_build_by_level import *
 
 d = 100
 
-csv_path = "time_build_tree_d"+str(d)+".csv"
+csv_path = "time_build_tree_by_level_d"+str(d)+".csv"
 csv_file = open(csv_path, 'w')
 csv_writer = csv.writer(
             csv_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)

@@ -29,6 +29,7 @@ class RKDT:
         self.id = id(self)                      #unique id for instance of this class
         self.levels = levels
         self.leafsize = leafsize
+        self.nodelist = []
         if (pointset is not None):
             self.size = len(pointset)           #the number of points in the pointset
             self.gids = self.libpy.arange(self.size)    #the global ids of the points in the pointset (assign original ordering)
@@ -106,7 +107,7 @@ class RKDT:
 
         #Create the root node
         root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
-        self.nodelist = [root]
+        
         del self.data
 
         data_size = len(root.data)
