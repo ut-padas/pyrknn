@@ -112,7 +112,7 @@ class RKDT:
         self.treelist = [None] * N
 
         #Create the root node
-        root = self.Node(self.libpy, self.tree.data, self, idx=0, level=0, size=self.size)
+        root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
         self.treelist[0] = root
 
         #Build tree in in-order traversal
@@ -149,7 +149,7 @@ class RKDT:
                 size -- the number of points that this node corresponds to
                 gids -- the list of global indicies for the owned points
             """
-            self.data = self.libpy.copy(data) # permuted data for the tree node
+            self.data = data # permuted data for the tree node
             self.libpy = libpy
             self.tree = tree
             self.id = idx
@@ -286,6 +286,7 @@ class RKDT:
 
             if (self.level == 0 or self.level == 1 or self.level == 2):
                 mem_pool = cp.get_default_memory_pool()
+                print('before creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
                 print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
 
             stream = cp.cuda.Stream(null=False,non_blocking=True)
@@ -299,7 +300,8 @@ class RKDT:
 
             if (self.level == 0 or self.level == 1 or self.level == 2):
                 mem_pool = cp.get_default_memory_pool()
-                print('total bytes at level ', self.level,' are ', mem_pool.total_bytes())
+                print('after creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
+                print('after creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
 
             self.cleanup()                                    #delete the local projection (it isn't required any more)
 
