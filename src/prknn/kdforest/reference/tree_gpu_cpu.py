@@ -114,10 +114,11 @@ class RKDT:
         #Create the root node
         root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
         self.treelist[0] = root
-
+        self.data = None
         #Build tree in in-order traversal
         #TODO: Key area for PARLA Tasks
         root.split()
+        
         # for l in range(N):
         #     current_node = self.treelist[l]
         #     if current_node is not None:
@@ -283,12 +284,12 @@ class RKDT:
 
             # self.lids = self.libpy.argpartition(self.local_, middle)  #parition the local ids
             # self.gids = self.gids[self.lids]                  #partition the global ids
-
+            '''
             if (self.level == 0 or self.level == 1 or self.level == 2):
                 mem_pool = cp.get_default_memory_pool()
                 print('before creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
                 print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
-
+            '''
             stream = cp.cuda.Stream(null=False,non_blocking=True)
             with stream:
                 proj = self.libpy.dot(self.data, self.plane[0])
@@ -297,11 +298,8 @@ class RKDT:
                 data_left = self.data[lids[:middle]]
                 data_right = self.data[lids[middle:]]
             stream.synchronize()
-
-            if (self.level == 0 or self.level == 1 or self.level == 2):
-                mem_pool = cp.get_default_memory_pool()
-                print('after creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
-                print('after creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
+            del proj
+            del lids
 
             self.cleanup()                                    #delete the local projection (it isn't required any more)
 
@@ -309,6 +307,15 @@ class RKDT:
             #has one extra copy of data
             left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
             right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
+            del data_left
+            del data_right
+            del self.data
+            '''
+            if (self.level == 0 or self.level == 1 or self.level == 2):
+                mem_pool = cp.get_default_memory_pool()
+                print('after creating stream and deleting, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
+                print('after creating stream and deleting, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
+            '''
 
             left.set_parent(self)
             right.set_parent(self)
