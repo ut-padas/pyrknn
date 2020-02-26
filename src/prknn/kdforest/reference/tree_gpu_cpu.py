@@ -292,6 +292,7 @@ class RKDT:
             '''
             if self.level < 4:
                 p = threading.Thread(target=split_node,args=(right,))
+                stream.synchronize()
                 p.start()
                 if left is not None:
                     left.split(stream)

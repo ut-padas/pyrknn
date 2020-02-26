@@ -131,17 +131,18 @@ class RKDT:
                 for i in range(stride):
                     streams[i].synchronize()
             else:
-                for i in range(stride//16):
-                    for j in range(16):
-                        node = self.nodelist[start + i*16 + j]
-                        node.split(streams[j])
-                for stream in streams:
-                    stream.synchronize()
+                nelem = stride//16
+                for i in range(16):
+                    for j in range(nelem):
+                        node = self.nodelist[start + j + i*nelem]
+                        node.split(streams[i])
 
             data_size //= 2
             start += stride
             stride *= 2
 
+        for stream in streams:
+            stream.synchronize()
         self.built=True
 
     class Node:
