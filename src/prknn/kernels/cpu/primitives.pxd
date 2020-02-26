@@ -11,4 +11,9 @@ cdef extern from "impl/primitives_shared.hpp" nogil:
     cdef T Reduce[T](vector[T] &, T & sum_glb) except +
     # cdef vector[vector[uint64_t]] MedianThreeWaySplit[T]( vector[T] &v, T tol ) except +
     # cdef vector[vector[uint64_t]] MedianSplit[T](vector[T] &v) except +
-
+    cdef void directKLowMem[T](int* gids, T *R, T*Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except +
+    cdef void GSKNN[T](int *rgids, int *qgids, T *R, T *Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except + 
+    cdef void blockedGSKNN[T](int *rgids, int *qgids, T *R, T *Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except + 
+    cdef void batchedDirectKNN[T](int **gids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves) except +
+    cdef void batchedGSKNN[T](int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves) except +
+    cdef void test[T]() except +

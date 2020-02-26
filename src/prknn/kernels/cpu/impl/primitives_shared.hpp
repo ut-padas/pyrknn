@@ -9,11 +9,30 @@
 #include <algorithm>
 
 #include <omp.h>
-//#include <mkl.h>
+//#include<ompUtils.h>
+//#include<blas.h>
+#include<cassert>
+#include<queue>
+#include<cmath>
+#include<utility>
+#include<iostream>
+#include<numeric>
+#include<mkl.h>
+
+#include<gsknn.h>
+
+
+#define KNN_MAX_BLOCK_SIZE 16
+#define KNN_MAX_MATRIX_SIZE 2e7L
+
 using namespace std;
 
 template<typename T>
-using idx_type = typename vector<T>::size_type;
+using idx_type = int;//typename vector<T>::size_type;
+
+
+template<typename T>
+using neigh_type = typename std::pair<T, idx_type<T>>;
 
 /*
 //Nearest Neighbor Kernel (from GOFMM Not Fused)
@@ -27,7 +46,7 @@ bool NeighborSearch(
     const idx_type<T> N,
     const idx_type<T> d, 
     vector<idx_type<T>> neighbor_list,
-    vector<idx_type<T>> neighbor_dist)
+    vector<T> neighbor_dist)
 {
    auto DRQ = Distances(R, Q, N, d);
 
@@ -53,73 +72,717 @@ bool NeighborSearch(
 
     return true;
 } 
+*/
+//Kernels from Bo Xiao's Code 
 
-//Kernel from Bo Xiao's Code (for arb n, high memory)
-pair<double, long> *knn::directKQuery
-           ( double *ref, double *query, long n, long m, long k, int dim )
-{
-   double *dist = new double[m*n];
-   pair<double, long> *pdists =NULL;
-   pair<double, long> *result = new pair<double, long>[m*k];
-   int num_neighbors = (k<n) ? k : n;
+template<typename T>
+class maxheap_comp {
+    public:
+        bool operator() (const std::pair<T, idx_type<T>> &a, const std::pair<T, idx_type<T>> &b) {
+            double diff = fabs(a.first-b.first)/a.first;
+            if( std::isinf(diff) || std::isnan(diff) ) {      // 0/0 or x/0
+                return a.first < b.first;
+            }
+            if( diff < 1.0e-8 ) {
+                return a.second < b.second;
+            }
+            return a.first < b.first;
+        }
+};
 
-   knn::compute_distances( ref, query, n, m, dim, dist );
+template<typename T>
+T getBlockSize(const T n, const T m){
+    T blocksize;
 
-   pdists = new pair<double, long>[m*n];
-   //Copy each distance into a pair along with its index for sorting
-   #pragma omp parallel for
-   for( int i = 0; i < m; i++ )
-     for( int j = 0; j < n; j++ )
-       pdists[i*n+j] = pair<double, long>(dist[i*n+j], j);
-
-
-   //Find nearest neighbors and copy to result.
-   #pragma omp parallel for
-   for( int h = 0; h < m; h++ ) {
-     int curr_idx = 0;
-     double curr_min = DBL_MAX;
-     int swaploc = 0;
-     for(int j = 0; j < num_neighbors; j++) {
-       curr_min = DBL_MAX;
-       for(int a = curr_idx; a < n; a++) {
-         if(pdists[h*n+a].first < curr_min) {
-            swaploc = a;
-            curr_min = pdists[h*n+a].first;
-         }
-       }
-       result[h*k+j] = pdists[h*n+swaploc];
-       pdists[h*n+swaploc] = pdists[h*n+curr_idx];
-       curr_idx++;
+    if( m > KNN_MAX_BLOCK_SIZE || n > 10000L){ 
+       blocksize = std::min((T)KNN_MAX_BLOCK_SIZE, m); //number of query points handled in a given iteration
+       
+       if(n * blocksize > (T)KNN_MAX_MATRIX_SIZE) blocksize = std::min((T)(KNN_MAX_MATRIX_SIZE/n), blocksize); //Shrink block size if n is huge.
+       
+       blocksize = std::max(blocksize, omp_get_max_threads()); //Make sure each thread has some work.
+     } else {
+        blocksize = m;
      }
-   }
-
-   if(num_neighbors < k) {
-     //Pad the k-min matrix with bogus values that will always be higher than real values
-     #pragma omp parallel for
-     for( int i = 0; i < m; i++ )
-       for( int j = num_neighbors; j < k; j++ )
-         result[i*n+j] = pair<double, long>(DBL_MAX, -1L);
-   }
-
-   delete [] dist;
-   if(pdists)
-     delete [] pdists;
-
-   return result;
+     return blocksize;
 }
 
-void knn::sqnorm ( double *a, long n, int dim, double *b) {
-  int one = 1;
-  bool omptest = n*(long)dim > 10000L;
 
-  #pragma omp parallel if(omptest)
-  {
-    #pragma omp for schedule(static)
-    for(int i = 0; i < n; i++) {
-       b[i] = ddot(&dim, &(a[dim*i]), &one, &(a[dim*i]), &one);
+template<typename T>
+T getNumLocal(const T rank, const T size, const T num){
+    if(rank < num % size)
+        return (idx_type<T>) std::ceil( (double) num / (double) size );
+    else
+        return num / size;
+}
+
+
+template<typename T>
+void sqnorm(T *a, idx_type<T> n, idx_type<T> dim, T *b){
+    int one = 1;
+    bool omptest = n*(long)dim > 10000L;
+
+    #pragma omp parallel if (omptest)
+    {
+        #pragma omp for schedule(static)
+        for(idx_type<T> i = 0; i < n; ++i){
+            b[i] = sdot(&dim, &(a[dim*i]), &one, &(a[dim*i]), &one);
+
+        }
     }
-  }
 }
+
+
+template<typename T>
+void compute_distances(T *R, T *Q, 
+                  idx_type<T> n, idx_type<T> m, idx_type<T> dim, T* dist, 
+                  T* sqnormr, T* sqnormq, bool useSqnormrInput)
+{
+    T alpha = -2.0;
+    T beta = 0.0;
+
+    int iN = (int) n;
+    int iM = (int) m;
+
+    idx_type<T> maxt = omp_get_max_threads();
+    bool omptest = (m > 4 * maxt || (m >= maxt && n > 128)) && n < 100000;
+
+    #pragma omp parallel if( omptest )
+    {
+        idx_type<T> t = omp_get_thread_num();
+        idx_type<T> numt = omp_get_num_threads();
+        idx_type<T> npoints = getNumLocal(t, numt, m);
+
+        int offset = 0;
+        for(idx_type<T> i = 0; i < t; ++i) offset += getNumLocal(i, numt, m);
+        
+        sgemm("T", "N", &iN, &npoints, &dim, &alpha, R, &dim, Q + (dim*offset), 
+               &dim, &beta, dist+(offset*n), &iN);                    
+    }
+
+
+    bool dealloc_sqnormr = false;
+    bool dealloc_sqnormq = false;
+
+    if(!sqnormr && !useSqnormrInput) {
+        sqnormr = new T[n];
+        dealloc_sqnormr = true;
+    }
+
+    if(!sqnormq){
+        sqnormq = new T[m];
+        dealloc_sqnormq = true;
+    }
+
+    if(!useSqnormrInput)
+        sqnorm(R, n, dim, sqnormr);
+
+    sqnorm(Q, m, dim, sqnormq);
+
+    if( m > maxt || n > 10000) {
+        idx_type<T> blocksize = (n > 10000) ? m/maxt/2 : 128;
+        #pragma omp parallel for
+        for(idx_type<T> i = 0; i < m; ++i){
+            idx_type<T> in = i*n;
+            idx_type<T> j;
+
+            #pragma ivdep
+            for(j = 0; j < n; ++j){
+                idx_type<T> inpj = in + j;
+                dist[inpj] += sqnormq[i] + sqnormr[j];
+            }
+        }
+    }
+    else{
+        for(idx_type<T> i = 0; i < m; ++i){
+            idx_type<T> in = i*n;
+            idx_type<T> j;
+            
+            #pragma ivdep
+            for(j = 0; j < n; ++j){
+                idx_type<T> inpj = in + j;
+                dist[inpj] += sqnormq[i] + sqnormr[j];
+            }
+        }
+    }
+
+    if(dealloc_sqnormr)
+        delete [] sqnormr;
+
+    if(dealloc_sqnormq)
+        delete [] sqnormq;
+
+    //force distances to be greater than 0 to mitigate rounding errors
+    
+    #pragma omp parallel for
+    for(idx_type<T> i = 0; i < m*n; ++i){
+        if(dist[i] < 0.0) dist[i] = 0.0;
+    }
+
+}
+
+
+
+//Direct Query (Low Memory)
+template<typename T>
+void directKLowMem(const idx_type<T> *gids, 
+                   T *R, T *Q,
+                   const idx_type<T> n,
+                   const idx_type<T> d, 
+                   const idx_type<T> m, 
+                   const idx_type<T> k, 
+                   idx_type<T>* neighbor_list,
+                   T* neighbor_dist){
+
+    register idx_type<T> num_neighbors = (k < n) ? k : n;
+
+    vector<pair< T, idx_type<T> >> result;
+    result.reserve(m*k);
+
+    //Split Query into smaller pieces
+    idx_type<T> blocksize = getBlockSize(n, m);
+
+    bool dealloc_dist = false;
+    bool dealloc_sqnormr = false;
+    bool dealloc_sqnormq = false;
+
+    T *dist;
+    T *sqnormr;
+    T *sqnormq;
+
+    idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
+
+    assert(blocksize > 0);
+
+    idx_type<T> nblocks = m / blocksize;
+    idx_type<T> iters = (idx_type<T>) ceil((double) m/ (double) blocksize);
+
+    if(!dist) {
+        dist = new T[n*blocksize];
+        dealloc_dist = true;
+    }
+
+    if(!sqnormr) {
+        sqnormr = new T[n];
+        dealloc_sqnormq = true;
+    }
+
+    if(!sqnormq) {
+        sqnormq = new T[blocksize];
+        dealloc_sqnormq = true;
+    }
+
+    bool useSqnormrInput = false;
+
+    //Loop over all blocks
+    for(idx_type<T> i = 0; i < iters; ++i){
+        T *currquery = Q + i*blocksize*d;
+        if ( (i == iters -1) && (m%blocksize) ){
+            idx_type<T> lastblocksize = m%blocksize;
+
+            compute_distances(R, currquery, n, lastblocksize, d, dist, sqnormr, sqnormq, useSqnormrInput);
+
+            #pragma omp parallel
+            {
+                priority_queue<neigh_type<T>, vector<neigh_type<T>>, maxheap_comp<T>> maxheap;
+                
+                #pragma omp for
+                for(idx_type<T> h = 0; h < lastblocksize; ++h) {
+                    while(!maxheap.empty()) maxheap.pop();
+                    int querynum = i*blocksize + h;
+                    for(idx_type<T> j = 0; j < num_neighbors; ++j)
+                        maxheap.push( make_pair< T, idx_type<T> >( (T) dist[h*n+j], (idx_type<T>) j) );
+
+                    for(idx_type<T> j = num_neighbors; j < n; ++j){
+                        maxheap.push( make_pair< T, idx_type<T> >( (T) dist[h*n+j], (idx_type<T>) j) );
+                        maxheap.pop();
+                    }
+                    
+                    for(size_t j = num_neighbors-1; j >=0; --j){
+                        result[querynum*k+j] = maxheap.top();
+                        maxheap.pop();
+                    }
+                }
+            }
+        } //end if last block
+        else {
+            compute_distances(R, currquery, n, blocksize, d, dist, sqnormr, sqnormq, useSqnormrInput);
+            
+            #pragma omp parallel
+            {
+                priority_queue< neigh_type<T>, vector< neigh_type<T> >, maxheap_comp<T>> maxheap;
+                #pragma omp for
+                for(idx_type<T> h = 0; h < blocksize; ++h){
+
+                    while(!maxheap.empty()) maxheap.pop();
+                    idx_type<T> querynum = i*blocksize + h;
+                    for(idx_type<T> j = 0; j < num_neighbors; j++)
+                        maxheap.push( make_pair< T, idx_type<T> >( (T) dist[h*n+j], (idx_type<T>) j) );
+
+                    for(idx_type<T> j = num_neighbors; j < n; ++j){
+                        maxheap.push( make_pair< T, idx_type<T> >( (T) dist[h*n+j], (idx_type<T>) j) );
+                        maxheap.pop();
+                    }
+                    for(idx_type<T> j = num_neighbors-1; j >= 0; --j){
+                        result[querynum*k+j] = maxheap.top();
+                        maxheap.pop();
+                    }
+                } //end for h
+            } //end parallel region
+        } //end block
+        useSqnormrInput = true;
+    }
+    if( num_neighbors < k){
+        //pad with bogus values
+        #pragma omp parallel if( m > 128 * maxt)
+        {
+            #pragma omp for schedule(static)
+            for(idx_type<T> i = 0; i < m; ++i){
+                for(idx_type<T> j = num_neighbors; j < k; ++j){
+                    result[i*k+j].first = 3.4028E38;
+                    result[i*k+j].second = 0;
+                }
+            }
+        }
+    }
+            
+    //copy results over to neighbor_dist and neighbor_list
+    #pragma omp parallel if (m > 128 * maxt)
+    {
+        #pragma omp for
+        for(idx_type<T> i = 0; i < m; ++i){
+            #pragma ivdep
+            for(idx_type<T> j = 0; j < k; ++j){
+                neighbor_dist[i*k+j] = result[i*k+j].first;
+                neighbor_list[i*k+j] = gids[result[i*k+j].second];
+            }
+        }
+    }
+
+    if(dealloc_dist) delete[] dist;
+    if(dealloc_sqnormq) delete [] sqnormr;
+    if(dealloc_sqnormq) delete [] sqnormq;
+}  
+
+template<typename T>
+void GSKNN(idx_type<T> *rgids,
+           idx_type<T> *qgids,  
+           T *R, T *Q,
+           const idx_type<T> n,   //refernce length
+           const idx_type<T> d,   //shared dimension
+           const idx_type<T> m,   //query length
+           const idx_type<T> k,   //number of neighbors
+           idx_type<T>* neighbor_list,
+           T* neighbor_dist){
+
+    
+    bool dealloc_sqnormr = false;
+    bool dealloc_sqnormq = false;
+
+    T *dist;
+    T *sqnormr;
+    T *sqnormq;
+
+    idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
+
+    if(!sqnormr) {
+        sqnormr = new T[n];
+        dealloc_sqnormq = true;
+    }
+
+    if(!sqnormq) {
+        sqnormq = new T[m];
+        dealloc_sqnormq = true;
+    }
+
+    sqnorm(R, n, d, sqnormr);
+    sqnorm(Q, m, d, sqnormq);
+    heap_t *heap = heapCreate_s(m, k, 1.79E+30);
+
+    sgsknn(n, m, d, k, R, sqnormr, rgids, Q, sqnormq, qgids, heap);
+
+    printf("%f \n", (float) heap->ldk);
+    #pragma omp parallel if (m > 128 * maxt)
+    {
+        #pragma omp for
+        for(idx_type<T> j = 0; j < m; ++j){
+            #pragma unroll
+            for(idx_type<T> i = 0; i < k; ++i){
+                neighbor_dist[j*k+i] = heap->D_s[j*heap->ldk + i];
+                neighbor_list[j*k+i] = rgids[heap->I[j*heap->ldk + i]];
+            }
+        }
+    }
+
+    if(dealloc_sqnormq) delete [] sqnormr;
+    if(dealloc_sqnormq) delete [] sqnormq;
+}
+
+template<typename T>
+void blockedGSKNN(idx_type<T> *rgids, 
+                  idx_type<T> *qgids, 
+                  T *R, T *Q,
+                  const idx_type<T> n,
+                  const idx_type<T> d,
+                  const idx_type<T> m,
+                  const idx_type<T> k,
+                  idx_type<T> *neighbor_list,
+                  T *neighbor_dist){
+
+    register idx_type<T> num_neighbors = (k < n) ? k : n;
+
+    //Split Query into smaller pieces
+    idx_type<T> blocksize = getBlockSize(n, m);
+
+    bool dealloc_dist = false;
+    bool dealloc_sqnormr = false;
+    bool dealloc_sqnormq = false;
+
+    T *sqnormr;
+    T *sqnormq;
+
+    idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
+
+    assert(blocksize > 0);
+
+    idx_type<T> nblocks = m / blocksize;
+    idx_type<T> iters = (idx_type<T>) ceil((double) m/ (double) blocksize);
+
+    if(!sqnormr) {
+        sqnormr = new T[n];
+        dealloc_sqnormq = true;
+    }
+
+    if(!sqnormq) {
+        sqnormq = new T[blocksize];
+        dealloc_sqnormq = true;
+    }
+
+    bool useSqnormrInput = false;
+
+    //Loop over all blocks
+    for(idx_type<T> i = 0; i < iters; ++i){
+        T *currquery = Q + i*blocksize*d;
+        if ( (i == iters -1) && (m%blocksize) ){
+
+            idx_type<T> lastblocksize = m%blocksize;
+
+            if(!useSqnormrInput)
+                sqnorm(R, n, d, sqnormr);
+            sqnorm(Q, lastblocksize, d, sqnormq);
+            #pragma omp parallel
+            {
+                idx_type<T> t = omp_get_thread_num();
+                idx_type<T> numt = omp_get_num_threads();
+                idx_type<T> npoints = getNumLocal(t, numt, lastblocksize);
+
+                idx_type<T> offset = 0;
+                for(idx_type<T> i = 0; i < t; ++i) offset += getNumLocal(i, numt, m);
+
+                heap_t *heap = heapCreate_s(m, k, 1.79E+30); //local heap
+                sgsknn(n, npoints, d, k, R, sqnormr, rgids, Q+(d*offset), sqnormq + offset, qgids+offset, heap);
+                
+                ///copy over results
+                #pragma omp for
+                for(idx_type<T> j = 0; j < npoints; ++j){
+                    #pragma unroll
+                    for(idx_type<T> h = 0; h < k; ++h){
+                        neighbor_dist[(j+offset)*k+h] = heap->D_s[j*heap->ldk + h];
+                        neighbor_list[(j+offset)*k+h] = rgids[heap->I[j*heap->ldk+h]];
+                    }
+                }
+
+            }
+        } //end if last block
+        else {
+
+            if(!useSqnormrInput)
+                sqnorm(R, n, d, sqnormr);
+           
+            sqnorm(Q, blocksize, d, sqnormq); 
+            #pragma omp parallel
+            {
+                idx_type<T> t = omp_get_thread_num();
+                idx_type<T> numt = omp_get_num_threads();
+                idx_type<T> npoints = getNumLocal(t, numt, blocksize);
+                printf("Thread %d, npoints=%d \n", t, npoints);
+                idx_type<T> offset = 0;
+                for(idx_type<T> i = 0; i < t; ++i) offset += getNumLocal(i, numt, m);
+
+                heap_t *heap = heapCreate_s(m, k, 1.79E+30); //local heap
+                sgsknn(n, npoints, d, k, R, sqnormr, rgids, Q+(d*offset), sqnormq + offset, qgids+offset, heap);
+                
+                ///copy over results
+                #pragma omp for
+                for(idx_type<T> j = 0; j < npoints; ++j){
+                    #pragma unroll
+                    for(idx_type<T> h = 0; h < k; ++h){
+                        neighbor_dist[(j+offset)*k+h] = heap->D_s[j*heap->ldk + h];
+                        neighbor_list[(j+offset)*k+h] = rgids[heap->I[j*heap->ldk+h]];
+                    }
+                }
+            }
+        } //end block
+        useSqnormrInput = true;
+    }
+    
+    if(dealloc_sqnormq) delete [] sqnormr;
+    if(dealloc_sqnormq) delete [] sqnormq;
+
+}
+
+
+template<typename T>
+void batchedDirectKNN(idx_type<T> **gids,
+                 T **R, T **Q,
+                 const idx_type<T> *n,
+                 const idx_type<T>  d,
+                 const idx_type<T> *m,
+                 const idx_type<T>  k,
+                       idx_type<T> **neighbor_list,
+                       T **neighbor_dist,
+                 const idx_type<T>  nleaves){
+
+
+    idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
+
+    #pragma omp parallel for
+    for(idx_type<T> l; i < nleaves; ++i){
+
+        const idx_type<T> localm = m[l];
+        const idx_type<T> localn = n[l];
+
+        const T* localR = R[l];
+        const T* localQ = Q[l];
+
+        const idx_type<T> blocksize = getBlockSize(localn, localm);
+        const register idx_type<T> num_neighbors = (k < localn) ? k : localn;
+        
+        idx_type<T> nblocks = localm / blocksize;
+        idx_type<T> iters = (idx_type<T>) ceil( (double) localm / (double) blocksize );
+
+        bool dealloc_sqnormr = false;
+        bool dealloc_sqnormq = false;
+        bool dealloc_dist = false;
+
+        T *sqnormr;
+        T *sqnormq;
+        T *dist;
+
+        if(!dist) {
+            dist = new T[localn*blocksize];
+            dealloc_dist = true;
+        }
+
+        if(!sqnormr) {
+            sqnormr = new T[localn];
+            dealloc_sqnormq = true;
+        }
+
+        if(!sqnormq) {
+            sqnormq = new T[blocksize];
+            dealloc_sqnormq = true;
+        }
+
+       bool useSqnormrInput = false;
+
+       //Loop over all blocks
+       for(idx_type<T> i = 0; i < iters; ++i){
+            T *currquery = localQ + i*blocksize*d;
+
+            
+            //Handle the edge case if blocksize does not divide localn evenly
+            if ( (i == iters - 1) && (m%blocksize) ) {
+               const idx_type<T> lastblocksize = m%blocksize;            
+                
+               compute_distances(localR, currquery, localn, blocksize, d, dist, sqnormr, sqnormq, useSqnormrInput);
+                
+               priority_queue< neigh_type<T>, vector< neigh_type<T> >, maxheap_comp<T> > maxheap;
+
+               for(idx_type<T> h = 0; h < lastblocksize; ++h){
+                    while(!maxheap.empty()) maxheap.pop();
+                    const idx_type<T> querynum = i*blocksize + h;
+                    for(idx_type<T> j = 0; j < num_neighbors; ++j)
+                        maxheap.push( make_pair<T, idx_type<T> >( (T) dist[h*localn+j], (idx_type<T>) j) );
+                    
+                    for(idx_type<T> j = num_neighbors; j < localn; ++j){
+                        maxheap.push( make_pair< T, idx_type<T> >( (T) dist[h*localn+j], (idx_type<T>) j) );
+                        maxheap.pop();
+                    }
+                    for(idx_type<T> j = num_neighbors-1; j >=0; --j){
+                        neighbor_dist[l][querynum*k+j] = maxheap.top().first;
+                        neighbor_list[l][querynum*k+j] = maxheap.top().second;
+                        maxheap.pop();
+                    }
+                } // end loop over query points in block
+            } //end last block
+            //This is the normal case (interior blocks)
+            else{
+               compute_distances(localR, currquery, localn, blocksize, d, dist, sqnormr, sqnormq, useSqnormrInput);
+:q
+                
+               priority_queue< neigh_type<T>, vector< neigh_type<T> >, maxheap_comp<T> > maxheap;
+
+               for(idx_type<T> h = 0; h < blocksize; ++h){
+                    while(!maxheap.empty()) maxheap.pop();
+                    const idx_type<T> querynum = i*blocksize + h;
+                    for(idx_type<T> j = 0; j < num_neighbors; ++j)
+                        maxheap.push( make_pair<T, idx_type<T> >( (T) dist[h*localn+j], (idx_type<T>) j) );
+                    
+                    for(idx_type<T> j = num_neighbors; j < localn; ++j){
+                        maxheap.push( make_pair< T, idx_type<T> >( (T) dist[h*localn+j], (idx_type<T>) j) );
+                        maxheap.pop();
+                    }
+
+                    for(idx_type<T> j = num_neighbors-1; j >=0; --j){
+                        neighbor_dist[l][querynum*k+j] = maxheap.top().first;
+                        neighbor_list[l][querynum*k+j] = maxheap.top().second;
+                        maxheap.pop();
+                    }
+               } // end loop over query points in block
+            } //end block
+            useSqnormrInput = true;
+        } //end loop over blocks
+
+        if(dealloc_dist) delete[] dist;
+        if(dealloc_sqnormq) delete [] sqnormr;
+        if(dealloc_sqnormq) delete [] sqnormq;
+    } //end loop over leaves
+} //end function
+
+template<typename T>
+void batchedGSKNN(idx_type<T> **rgids,
+             idx_type<T> **qgids,
+             T **R, T **Q,
+             const idx_type<T> *n,
+             const idx_type<T>  d,
+             const idx_type<T> *m,
+             const idx_type<T>  k,
+             idx_type<T>** neighbor_list,
+             T** neighbor_dist, 
+             const idx_type<T>  nleaves
+            ){
+
+    //printf("Started C++ Section \n");
+    idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
+
+    //Allocate neighborlist & neighbor_dist
+    //neighbor_list = new idx_type<T>*[nleaves];
+    //neighbor_dist = new T*[nleaves];
+
+    #pragma omp parallel for
+    for(idx_type<T> l=0; l < nleaves; ++l){
+        
+        printf("Starting Leaf %d \n", l);
+        const idx_type<T> localm = m[l];
+        const idx_type<T> localn = n[l];
+
+        //neighbor_list[l] = new idx_type<T>[k*localm];
+        //neighbor_dist[l] = new T[k*localm];
+
+        T* localR = (T*)R[l];
+        T* localQ = (T*)Q[l];
+        idx_type<T>* local_rgids= (idx_type<T>*) rgids[l];
+        idx_type<T>* local_qgids= (idx_type<T>*) qgids[l];
+        
+        //Verify all of these exist and can be accessed
+        /*
+        for(idx_type<T> z=0; z < d*localn; ++z){
+            std::cout << "R " << localR[z] <<std::endl;
+        }
+        for(idx_type<T> z=0; z < d*localm; ++z){
+            std::cout << "Q " << localQ[z] <<std::endl;
+        }
+        for(idx_type<T> z=0; z < localm; ++z){
+            std::cout << "Qgids" << local_qgids[z] <<std::endl;
+        }
+
+        for(idx_type<T> z=0; z < localm; ++z){
+            local_qgids[z] = z;
+            std::cout << "Qgids" << local_qgids[z] <<std::endl;
+        }
+
+        for(idx_type<T> z=0; z < localn; ++z){
+            std::cout << "Rgids" << local_rgids[z] <<std::endl;
+        }
+        */
+
+        idx_type<T> blocksize = getBlockSize(localn, localm);
+        
+        //idx_type<T>* qgids = new idx_type<T>[localm];
+        //for(idx_type<T> z = 0; z < localm; ++z) qgids[z] = z;
+
+        idx_type<T> nblocks = localm / blocksize;
+        idx_type<T> iters = (idx_type<T>) ceil( (double) localm / (double) blocksize );
+
+        bool dealloc_sqnormr = false;
+        bool dealloc_sqnormq = false;
+        bool dealloc_dist = false;
+
+        T *sqnormr = new T[localn];
+        T *sqnormq = new T[blocksize];
+
+        dealloc_sqnormr = true;
+        dealloc_sqnormq = true;
+
+       bool useSqnormrInput = false;
+       printf("Leaf %d : Allocated Space. Blocksize = %d\n LOCALM = %d LOCALN = %d \n Starting Loop\n", l, blocksize, localm, localn);
+       //Loop over all blocks
+       for(idx_type<T> i = 0; i < iters; ++i){
+            printf("Starting Block %d\n", i);
+            T *currquery = localQ + i*blocksize*d;
+            idx_type<T> current_blocksize = blocksize;
+
+            //Handle the edge case if blocksize does not divide localn evenly
+            if ( (i == iters - 1) && (localm%blocksize) ) {
+                current_blocksize = localm%blocksize;
+                printf("On Last Block. blocksize=%d", current_blocksize);            
+            } //end last block
+
+           const idx_type<T> offset = i*blocksize;
+           printf("Leaf %d; Block %d; offset %d \n",l, i, offset); 
+           if(!useSqnormrInput){
+                printf("Calculating R2 \n");
+                sqnorm((T*) localR, (idx_type<T>) localn, (idx_type<T>) d, (T *)sqnormr);
+            }
+           printf("Calculating Q2. current_blocksize = %d\n", current_blocksize);
+           sqnorm((T*) currquery, (idx_type<T>) current_blocksize, (idx_type<T>) d, (T*) sqnormq);
+
+           printf("Finished Squared\n");
+           heap_t *heap = heapCreate_s(current_blocksize, k, 1.79E+30);
+           printf("Leaf %d; block %d; Calling GSKNN\n", l, i);
+           //sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) local_rgids, currquery, sqnormq, (idx_type<T>*) (qgids), heap);
+           sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) local_rgids, currquery, sqnormq, (idx_type<T>*) (local_qgids), heap);
+           printf("Leaf %d; block %d; FINISHED GSKNN\n", l, i); 
+           
+           //copy over results
+           auto D = heap->D_s;
+           auto I = heap->I;
+           auto ldk = heap->ldk;
+           printf("Leaf %d, Starting copy\n", l);
+           #pragma omp parallel for  //nested parallelism?
+           for(idx_type<T> j = 0; j < current_blocksize; ++j){
+                #pragma ivdep
+                for(idx_type<T> h = 0; h < k; ++h){
+                    neighbor_dist[l][(j+offset)*k+h] = D[j*ldk+h];
+                    neighbor_list[l][(j+offset)*k+h] = rgids[l][I[j*ldk+h]];
+                    //printf("Leaf %d; block %d; Seeing Index %d at (%d, %d, %d)\n", l, i, I[j*ldk+h], j, ldk, h);
+                }
+           } //end copy 
+           heapFree_s( heap );
+           printf("Leaf %d, Ending Copy\n", l);
+           useSqnormrInput = true;
+        } //end loop over blocks
+        printf("Leaf %d: Ending Loop \n", l);
+
+        if(dealloc_sqnormr) delete [] sqnormr;
+        if(dealloc_sqnormq) delete [] sqnormq;
+//        printf("Finished dealloc\n");
+    } //end loop over leaves
+
+} //end function
+
+
+/*
 //Distance Kernel
 template<typename T>
 float* Distances(float* Q, float* R){
@@ -129,6 +792,14 @@ float* Distances(float* Q, float* R){
 }
 */
 
+template<typename T>
+void test(){
+    const int n = 10;
+    #pragma omp parallel for
+    for(idx_type<T> l = 0; l < n; ++l){
+        std::cout << l << std::endl;
+    }
+}
 template<typename T>
 std::vector<T> sampleWithoutReplacement(idx_type<T> l, std::vector<T> v)
 {
