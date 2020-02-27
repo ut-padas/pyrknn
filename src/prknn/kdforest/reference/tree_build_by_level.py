@@ -30,24 +30,13 @@ class RKDT:
         self.levels = levels
         self.leafsize = leafsize
         self.nodelist = []
-        if (pointset is not None):
-            self.size = len(pointset)           #the number of points in the pointset
-            self.gids = self.libpy.arange(self.size)    #the global ids of the points in the pointset (assign original ordering)
-            self.data = self.libpy.asarray(pointset)
-            if (leafsize is None):              #if no leafsize is given, assume this is a degenerate tree (only root)
-                self.leafsize = self.size
-            if (self.size == 0):
-                self.empty = True
-            else:
-                self.empty = False
-        else:
-            self.empty= True
-            self.size = 0
-            self.data = self.libpy.asarray([])
-            self.gids = self.libpy.asarray([])
-
+        assert(pointset is not None)
+        self.data = pointset
+        self.size = len(self.data)
+        self.entry_shape = self.data[0].shape
         self.built=False
 
+    '''
     def set(pointset=None, leafsize=None, levels=None):
         """Set or redefine the key values of a RKDT
 
@@ -72,6 +61,7 @@ class RKDT:
         if (levels is not None):
             assert(levels >= 0)
             self.levels = levels
+    '''
 
     @classmethod
     def set_verbose(self, v):
@@ -96,6 +86,7 @@ class RKDT:
         #Various error checking methods to make sure tree is initialized properly
         if self.built:
             raise ErrorType.InitializationError('You cannot call build on a tree that has already been built')
+        '''
         if self.empty:
             raise ErrorType.InitializationError('Cannot build an empty tree')
         if self.size < 0:
@@ -104,9 +95,9 @@ class RKDT:
             raise ErrorType.InitializationError('Invalid leaf size parameter: Cannot build a tree with leaf size '+str(self.leafsize))
         if self.levels < 0:
             raise ErrorType.InitializationError('Invalid max levels parameter: Cannot build a tree of '+str(self.levels)+' levels')
-
+        '''
         #Create the root node
-        root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
+        root = self.Node(self.libpy, self.data, self.entry_shape, self, idx=0, level=0, size=self.size)
         
         del self.data
 
@@ -149,7 +140,7 @@ class RKDT:
 
         verbose = False
 
-        def __init__(self, libpy, data, tree, idx=0, level=0, size=0):
+        def __init__(self, libpy, data, entry_shape, tree, idx=0, level=0, size=0):
             """Initalize a member of the RKDT.Node class
 
             Arguments:
@@ -162,6 +153,7 @@ class RKDT:
                 gids -- the list of global indicies for the owned points
             """
             self.data = data # permuted data for the tree node
+            self.entry_shape = entry_shape
             self.libpy = libpy
             self.tree = tree
             self.id = idx
@@ -171,10 +163,8 @@ class RKDT:
             self.isleaf = True
             self.parent = None
             self.children = [None, None]
-            self.anchors = None
-            cp.random.RandomState(1001+self.id)
-            #p = self.libpy.random.random((self.tree.data[0].shape),dtype='float32')
-            self.plane = [self.libpy.random.random((data[0].shape),dtype='float32'),0.0]
+            #self.anchors = None
+            self.plane = None
             self.tree.nodelist.append(self)
 
         def __str__(self):
@@ -286,7 +276,7 @@ class RKDT:
             if (middle < self.tree.leafsize):
                 '''if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:'''
                 self.plane = None
-                self.anchors = None
+                #self.anchors = None
                 self.isleaf=True
                 return [None, None]
 
@@ -298,6 +288,8 @@ class RKDT:
             '''
             #project onto line
             with stream:
+                cp.random.RandomState(1001+self.id)
+                self.plane = [self.libpy.random.random((self.entry_shape),dtype='float32'),0.0]
                 proj = self.libpy.dot(self.data, self.plane[0])
                 lids = self.libpy.argpartition(proj, middle)
                 self.plane[1] = proj[lids[middle]]
@@ -307,8 +299,8 @@ class RKDT:
                 del lids
 
             #Initialize left and right nodes
-            left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
-            right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
+            left = self.tree.Node(self.libpy, data_left, self.entry_shape, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle+1)
+            right = self.tree.Node(self.libpy, data_right, self.entry_shape, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle -1))
             
             left.set_parent(self)
             right.set_parent(self)
@@ -317,9 +309,10 @@ class RKDT:
             self.set_children(children)
 
             # I think we can delete all the varaibles here
-            del data_left
-            del data_right
-            del self.data
+            with stream:
+                del data_left
+                del data_right
+                del self.data
             '''
             if (self.level == 0 or self.level == 1 or self.level == 2):
                 mem_pool = cp.get_default_memory_pool()
