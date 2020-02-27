@@ -16,4 +16,5 @@ cdef extern from "impl/primitives_shared.hpp" nogil:
     cdef void blockedGSKNN[T](int *rgids, int *qgids, T *R, T *Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except + 
     cdef void batchedDirectKNN[T](int **gids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves) except +
     cdef void batchedGSKNN[T](int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves) except +
+    cdef void batchedRef[T](int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves) except +
     cdef void test[T]() except +

@@ -20,9 +20,10 @@
 #include<mkl.h>
 
 #include<gsknn.h>
+//#include<gsknn_ref.h>
+//#include<gsknn_ref_stl.hpp>
 
-
-#define KNN_MAX_BLOCK_SIZE 16
+#define KNN_MAX_BLOCK_SIZE 1024
 #define KNN_MAX_MATRIX_SIZE 2e7L
 
 using namespace std;
@@ -400,7 +401,7 @@ void GSKNN(idx_type<T> *rgids,
 
     sgsknn(n, m, d, k, R, sqnormr, rgids, Q, sqnormq, qgids, heap);
 
-    printf("%f \n", (float) heap->ldk);
+    //printf("%f \n", (float) heap->ldk);
     #pragma omp parallel if (m > 128 * maxt)
     {
         #pragma omp for
@@ -504,7 +505,7 @@ void blockedGSKNN(idx_type<T> *rgids,
                 idx_type<T> t = omp_get_thread_num();
                 idx_type<T> numt = omp_get_num_threads();
                 idx_type<T> npoints = getNumLocal(t, numt, blocksize);
-                printf("Thread %d, npoints=%d \n", t, npoints);
+                //printf("Thread %d, npoints=%d \n", t, npoints);
                 idx_type<T> offset = 0;
                 for(idx_type<T> i = 0; i < t; ++i) offset += getNumLocal(i, numt, m);
 
@@ -649,6 +650,85 @@ void batchedDirectKNN(idx_type<T> **gids,
     } //end loop over leaves
 } //end function
 
+
+template<typename T>
+void batchedRef(idx_type<T> **rgids,
+             idx_type<T> **qgids,
+             T **R, T **Q,
+             const idx_type<T> *n,
+             const idx_type<T>  d,
+             const idx_type<T> *m,
+             const idx_type<T>  k,
+             idx_type<T>** neighbor_list,
+             T** neighbor_dist, 
+             const idx_type<T>  nleaves
+            ){
+
+    idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
+
+    #pragma omp parallel for
+    for(idx_type<T> l=0; l < nleaves; ++l){
+        
+        const idx_type<T> localm = m[l];
+        const idx_type<T> localn = n[l];
+
+        idx_type<T> blocksize = getBlockSize(localn, localm);
+
+        T* localR = (T*)R[l];
+        T* localQ = (T*)Q[l];
+        idx_type<T>* local_rgids= (idx_type<T>*) rgids[l];
+        
+        idx_type<T>* local_qgids= new idx_type<T>[blocksize];
+        for(idx_type<T> z = 0; z < blocksize; ++z) local_qgids[z] = z;
+        
+        idx_type<T> nblocks = localm / blocksize;
+        idx_type<T> iters = (idx_type<T>) ceil( (double) localm / (double) blocksize );
+
+        bool dealloc_sqnormr = false;
+        bool dealloc_sqnormq = false;
+        bool dealloc_dist = false;
+
+        T *sqnormr = new T[localn];
+        T *sqnormq = new T[blocksize];
+
+        dealloc_sqnormr = true;
+        dealloc_sqnormq = true;
+
+       bool useSqnormrInput = false;
+       
+       //Loop over all blocks
+       for(idx_type<T> i = 0; i < iters; ++i){
+            T *currquery = localQ + i*blocksize*d;
+            idx_type<T> current_blocksize = blocksize;
+
+            //Handle the edge case if blocksize does not divide localn evenly
+            if ( (i == iters - 1) && (localm%blocksize) ) {
+                current_blocksize = localm%blocksize;
+            } //end last block
+
+           const idx_type<T> offset = i*blocksize;
+           
+            if(!useSqnormrInput){
+                sqnorm((T*) localR, (idx_type<T>) localn, (idx_type<T>) d, (T *)sqnormr);
+            }
+           sqnorm((T*) currquery, (idx_type<T>) current_blocksize, (idx_type<T>) d, (T*) sqnormq);
+
+           //sgsknn_ref_stl(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) local_rgids, currquery, sqnormq, (idx_type<T>*) (local_qgids), (T*) (neighbor_dist[l]+offset*k), (idx_type<T>*) (neighbor_list[l]+offset*k));
+           
+           useSqnormrInput = true;
+        } //end loop over blocks
+        //printf("Leaf %d: Ending Loop \n", l);
+
+        delete [] local_qgids;
+        if(dealloc_sqnormr) delete [] sqnormr;
+        if(dealloc_sqnormq) delete [] sqnormq;
+//        printf("Finished dealloc\n");
+    } //end loop over leaves
+
+} //end function
+
+
+
 template<typename T>
 void batchedGSKNN(idx_type<T> **rgids,
              idx_type<T> **qgids,
@@ -672,9 +752,11 @@ void batchedGSKNN(idx_type<T> **rgids,
     #pragma omp parallel for
     for(idx_type<T> l=0; l < nleaves; ++l){
         
-        printf("Starting Leaf %d \n", l);
+        //printf("Starting Leaf %d \n", l);
         const idx_type<T> localm = m[l];
         const idx_type<T> localn = n[l];
+
+        idx_type<T> blocksize = getBlockSize(localn, localm);
 
         //neighbor_list[l] = new idx_type<T>[k*localm];
         //neighbor_dist[l] = new T[k*localm];
@@ -682,7 +764,9 @@ void batchedGSKNN(idx_type<T> **rgids,
         T* localR = (T*)R[l];
         T* localQ = (T*)Q[l];
         idx_type<T>* local_rgids= (idx_type<T>*) rgids[l];
-        idx_type<T>* local_qgids= (idx_type<T>*) qgids[l];
+        //idx_type<T>* local_qgids= (idx_type<T>*) qgids[l];
+        idx_type<T>* local_qgids= new idx_type<T>[blocksize];
+        for(idx_type<T> z = 0; z < blocksize; ++z) local_qgids[z] = z;
         
         //Verify all of these exist and can be accessed
         /*
@@ -706,10 +790,8 @@ void batchedGSKNN(idx_type<T> **rgids,
         }
         */
 
-        idx_type<T> blocksize = getBlockSize(localn, localm);
         
         //idx_type<T>* qgids = new idx_type<T>[localm];
-        //for(idx_type<T> z = 0; z < localm; ++z) qgids[z] = z;
 
         idx_type<T> nblocks = localm / blocksize;
         idx_type<T> iters = (idx_type<T>) ceil( (double) localm / (double) blocksize );
@@ -725,40 +807,40 @@ void batchedGSKNN(idx_type<T> **rgids,
         dealloc_sqnormq = true;
 
        bool useSqnormrInput = false;
-       printf("Leaf %d : Allocated Space. Blocksize = %d\n LOCALM = %d LOCALN = %d \n Starting Loop\n", l, blocksize, localm, localn);
+       //printf("Leaf %d : Allocated Space. Blocksize = %d\n LOCALM = %d LOCALN = %d \n Starting Loop\n", l, blocksize, localm, localn);
        //Loop over all blocks
        for(idx_type<T> i = 0; i < iters; ++i){
-            printf("Starting Block %d\n", i);
+            //printf("Starting Block %d\n", i);
             T *currquery = localQ + i*blocksize*d;
             idx_type<T> current_blocksize = blocksize;
 
             //Handle the edge case if blocksize does not divide localn evenly
             if ( (i == iters - 1) && (localm%blocksize) ) {
                 current_blocksize = localm%blocksize;
-                printf("On Last Block. blocksize=%d", current_blocksize);            
+                //printf("On Last Block. blocksize=%d", current_blocksize);            
             } //end last block
 
            const idx_type<T> offset = i*blocksize;
-           printf("Leaf %d; Block %d; offset %d \n",l, i, offset); 
+           //printf("Leaf %d; Block %d; offset %d \n",l, i, offset); 
            if(!useSqnormrInput){
-                printf("Calculating R2 \n");
+                //printf("Calculating R2 \n");
                 sqnorm((T*) localR, (idx_type<T>) localn, (idx_type<T>) d, (T *)sqnormr);
             }
-           printf("Calculating Q2. current_blocksize = %d\n", current_blocksize);
+           //printf("Calculating Q2. current_blocksize = %d\n", current_blocksize);
            sqnorm((T*) currquery, (idx_type<T>) current_blocksize, (idx_type<T>) d, (T*) sqnormq);
 
-           printf("Finished Squared\n");
+           //printf("Finished Squared\n");
            heap_t *heap = heapCreate_s(current_blocksize, k, 1.79E+30);
-           printf("Leaf %d; block %d; Calling GSKNN\n", l, i);
+           //printf("Leaf %d; block %d; Calling GSKNN\n", l, i);
            //sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) local_rgids, currquery, sqnormq, (idx_type<T>*) (qgids), heap);
            sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) local_rgids, currquery, sqnormq, (idx_type<T>*) (local_qgids), heap);
-           printf("Leaf %d; block %d; FINISHED GSKNN\n", l, i); 
+           //printf("Leaf %d; block %d; FINISHED GSKNN\n", l, i); 
            
            //copy over results
            auto D = heap->D_s;
            auto I = heap->I;
            auto ldk = heap->ldk;
-           printf("Leaf %d, Starting copy\n", l);
+           //printf("Leaf %d, Starting copy\n", l);
            #pragma omp parallel for  //nested parallelism?
            for(idx_type<T> j = 0; j < current_blocksize; ++j){
                 #pragma ivdep
@@ -769,11 +851,12 @@ void batchedGSKNN(idx_type<T> **rgids,
                 }
            } //end copy 
            heapFree_s( heap );
-           printf("Leaf %d, Ending Copy\n", l);
+           //printf("Leaf %d, Ending Copy\n", l);
            useSqnormrInput = true;
         } //end loop over blocks
-        printf("Leaf %d: Ending Loop \n", l);
+        //printf("Leaf %d: Ending Loop \n", l);
 
+        delete [] local_qgids;
         if(dealloc_sqnormr) delete [] sqnormr;
         if(dealloc_sqnormq) delete [] sqnormq;
 //        printf("Finished dealloc\n");

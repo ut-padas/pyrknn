@@ -132,13 +132,92 @@ cpdef PyGSKNNBatched(gidsList, RList, QList, k):
         cNLList[i] = <np.uintp_t>&cNL[0, 0];
         cNDList[i] = <np.uintp_t>&cND[0, 0];
 
-    print("MADE IT TO C++ CALL")
     with nogil:
         batchedGSKNN[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves);
     
     #NLL = np.asarray(cNLList);
     #NDL = np.asarray(cNDList);
     return (NLL, NDL)
+
+
+cpdef RefBatched(gidsList, RList, QList, k):
+    cdef int nleaves = len(RList); #Assume input is proper #TODO: Add checks
+    cdef int cd = RList[0].shape[1];
+    cdef int ck = k;
+
+    cdef size_t[:] cRList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cQList = np.zeros(nleaves, dtype=np.uintp);
+
+    cdef int[:] cns = np.zeros(nleaves, dtype=np.int32);
+    cdef int[:] cms = np.zeros(nleaves, dtype=np.int32);
+
+    cdef size_t[:] cqgidsList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] crgidsList = np.zeros(nleaves, dtype=np.uintp);
+
+    cdef size_t[:] cNLList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cNDList = np.zeros(nleaves, dtype=np.uintp);
+
+
+    #Define temporary variables
+    
+    cdef float[:, :] localR;
+    cdef float[:, :] localQ;
+
+    cdef int localn;
+    cdef int localm;
+   
+    cdef int[:] qgids;
+    cdef int[:] rgids;
+
+    cdef int[:,:] cNL;
+    cdef float[:,:] cND;
+
+    NLL = []
+    NDL = []
+    #Make nlist, mlist
+    for i in range(nleaves):
+        localR = RList[i]; #argghhhh, these need the GIL. I can't do this in parallel
+        localQ = QList[i];
+
+        localn = localR.shape[0];
+        localm = localQ.shape[0];
+       
+        rgids = gidsList[i]; #This needs the GIL
+        qgids = np.arange(0, localm,dtype=np.int32);
+
+        cNL = np.zeros([localm, ck], dtype=np.int32);
+        cND = np.zeros([localm, ck], dtype=np.float32);
+
+        NLL.append(np.asarray(cNL))
+        NDL.append(np.asarray(cND))
+
+        cns[i] = localn;
+        cms[i] = localm;
+
+        cRList[i] = <np.uintp_t>&localR[0, 0];
+        cQList[i] = <np.uintp_t>&localQ[0, 0];
+
+        crgidsList[i] = <np.uintp_t>&rgids[0];
+        cqgidsList[i] = <np.uintp_t>&qgids[0];
+
+        cNLList[i] = <np.uintp_t>&cNL[0, 0];
+        cNDList[i] = <np.uintp_t>&cND[0, 0];
+
+    with nogil:
+        batchedRef[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves);
+    
+    #NLL = np.asarray(cNLList);
+    #NDL = np.asarray(cNDList);
+    return (NLL, NDL)
+
+
+
+
+
+
+
+
+
 
 cpdef test_par():
     with nogil:
