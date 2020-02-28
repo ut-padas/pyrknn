@@ -34,7 +34,7 @@ class RKDT:
         self.data = [pointset, cp.zeros(pointset.shape)]
         self.size = len(pointset)
         self.proj_array = cp.zeros(self.size)
-        self.index_array = cp.zeros(self.size)
+        self.index_array = cp.zeros(self.size,dtype='int32')
         self.entry_shape = pointset[0].shape
         self.built=False
 
