@@ -17,7 +17,7 @@ class RKDT:
 
     verbose = False #Note: This is a static variable shared by all instances
 
-    def __init__(self, libpy, levels=0, leafsize=None, pointset=None):
+    def __init__(self, libpy, levels=0, leafsize=1024, pointset=None):
         """Initialize  Randomized KD Tree
 
             Keyword arguments:
@@ -107,7 +107,7 @@ class RKDT:
         streams = [] # We only need 16 streams max
         for i in range(16):
             streams.append(cp.cuda.Stream(null=False, non_blocking=True))
-        while data_size > 2048:
+        while data_size > 1024:
             '''
                 For the first group of 16 nodes, we should get the stream and call node split.
                 For the later groups of 16 nodes, we first call stream synchronize then call 
@@ -115,7 +115,7 @@ class RKDT:
 
                 Node split function should add itself to self.nodelist.  
             '''
-            if stride <=16:
+            if stride <=8:
                 for i in range(stride):
                     node = self.nodelist[start+i]
                     node.split(streams[i])
@@ -164,7 +164,7 @@ class RKDT:
             self.parent = None
             self.children = [None, None]
             #self.anchors = None
-            self.plane = None
+            self.plane = [None, 0.0]
             self.tree.nodelist.append(self)
 
         def __str__(self):
@@ -289,7 +289,7 @@ class RKDT:
             #project onto line
             with stream:
                 cp.random.RandomState(1001+self.id)
-                self.plane = [self.libpy.random.random((self.entry_shape),dtype='float32'),0.0]
+                self.plane[0] = self.libpy.random.random((self.entry_shape),dtype='float32')
                 proj = self.libpy.dot(self.data, self.plane[0])
                 lids = self.libpy.argpartition(proj, middle)
                 self.plane[1] = proj[lids[middle]]
@@ -309,10 +309,9 @@ class RKDT:
             self.set_children(children)
 
             # I think we can delete all the varaibles here
-            with stream:
-                del data_left
-                del data_right
-                del self.data
+            del data_left
+            del data_right
+            del self.data
             '''
             if (self.level == 0 or self.level == 1 or self.level == 2):
                 mem_pool = cp.get_default_memory_pool()

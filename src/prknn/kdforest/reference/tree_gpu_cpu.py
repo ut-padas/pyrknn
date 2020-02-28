@@ -16,7 +16,7 @@ class RKDT:
 
     verbose = False #Note: This is a static variable shared by all instances
 
-    def __init__(self, libpy, levels=0, leafsize=None, pointset=None):
+    def __init__(self, libpy, levels=0, leafsize=1024, pointset=None):
         """Initialize  Randomized KD Tree
 
             Keyword arguments:
@@ -137,10 +137,8 @@ class RKDT:
             self.parent = None
             self.children = [None, None]
             self.anchors = None
-            cp.random.RandomState(1001+self.id)
-            #p = self.libpy.random.random((self.tree.data[0].shape),dtype='float32')
             self.tree.nodelist.append(self)
-            self.plane = [self.libpy.random.random((data[0].shape),dtype='float32'),0.0]
+            self.plane = [None,0.0]
 
         def __str__(self):
             """Overloading the print function for a RKDT.Node class"""
@@ -263,6 +261,8 @@ class RKDT:
             '''
             #project onto line (projection stored in self.local_)
             with stream:
+                cp.random.RandomState(1001+self.id)
+                self.plane[0] = self.libpy.random.random((self.data[0].shape),dtype='float32')
                 proj = self.libpy.dot(self.data, self.plane[0])
                 lids = self.libpy.argpartition(proj, middle)
                 self.plane[1] = proj[lids[middle]]
@@ -273,8 +273,8 @@ class RKDT:
                 del self.data
             
             #Initialize left and right nodes
-            left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
-            right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
+            left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle+1)
+            right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle-1))
             del data_left
             del data_right
 
@@ -297,11 +297,11 @@ class RKDT:
                 if left is not None:
                     left.split(stream)
                 p.join()
+                stream.synchronize()
             else:
                 if left is not None:
                     left.split(stream)
                     right.split(stream)
-            stream.synchronize()
             return children
 
         def knn(self, Q, k):
