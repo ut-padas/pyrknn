@@ -30,10 +30,12 @@ class RKDT:
         self.levels = levels
         self.leafsize = leafsize
         self.nodelist = []
-        assert(pointset is not None)
-        self.data = pointset
-        self.size = len(self.data)
-        self.entry_shape = self.data[0].shape
+        #assert(pointset is not None)
+        self.data = [pointset, cp.zeros(pointset.shape)]
+        self.size = len(pointset)
+        self.proj_array = cp.zeros(self.size)
+        self.index_array = cp.zeros(self.size)
+        self.entry_shape = pointset[0].shape
         self.built=False
 
     '''
@@ -97,11 +99,9 @@ class RKDT:
             raise ErrorType.InitializationError('Invalid max levels parameter: Cannot build a tree of '+str(self.levels)+' levels')
         '''
         #Create the root node
-        root = self.Node(self.libpy, self.data, self.entry_shape, self, idx=0, level=0, size=self.size)
-        
-        del self.data
+        root = self.Node(self.libpy, self.entry_shape, self, idx=0, level=0, size=self.size, start=0, end=self.size)
 
-        data_size = len(root.data)
+        data_size = self.size
         start = 0
         stride = 1
         streams = [] # We only need 16 streams max
@@ -140,7 +140,7 @@ class RKDT:
 
         verbose = False
 
-        def __init__(self, libpy, data, entry_shape, tree, idx=0, level=0, size=0):
+        def __init__(self, libpy, entry_shape, tree, idx=0, level=0, size=0, start=None, end=None):
             """Initalize a member of the RKDT.Node class
 
             Arguments:
@@ -152,7 +152,7 @@ class RKDT:
                 size -- the number of points that this node corresponds to
                 gids -- the list of global indicies for the owned points
             """
-            self.data = data # permuted data for the tree node
+            
             self.entry_shape = entry_shape
             self.libpy = libpy
             self.tree = tree
@@ -163,9 +163,11 @@ class RKDT:
             self.isleaf = True
             self.parent = None
             self.children = [None, None]
-            #self.anchors = None
             self.plane = [None, 0.0]
             self.tree.nodelist.append(self)
+            assert(start is not None)
+            self.start = start
+            self.end = end
 
         def __str__(self):
             """Overloading the print function for a RKDT.Node class"""
@@ -219,6 +221,7 @@ class RKDT:
             """Set the 'pointer' to the parent node"""
             self.parent = node
 
+        '''
         def select_hyperplane(self):
             """Select the random line and project onto it.
 
@@ -233,6 +236,7 @@ class RKDT:
             self.anchors = self.libpy.random.choice(self.gids, 2, replace=False)
             dist = util.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
             self.local_ = dist[0] - dist[1]
+        '''
 
         def average(self, idx=0):
             """Return the average of points in the node along a specified axis (0 < idx < d-1)
@@ -272,11 +276,10 @@ class RKDT:
 
             middle = self.size//2
 
-            #Stop the split if the leafsize is too small, or the maximum level has been reached
+            #Stop the split if the leafsize is too small
             if (middle < self.tree.leafsize):
                 '''if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:'''
                 self.plane = None
-                #self.anchors = None
                 self.isleaf=True
                 return [None, None]
 
@@ -286,21 +289,23 @@ class RKDT:
                 print('before creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
                 print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
             '''
+        
             #project onto line
+            data_index1 = self.level % 2
+            data_index2 = (data_index1 + 1) % 2
             with stream:
                 cp.random.RandomState(1001+self.id)
                 self.plane[0] = self.libpy.random.random((self.entry_shape),dtype='float32')
-                proj = self.libpy.dot(self.data, self.plane[0])
-                lids = self.libpy.argpartition(proj, middle)
-                self.plane[1] = proj[lids[middle]]
-                data_left = self.data[lids[:middle]]
-                data_right = self.data[lids[middle:]]
-                del proj
-                del lids
+                self.tree.proj_array[self.start:self.end] = self.libpy.dot(self.tree.data[data_index1][self.start:self.end], self.plane[0])
+                self.tree.index_array[self.start:self.end] = self.libpy.argpartition(self.tree.proj_array[self.start:self.end], middle)
+                self.plane[1] = self.tree.proj_array[self.start + self.tree.index_array[self.start+middle]]
+                #Copy data here
+                self.tree.data[data_index2][self.start:self.start+middle] = self.tree.data[data_index1][self.tree.index_array[self.start:self.start+middle]]
+                self.tree.data[data_index2][self.start+middle:self.end] = self.tree.data[data_index1][self.tree.index_array[self.start+middle:self.end]]
 
             #Initialize left and right nodes
-            left = self.tree.Node(self.libpy, data_left, self.entry_shape, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle+1)
-            right = self.tree.Node(self.libpy, data_right, self.entry_shape, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle -1))
+            left = self.tree.Node(self.libpy, self.entry_shape, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle, start=self.start, end=self.start+middle)
+            right = self.tree.Node(self.libpy, self.entry_shape, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle),start=self.start+middle,end=self.end)
             
             left.set_parent(self)
             right.set_parent(self)
@@ -308,10 +313,6 @@ class RKDT:
             children = [left, right]
             self.set_children(children)
 
-            # I think we can delete all the varaibles here
-            del data_left
-            del data_right
-            del self.data
             '''
             if (self.level == 0 or self.level == 1 or self.level == 2):
                 mem_pool = cp.get_default_memory_pool()
