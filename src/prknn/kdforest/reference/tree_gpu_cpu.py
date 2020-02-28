@@ -81,7 +81,7 @@ class RKDT:
         #Various error checking methods to make sure tree is initialized properly
         if self.built:
             raise ErrorType.InitializationError('You cannot call build on a tree that has already been built')
-        if self.empty:
+        '''if self.empty:
             raise ErrorType.InitializationError('Cannot build an empty tree')
         if self.size < 0:
             raise ErrorType.InitializationError('Invalid size parameter: Cannot build a tree of size '+str(self.size))
@@ -89,7 +89,7 @@ class RKDT:
             raise ErrorType.InitializationError('Invalid leaf size parameter: Cannot build a tree with leaf size '+str(self.leafsize))
         if self.levels < 0:
             raise ErrorType.InitializationError('Invalid max levels parameter: Cannot build a tree of '+str(self.levels)+' levels')
-
+        '''
         #Create the root node
         root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
         del self.data
