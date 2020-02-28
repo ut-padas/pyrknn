@@ -97,6 +97,11 @@ class RKDT:
 
         self.built=True
 
+    def populate_data(self, data):
+        assert(self.built)
+        root.populate_data(data, cp.cuda.Stream())
+        del data
+        return
 
     class Node:
 
@@ -287,6 +292,42 @@ class RKDT:
                 left.split(stream)
                 right.split(stream)
             return children
+
+        def populate_data(self,data,stream):
+            middle = self.size//2
+            self.data = data
+            
+            with stream:
+                cp.random.RandomState(1001+self.id)
+                self.plane[0] = self.libpy.random.random((self.data[0].shape),dtype='float32')
+                proj = self.libpy.dot(self.data, self.plane[0])
+                lids = self.libpy.argpartition(proj, middle)
+                self.plane[1] = proj[lids[middle]]
+                data_left = self.data[lids[:middle]]
+                data_right = self.data[lids[middle:]]
+                del proj
+                del lids
+                del self.data
+                del data
+            
+            left,right = self.children
+
+            del data_left
+            del data_right
+
+
+            if self.level < 4:
+                stream.synchronize()
+                stream2 = cp.cuda.Stream()
+                left.populate_data(data_left,stream)
+                right.populate_data(data_right,stream2)
+                stream.synchronize()
+                stream2.synchronize()
+            else:
+                left.populate_data(data_left,stream)
+                right.populate_data(data_right,stream)
+            return
+
 
         def knn(self, Q, k):
             """
