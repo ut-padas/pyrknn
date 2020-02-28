@@ -29,9 +29,22 @@ class RKDT:
         self.levels = levels
         self.leafsize = leafsize
         self.nodelist = []
-        self.size = len(pointset)
-        self.data = pointset
-        
+        if (pointset is not None):
+            self.size = len(pointset)           #the number of points in the pointset
+            self.gids = self.libpy.arange(self.size)    #the global ids of the points in the pointset (assign original ordering)
+            self.data = self.libpy.asarray(pointset)
+            if (leafsize is None):              #if no leafsize is given, assume this is a degenerate tree (only root)
+                self.leafsize = self.size
+            if (self.size == 0):
+                self.empty = True
+            else:
+                self.empty = False
+        else:
+            self.empty= True
+            self.size = 0
+            self.data = self.libpy.asarray([])
+            self.gids = self.libpy.asarray([])
+
         self.built=False
 
     def set(pointset=None, leafsize=None, levels=None):
@@ -123,7 +136,8 @@ class RKDT:
             self.isleaf = True
             self.parent = None
             self.children = [None, None]
-            #self.anchors = None
+            self.anchors = None
+            self.tree.nodelist.append(self)
             self.plane = [None,0.0]
 
         def __str__(self):
@@ -235,7 +249,7 @@ class RKDT:
             if (middle < self.tree.leafsize):
                 '''if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:'''
                 self.plane = None
-                #self.anchors = None
+                self.anchors = None
                 self.isleaf=True
                 return [None, None]
 
@@ -277,12 +291,12 @@ class RKDT:
                 print('after creating stream and deleting, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
             '''
             if self.level < 4:
+                p = threading.Thread(target=split_node,args=(right,))
                 stream.synchronize()
-                stream2 = cp.cuda.Stream()
+                p.start()
                 left.split(stream)
-                right.split(stream2)
+                p.join()
                 stream.synchronize()
-                stream2.synchronize()
             else:
                 left.split(stream)
                 right.split(stream)
