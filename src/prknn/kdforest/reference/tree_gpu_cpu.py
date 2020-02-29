@@ -31,7 +31,7 @@ class RKDT:
         self.nodelist = []
         self.size = len(pointset)
         self.data = pointset
-        
+        self.root = None
         self.built=False
 
     def set(pointset=None, leafsize=None, levels=None):
@@ -92,6 +92,7 @@ class RKDT:
         '''
         #Create the root node
         root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
+        self.root = root
         del self.data
         root.split(cp.cuda.Stream())
 
@@ -99,7 +100,7 @@ class RKDT:
 
     def populate_data(self, data):
         assert(self.built)
-        root.populate_data(data, cp.cuda.Stream())
+        self.root.populate_data(data, cp.cuda.Stream())
         del data
         return
 
@@ -125,7 +126,7 @@ class RKDT:
             self.id = idx
             self.level = level
             self.size = size
-            self.isleaf = True
+            self.isleaf = False
             self.parent = None
             self.children = [None, None]
             #self.anchors = None
@@ -252,7 +253,7 @@ class RKDT:
             '''
             #project onto line (projection stored in self.local_)
             with stream:
-                cp.random.RandomState(1001+self.id)
+                #cp.random.RandomState(1001+self.id)
                 self.plane[0] = self.libpy.random.random((self.data[0].shape),dtype='float32')
                 proj = self.libpy.dot(self.data, self.plane[0])
                 lids = self.libpy.argpartition(proj, middle)
@@ -296,6 +297,8 @@ class RKDT:
         def populate_data(self,data,stream):
             middle = self.size//2
             self.data = data
+            if self.isleaf:
+                return
             
             with stream:
                 cp.random.RandomState(1001+self.id)
@@ -312,15 +315,13 @@ class RKDT:
             
             left,right = self.children
 
-            del data_left
-            del data_right
-
-
             if self.level < 4:
                 stream.synchronize()
                 stream2 = cp.cuda.Stream()
                 left.populate_data(data_left,stream)
+                del data_left
                 right.populate_data(data_right,stream2)
+                del data_right
                 stream.synchronize()
                 stream2.synchronize()
             else:

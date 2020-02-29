@@ -294,7 +294,7 @@ class RKDT:
             data_index1 = self.level % 2
             data_index2 = (data_index1 + 1) % 2
             with stream:
-                cp.random.RandomState(1001+self.id)
+                #cp.random.seed(1001+self.id)
                 self.plane[0] = self.libpy.random.random((self.entry_shape),dtype='float32')
                 self.tree.proj_array[self.start:self.end] = self.libpy.dot(self.tree.data[data_index1][self.start:self.end], self.plane[0])
                 self.tree.index_array[self.start:self.end] = self.libpy.argpartition(self.tree.proj_array[self.start:self.end], middle)
