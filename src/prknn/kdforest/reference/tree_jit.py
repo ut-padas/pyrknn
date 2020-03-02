@@ -4,7 +4,7 @@ import threading
 import numpy as np
 import cupy as cp
 from numba import jitclass
-from numba import int32, float32, types, typed
+from numba import int32, float32, boolean, types, typed
 import util
 
 def split_node(node):
@@ -19,7 +19,8 @@ RKDT_spec = [
     ('leafsize',int32),
     ('size',int32),
     ('data', float32[:]),
-    ('root',Node),
+    ('verbose',boolean),
+    #('root',RKDT.Node),
 ]
 # self.data = data # permuted data for the tree node
 #             self.tree = tree
@@ -41,11 +42,11 @@ RKDT_spec = [
 #     ('is')
 # ]
 
-@jitclass(spec)
+@jitclass(RKDT_spec)
 class RKDT:
     """Class for Randomized KD Tree Nearest Neighbor Searches"""
 
-    verbose = False #Note: This is a static variable shared by all instances
+    #verbose = False #Note: This is a static variable shared by all instances
 
     def __init__(self, libpy, levels=0, leafsize=1024, pointset=None):
         """Initialize  Randomized KD Tree
@@ -61,7 +62,7 @@ class RKDT:
         #self.nodelist = []
         self.size = len(pointset)
         self.data = pointset
-        self.root = None
+        #self.root = None
         #self.built=False
 
     def set(pointset=None, leafsize=None, levels=None):
@@ -89,6 +90,7 @@ class RKDT:
             assert(levels >= 0)
             self.levels = levels
 
+    '''
     @classmethod
     def set_verbose(self, v):
         """
@@ -99,6 +101,7 @@ class RKDT:
         """
         self.verbose = v
         self.Node.verbose = v
+    '''
 
     def build(self, levels=None, leafsize=None):
         """
@@ -122,7 +125,7 @@ class RKDT:
         '''
         #Create the root node
         root = self.Node(cp, self.data, self, idx=0, level=0, size=self.size)
-        self.root = root
+        #self.root = root
         del self.data
         root.split(cp.cuda.Stream())
 
@@ -133,6 +136,134 @@ class RKDT:
         self.root.populate_data(data, cp.cuda.Stream())
         del data
         return
+
+    def get_levels(self):
+        """Return the maximum number of levels in this RKDT."""
+        return self.levels
+
+    def get_level(self, level):
+        """Return the list of nodes at a level in-order."""
+        start = 2**level -1
+        stop  = 2**(level+1) - 1
+        return self.treelist[start:stop]
+
+    def single_query(self, q):
+        """Find the leaf index corresponding to a single query point.
+
+        Arguments:
+            q -- 1 x d query point
+        """
+        idx = 0
+        for l in range(self.levels):
+            current_node = self.treelist[idx]
+            idx = current_node.single_query(q)
+        return idx
+
+    def query(self, Q):
+        """Find the leaf index corresponding to each query point in Q.
+
+        Arguments:
+            Q -- N x d query point matrix
+
+        Return value:
+            idx -- length N array of node indices
+        """
+
+        N, d = Q.shape
+        idx = cp.zeros(N)
+
+        #TODO: Restructure this for a GPU kernel
+
+        for i in range(N):
+            idx = single_query(Q[i, :])
+        return idx
+
+    def query_bin(self, Q):
+        """Find and bin the leaf index corresponding to each query point in Q""
+
+        Arguments:
+            Q -- N x d query point matrix
+
+        Return value:
+            bins -- dictionary (key: leaf node index, value: list of local query ids (row idx) for queries in that corresponding leaf)
+        """
+
+        #TODO: Restructure this for a multisplit kernel
+
+        N, d, = Q.shape
+        bins = defaultdict(list)
+        for i in range(N):
+            bins[self.single_query(Q[i, :])].append(i)
+        return bins
+
+    def knn(self, Q, k):
+        """Perform exact exhaustive knn search at the root level of the tree
+
+        Arguments:
+            Q -- N x d query point matrix
+            k -- The number of nearest neighbors (Require k < leafnodesize, otherwise it is padded with inf values)
+        Return:
+            (neighbor_list , neigbor_dist)
+            neighbor_list -- |Q| x k list of neighbor gids. In local ordering og the query points.
+            neighbor_dist -- the corresponding distances
+        """
+        root = self.treelist[0]
+        return root.knn(Q, k)
+
+    def aknn(self, Q, k):
+        """Perform approximate knn search at the root level of the tree
+
+        Arguments:
+            Q -- N x d query point matrix
+            k -- The number of nearest neighbors (Require k < leafnodesize, otherwise it is padded with inf values)
+
+        Return:
+            (neighbor_list , neigbor_dist)
+            neighbor_list -- |Q| x k list of neighbor gids. In local ordering og the query points.
+            neighbor_dist -- the corresponding distances
+        """
+        N, d = Q.shape
+        bins = self.query_bin(Q)
+        neighbor_list = cp.full([N, k], cp.inf)
+        neighbor_dist = cp.full([N, k], cp.inf)
+
+        #TODO: Key area for PARLA Tasks
+
+        for leaf in bins:
+            idx = bins[leaf]
+            node = self.treelist[leaf]
+            lk = min(k, node.size-1) #TODO: Ascend tree if k > leafsize?
+            lneighbor_list, lneighbor_dist = node.knn(Q[idx, ...], lk)
+            neighbor_list[idx, :lk] = lneighbor_list
+            neighbor_dist[idx, :lk] = lneighbor_dist
+
+        return neighbor_list, neighbor_dist
+
+    def all_nearest_neighbor(self, k):
+        """Perform approximate all knn search at the root level of the tree
+
+        Arguments:
+            k -- The number of nearest neighbors (Require k < leafnodesize, otherwise it is padded with inf values)
+
+        Return:
+            (neighbor_list , neigbor_dist)
+            neighbor_list -- |Q| x k list of neighbor gids. In local ordering og the query points.
+            neighbor_dist -- the corresponding distances
+        """
+
+        N = self.size
+        neighbor_list = cp.full([N, k], -1)
+        neighbor_dist = cp.full([N, k], -1.0)
+        max_level = self.levels
+
+        #TODO: Key area for PARLA tasks
+        for leaf in self.get_level(max_level):
+            idx = leaf.gids
+            lk = min(k, leaf.size-1) #TODO: Ascend tree if k > leafsize?
+            lneighbor_list, lneighbor_dist = leaf.knn(self.data[idx, ...], lk)
+            neighbor_list[idx, :lk] = lneighbor_list
+            neighbor_dist[idx, :lk] = lneighbor_dist
+        return neighbor_list, neighbor_dist
 
     class Node:
 
@@ -402,133 +533,5 @@ class RKDT:
             print("1x1")
             #compare against splitting plane
             return 2*self.id+1 if dist < self.median else 2*self.id+2
-
-    def get_levels(self):
-        """Return the maximum number of levels in this RKDT."""
-        return self.levels
-
-    def get_level(self, level):
-        """Return the list of nodes at a level in-order."""
-        start = 2**level -1
-        stop  = 2**(level+1) - 1
-        return self.treelist[start:stop]
-
-    def single_query(self, q):
-        """Find the leaf index corresponding to a single query point.
-
-        Arguments:
-            q -- 1 x d query point
-        """
-        idx = 0
-        for l in range(self.levels):
-            current_node = self.treelist[idx]
-            idx = current_node.single_query(q)
-        return idx
-
-    def query(self, Q):
-        """Find the leaf index corresponding to each query point in Q.
-
-        Arguments:
-            Q -- N x d query point matrix
-
-        Return value:
-            idx -- length N array of node indices
-        """
-
-        N, d = Q.shape
-        idx = cp.zeros(N)
-
-        #TODO: Restructure this for a GPU kernel
-
-        for i in range(N):
-            idx = single_query(Q[i, :])
-        return idx
-
-    def query_bin(self, Q):
-        """Find and bin the leaf index corresponding to each query point in Q""
-
-        Arguments:
-            Q -- N x d query point matrix
-
-        Return value:
-            bins -- dictionary (key: leaf node index, value: list of local query ids (row idx) for queries in that corresponding leaf)
-        """
-
-        #TODO: Restructure this for a multisplit kernel
-
-        N, d, = Q.shape
-        bins = defaultdict(list)
-        for i in range(N):
-            bins[self.single_query(Q[i, :])].append(i)
-        return bins
-
-    def knn(self, Q, k):
-        """Perform exact exhaustive knn search at the root level of the tree
-
-        Arguments:
-            Q -- N x d query point matrix
-            k -- The number of nearest neighbors (Require k < leafnodesize, otherwise it is padded with inf values)
-        Return:
-            (neighbor_list , neigbor_dist)
-            neighbor_list -- |Q| x k list of neighbor gids. In local ordering og the query points.
-            neighbor_dist -- the corresponding distances
-        """
-        root = self.treelist[0]
-        return root.knn(Q, k)
-
-    def aknn(self, Q, k):
-        """Perform approximate knn search at the root level of the tree
-
-        Arguments:
-            Q -- N x d query point matrix
-            k -- The number of nearest neighbors (Require k < leafnodesize, otherwise it is padded with inf values)
-
-        Return:
-            (neighbor_list , neigbor_dist)
-            neighbor_list -- |Q| x k list of neighbor gids. In local ordering og the query points.
-            neighbor_dist -- the corresponding distances
-        """
-        N, d = Q.shape
-        bins = self.query_bin(Q)
-        neighbor_list = cp.full([N, k], cp.inf)
-        neighbor_dist = cp.full([N, k], cp.inf)
-
-        #TODO: Key area for PARLA Tasks
-
-        for leaf in bins:
-            idx = bins[leaf]
-            node = self.treelist[leaf]
-            lk = min(k, node.size-1) #TODO: Ascend tree if k > leafsize?
-            lneighbor_list, lneighbor_dist = node.knn(Q[idx, ...], lk)
-            neighbor_list[idx, :lk] = lneighbor_list
-            neighbor_dist[idx, :lk] = lneighbor_dist
-
-        return neighbor_list, neighbor_dist
-
-    def all_nearest_neighbor(self, k):
-        """Perform approximate all knn search at the root level of the tree
-
-        Arguments:
-            k -- The number of nearest neighbors (Require k < leafnodesize, otherwise it is padded with inf values)
-
-        Return:
-            (neighbor_list , neigbor_dist)
-            neighbor_list -- |Q| x k list of neighbor gids. In local ordering og the query points.
-            neighbor_dist -- the corresponding distances
-        """
-
-        N = self.size
-        neighbor_list = cp.full([N, k], -1)
-        neighbor_dist = cp.full([N, k], -1.0)
-        max_level = self.levels
-
-        #TODO: Key area for PARLA tasks
-        for leaf in self.get_level(max_level):
-            idx = leaf.gids
-            lk = min(k, leaf.size-1) #TODO: Ascend tree if k > leafsize?
-            lneighbor_list, lneighbor_dist = leaf.knn(self.data[idx, ...], lk)
-            neighbor_list[idx, :lk] = lneighbor_list
-            neighbor_dist[idx, :lk] = lneighbor_dist
-        return neighbor_list, neighbor_dist
 
 
