@@ -301,7 +301,7 @@ class RKDT:
                 return
             
             with stream:
-                cp.random.RandomState(1001+self.id)
+                #cp.random.RandomState(1001+self.id)
                 self.plane[0] = self.libpy.random.random((self.data[0].shape),dtype='float32')
                 proj = self.libpy.dot(self.data, self.plane[0])
                 lids = self.libpy.argpartition(proj, middle)
