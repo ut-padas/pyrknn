@@ -265,273 +265,273 @@ class RKDT:
             neighbor_dist[idx, :lk] = lneighbor_dist
         return neighbor_list, neighbor_dist
 
-    class Node:
+class Node:
 
-        verbose = False
+    verbose = False
 
-        def __init__(self, libpy, data, tree, idx=0, level=0, size=0):
-            """Initalize a member of the RKDT.Node class
+    def __init__(self, libpy, data, tree, idx=0, level=0, size=0):
+        """Initalize a member of the RKDT.Node class
 
-            Arguments:
-                tree -- the owning RKDT (used for grabbing data from the pointset)
+        Arguments:
+            tree -- the owning RKDT (used for grabbing data from the pointset)
 
-            Keyword Arguments:
-                idx -- the binary tree array order index
-                level -- the level in the tree of the node (root = level 0)
-                size -- the number of points that this node corresponds to
-                gids -- the list of global indicies for the owned points
-            """
-            self.data = data # permuted data for the tree node
-            self.tree = tree
-            self.id = idx
-            self.level = level
-            self.size = size
-            self.isleaf = False
-            self.parent = None
-            self.children = [None, None]
-            #self.anchors = None
-            self.vector = None
-            self.median = 0.0 # stored median is the modified distance
+        Keyword Arguments:
+            idx -- the binary tree array order index
+            level -- the level in the tree of the node (root = level 0)
+            size -- the number of points that this node corresponds to
+            gids -- the list of global indicies for the owned points
+        """
+        self.data = data # permuted data for the tree node
+        self.tree = tree
+        self.id = idx
+        self.level = level
+        self.size = size
+        self.isleaf = False
+        self.parent = None
+        self.children = [None, None]
+        #self.anchors = None
+        self.vector = None
+        self.median = 0.0 # stored median is the modified distance
 
-        def __str__(self):
-            """Overloading the print function for a RKDT.Node class"""
+    def __str__(self):
+        """Overloading the print function for a RKDT.Node class"""
 
-            if self.verbose:
-                msg = 'Node: ' + str(self.id) + ' at level '+ str(self.level) + ' of size ' + str(self.size)
-                msg += '\nLeaf:' + str(self.isleaf)
-                msg += '\nBelonging to tree with id ' + str(self.tree.id)
-                msg += '\nAnchor points are: '
-                anchors = self.anchors if self.anchors is not None else []
-                for anchor in anchors:
-                    msg += '\ngid:'+str(anchor)+' value: '+str(self.tree.data[anchor, ...])
-                msg += '\nSplitting Line: '+str(self.vector)
-                msg += '\nContains gids:' +str(self.gids)
-                #msg += '\nData:'+str(self.tree.data[self.gids, ...])
-                msg += '\n--------------------------'
-            else:
-                msg = 'Node: ' + str(self.id) + ' at level '+ str(self.level) + ' of size ' + str(self.size)
-            return msg
+        if self.verbose:
+            msg = 'Node: ' + str(self.id) + ' at level '+ str(self.level) + ' of size ' + str(self.size)
+            msg += '\nLeaf:' + str(self.isleaf)
+            msg += '\nBelonging to tree with id ' + str(self.tree.id)
+            msg += '\nAnchor points are: '
+            anchors = self.anchors if self.anchors is not None else []
+            for anchor in anchors:
+                msg += '\ngid:'+str(anchor)+' value: '+str(self.tree.data[anchor, ...])
+            msg += '\nSplitting Line: '+str(self.vector)
+            msg += '\nContains gids:' +str(self.gids)
+            #msg += '\nData:'+str(self.tree.data[self.gids, ...])
+            msg += '\n--------------------------'
+        else:
+            msg = 'Node: ' + str(self.id) + ' at level '+ str(self.level) + ' of size ' + str(self.size)
+        return msg
 
-        def get_id(self):
-            """Return the binary tree array order index of a RKDT.Node """
-            return self.id
+    def get_id(self):
+        """Return the binary tree array order index of a RKDT.Node """
+        return self.id
 
-        def get_gids(self):
-            """Return the global indicies of the owned points"""
-            return self.gids
+    def get_gids(self):
+        """Return the global indicies of the owned points"""
+        return self.gids
 
-        def data(self):
-            """Return the size x d array of the owned pointset. Note this produces a copy."""
-            return self.tree.data[self.gids, ...]
+    def data(self):
+        """Return the size x d array of the owned pointset. Note this produces a copy."""
+        return self.tree.data[self.gids, ...]
 
-        def cleanup(self):
-            """Delete the local projection onto the random line"""
-            self.local_ = []
+    def cleanup(self):
+        """Delete the local projection onto the random line"""
+        self.local_ = []
 
-        def set_right_child(self, node):
-            """Set the 'pointer' to the right child. (Points should be > split)"""
-            self.children[0] = node
+    def set_right_child(self, node):
+        """Set the 'pointer' to the right child. (Points should be > split)"""
+        self.children[0] = node
 
-        def set_left_child(self, node):
-            """Set the 'pointer' to the left child. (Points should be > split)"""
-            self.children[1] = node
+    def set_left_child(self, node):
+        """Set the 'pointer' to the left child. (Points should be > split)"""
+        self.children[1] = node
 
-        def set_children(self, nodelist):
-            """Set both children from nodelist = [left, right]. Update leaf status."""
-            self.children = nodelist
-            self.isleaf = True if all([child is None for child in nodelist]) else False
+    def set_children(self, nodelist):
+        """Set both children from nodelist = [left, right]. Update leaf status."""
+        self.children = nodelist
+        self.isleaf = True if all([child is None for child in nodelist]) else False
 
-        def set_parent(self, node):
-            """Set the 'pointer' to the parent node"""
-            self.parent = node
+    def set_parent(self, node):
+        """Set the 'pointer' to the parent node"""
+        self.parent = node
 
-        def select_hyperplane(self):
-            """Select the random line and project onto it.
-
-                Algorithm:
-                    Select 2 random points owned by this node.
-                    Compute the distance from all other points to these two 'anchor points'
-                    The projection local_ is their difference.
-
-                    This computes <x, (a_1 - a_2)>
-            """
-            #TODO: Replace with gpu kernel
-            self.anchors = cp.random.choice(self.gids, 2, replace=False)
-            dist = util.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
-            self.local_ = dist[0] - dist[1]
-
-        def average(self, idx=0):
-            """Return the average of points in the node along a specified axis (0 < idx < d-1)
-
-            Keyword Arguments:
-                idx -- axis to compute average along. If idx < 0 compute with the saved local projection onto anchor points
-            """
-
-            if (idx >= 0):
-                return cp.mean(self.tree.data[self.gids, idx])
-            else:
-                return cp.mean(self.local_)
-
-        def median(self, idx=0):
-            """Return the median of points in the node along a specified axis (0 < idx < d-1)
-
-            Keyword Arguments:
-                idx -- axis to compute median along. If idx < 0 compute with the saved local projection onto anchor points
-            """
-
-            if (idx >= 0):
-                return cp.median(self.tree.data[self.gids, idx])
-            else:
-                return cp.median(self.local_)
-
-        def split(self, stream):
-            """Split a node and assign both children.
-
-            Return value:
-                children -- [left, right] containing the left and right child nodes respectively
+    def select_hyperplane(self):
+        """Select the random line and project onto it.
 
             Algorithm:
-                Project onto line. (un-normalized in the current implementation)
-                Split at median of projection.
-                Partition gids and assign to children. left < median, right > median
-            """
+                Select 2 random points owned by this node.
+                Compute the distance from all other points to these two 'anchor points'
+                The projection local_ is their difference.
 
-            middle = self.size//2
+                This computes <x, (a_1 - a_2)>
+        """
+        #TODO: Replace with gpu kernel
+        self.anchors = cp.random.choice(self.gids, 2, replace=False)
+        dist = util.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
+        self.local_ = dist[0] - dist[1]
 
-            #Stop the split if the leafsize is too small, or the maximum level has been reached
-            if (middle < self.tree.leafsize):
-                '''if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:'''
-                self.vector = None
-                #self.anchors = None
-                self.isleaf=True
-                return [None, None]
+    def average(self, idx=0):
+        """Return the average of points in the node along a specified axis (0 < idx < d-1)
 
-            '''
-            if (self.level == 0 or self.level == 1 or self.level == 2):
-                mem_pool = cp.get_default_memory_pool()
-                print('before creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
-                print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
-            '''
-            #project onto line (projection stored in self.local_)
-            with stream:
-                #cp.random.RandomState(1001+self.id)
-                self.vector = cp.random.random((self.data[0].shape),dtype='float32')
-                proj = cp.dot(self.data, self.vector)
-                lids = cp.argpartition(proj, middle)
-                self.median = proj[lids[middle]]
-                data_left = self.data[lids[:middle]]
-                data_right = self.data[lids[middle:]]
-                del proj
-                del lids
-                del self.data
-            
-            #Initialize left and right nodes
-            left = self.tree.Node(cp, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
-            right = self.tree.Node(cp, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
-            del data_left
-            del data_right
+        Keyword Arguments:
+            idx -- axis to compute average along. If idx < 0 compute with the saved local projection onto anchor points
+        """
 
-            left.set_parent(self)
-            right.set_parent(self)
+        if (idx >= 0):
+            return cp.mean(self.tree.data[self.gids, idx])
+        else:
+            return cp.mean(self.local_)
 
-            children = [left, right]
-            self.set_children(children)
+    def median(self, idx=0):
+        """Return the median of points in the node along a specified axis (0 < idx < d-1)
 
-            '''
-            if (self.level == 0 or self.level == 1 or self.level == 2):
-                mem_pool = cp.get_default_memory_pool()
-                print('after creating stream and deleting, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
-                print('after creating stream and deleting, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
-            '''
-            if self.level < 4:
-                stream.synchronize()
-                stream2 = cp.cuda.Stream()
-                left.split(stream)
-                right.split(stream2)
-                stream.synchronize()
-                stream2.synchronize()
-            else:
-                left.split(stream)
-                right.split(stream)
-            return children
+        Keyword Arguments:
+            idx -- axis to compute median along. If idx < 0 compute with the saved local projection onto anchor points
+        """
 
-        def populate_data(self,data,stream):
-            middle = self.size//2
-            self.data = data
-            if self.isleaf:
-                return
-            
-            with stream:
-                #cp.random.RandomState(1001+self.id)
-                self.vector = cp.random.random((self.data[0].shape),dtype='float32')
-                proj = cp.dot(self.data, self.vector)
-                lids = cp.argpartition(proj, middle)
-                self.median = proj[lids[middle]]
-                data_left = self.data[lids[:middle]]
-                data_right = self.data[lids[middle:]]
-                del proj
-                del lids
-                del self.data
-                del data
-            
-            left,right = self.children
+        if (idx >= 0):
+            return cp.median(self.tree.data[self.gids, idx])
+        else:
+            return cp.median(self.local_)
 
-            if self.level < 4:
-                stream.synchronize()
-                stream2 = cp.cuda.Stream()
-                left.populate_data(data_left,stream)
-                del data_left
-                right.populate_data(data_right,stream2)
-                del data_right
-                stream.synchronize()
-                stream2.synchronize()
-            else:
-                left.populate_data(data_left,stream)
-                right.populate_data(data_right,stream)
+    def split(self, stream):
+        """Split a node and assign both children.
+
+        Return value:
+            children -- [left, right] containing the left and right child nodes respectively
+
+        Algorithm:
+            Project onto line. (un-normalized in the current implementation)
+            Split at median of projection.
+            Partition gids and assign to children. left < median, right > median
+        """
+
+        middle = self.size//2
+
+        #Stop the split if the leafsize is too small, or the maximum level has been reached
+        if (middle < self.tree.leafsize):
+            '''if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:'''
+            self.vector = None
+            #self.anchors = None
+            self.isleaf=True
+            return [None, None]
+
+        '''
+        if (self.level == 0 or self.level == 1 or self.level == 2):
+            mem_pool = cp.get_default_memory_pool()
+            print('before creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
+            print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
+        '''
+        #project onto line (projection stored in self.local_)
+        with stream:
+            #cp.random.RandomState(1001+self.id)
+            self.vector = cp.random.random((self.data[0].shape),dtype='float32')
+            proj = cp.dot(self.data, self.vector)
+            lids = cp.argpartition(proj, middle)
+            self.median = proj[lids[middle]]
+            data_left = self.data[lids[:middle]]
+            data_right = self.data[lids[middle:]]
+            del proj
+            del lids
+            del self.data
+        
+        #Initialize left and right nodes
+        left = self.tree.Node(cp, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
+        right = self.tree.Node(cp, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
+        del data_left
+        del data_right
+
+        left.set_parent(self)
+        right.set_parent(self)
+
+        children = [left, right]
+        self.set_children(children)
+
+        '''
+        if (self.level == 0 or self.level == 1 or self.level == 2):
+            mem_pool = cp.get_default_memory_pool()
+            print('after creating stream and deleting, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
+            print('after creating stream and deleting, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
+        '''
+        if self.level < 4:
+            stream.synchronize()
+            stream2 = cp.cuda.Stream()
+            left.split(stream)
+            right.split(stream2)
+            stream.synchronize()
+            stream2.synchronize()
+        else:
+            left.split(stream)
+            right.split(stream)
+        return children
+
+    def populate_data(self,data,stream):
+        middle = self.size//2
+        self.data = data
+        if self.isleaf:
             return
+        
+        with stream:
+            #cp.random.RandomState(1001+self.id)
+            self.vector = cp.random.random((self.data[0].shape),dtype='float32')
+            proj = cp.dot(self.data, self.vector)
+            lids = cp.argpartition(proj, middle)
+            self.median = proj[lids[middle]]
+            data_left = self.data[lids[:middle]]
+            data_right = self.data[lids[middle:]]
+            del proj
+            del lids
+            del self.data
+            del data
+        
+        left,right = self.children
+
+        if self.level < 4:
+            stream.synchronize()
+            stream2 = cp.cuda.Stream()
+            left.populate_data(data_left,stream)
+            del data_left
+            right.populate_data(data_right,stream2)
+            del data_right
+            stream.synchronize()
+            stream2.synchronize()
+        else:
+            left.populate_data(data_left,stream)
+            right.populate_data(data_right,stream)
+        return
 
 
-        def knn(self, Q, k):
-            """
-            Perform an exact exhaustive knn query search in the node. O(size x gids x d)
+    def knn(self, Q, k):
+        """
+        Perform an exact exhaustive knn query search in the node. O(size x gids x d)
 
-            Arguments:
-                Q -- N x d matrix of query points
-                k -- number of nearest neighbors
-            """
-            R = self.tree.data[self.gids, ...]
-            return util.direct_knn(self.gids, R, Q, k)
+        Arguments:
+            Q -- N x d matrix of query points
+            k -- number of nearest neighbors
+        """
+        R = self.tree.data[self.gids, ...]
+        return util.direct_knn(self.gids, R, Q, k)
 
-        def exact_all_nearest_neighbors(self, k):
-            """
-            Perform an exact exhaustive all-knn search in the node. O(size x gids x d)
+    def exact_all_nearest_neighbors(self, k):
+        """
+        Perform an exact exhaustive all-knn search in the node. O(size x gids x d)
 
-            Arguments:
-                k -- number of nearest neighbors (Limitation: k < leafsize)
-            """
-            R = self.tree.data[self.gids, ...]
-            return util.direct_knn(self.gids, R, R, k)
+        Arguments:
+            k -- number of nearest neighbors (Limitation: k < leafsize)
+        """
+        R = self.tree.data[self.gids, ...]
+        return util.direct_knn(self.gids, R, R, k)
 
-        def single_query(self, q):
-            """
-            Update the tree index belonging to a single query point.
+    def single_query(self, q):
+        """
+        Update the tree index belonging to a single query point.
 
-            i.e. if that query point were added to this node would it have belonged to the left or right child
+        i.e. if that query point were added to this node would it have belonged to the left or right child
 
-            Arguments:
-                q -- 1 x d query point
-            """
-            if self.isleaf:
-                return self.id
+        Arguments:
+            q -- 1 x d query point
+        """
+        if self.isleaf:
+            return self.id
 
-            #compute distance to anchors
-            q = q.reshape((1, q.shape[0]))
-            dist = util.distance(q, self.tree.data[self.anchors, ...])
-            dist = dist[0] - dist[1]
-            print(q.shape)
-            print(dist.shape)
-            print("1x1")
-            #compare against splitting plane
-            return 2*self.id+1 if dist < self.median else 2*self.id+2
+        #compute distance to anchors
+        q = q.reshape((1, q.shape[0]))
+        dist = util.distance(q, self.tree.data[self.anchors, ...])
+        dist = dist[0] - dist[1]
+        print(q.shape)
+        print(dist.shape)
+        print("1x1")
+        #compare against splitting plane
+        return 2*self.id+1 if dist < self.median else 2*self.id+2
 
 
