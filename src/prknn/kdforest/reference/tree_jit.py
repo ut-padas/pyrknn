@@ -3,6 +3,8 @@ from collections import defaultdict
 import threading
 import numpy as np
 import cupy as cp
+from numba import jitclass
+from numba import int32, float32, types, typed
 import util
 
 def split_node(node):
@@ -11,6 +13,35 @@ def split_node(node):
     node.split(cp.cuda.Stream())
     return 
 
+RKDT_spec = [
+    ('id',int32),
+    ('levels',int32),
+    ('leafsize',int32),
+    ('size',int32),
+    ('data', float32[:]),
+    ('root',Node),
+]
+# self.data = data # permuted data for the tree node
+#             self.tree = tree
+#             self.id = idx
+#             self.level = level
+#             self.size = size
+#             self.isleaf = False
+#             self.parent = None
+#             self.children = [None, None]
+#             #self.anchors = None
+#             self.vector = None
+#             self.median = 0.0
+# Node_spec = [
+#     ('data',float32[:]),
+#     ('tree',RKDT),
+#     ('id',int32),
+#     ('level',int32),
+#     ('size',int32),
+#     ('is')
+# ]
+
+@jitclass(spec)
 class RKDT:
     """Class for Randomized KD Tree Nearest Neighbor Searches"""
 
@@ -24,15 +55,14 @@ class RKDT:
                 leafsize -- Leaves of size (2*leafsize + 1) will not be split
                 pointset -- the N x d dataset of N d dimensional points in Rn
         """
-        self.libpy = libpy
         self.id = id(self)                      #unique id for instance of this class
         self.levels = levels
         self.leafsize = leafsize
-        self.nodelist = []
+        #self.nodelist = []
         self.size = len(pointset)
         self.data = pointset
         self.root = None
-        self.built=False
+        #self.built=False
 
     def set(pointset=None, leafsize=None, levels=None):
         """Set or redefine the key values of a RKDT
@@ -46,7 +76,7 @@ class RKDT:
             raise ErrorType.InitializationError('You cannot call set on a tree that has already been built')
 
         if (pointset is not None):
-            self.data = self.libpy.asarray(pointset)
+            self.data = cp.asarray(pointset)
             self.size = len(pointset)
             if (self.size > 0):
                 self.empty= False
@@ -91,7 +121,7 @@ class RKDT:
             raise ErrorType.InitializationError('Invalid max levels parameter: Cannot build a tree of '+str(self.levels)+' levels')
         '''
         #Create the root node
-        root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
+        root = self.Node(cp, self.data, self, idx=0, level=0, size=self.size)
         self.root = root
         del self.data
         root.split(cp.cuda.Stream())
@@ -121,7 +151,6 @@ class RKDT:
                 gids -- the list of global indicies for the owned points
             """
             self.data = data # permuted data for the tree node
-            self.libpy = libpy
             self.tree = tree
             self.id = idx
             self.level = level
@@ -196,7 +225,7 @@ class RKDT:
                     This computes <x, (a_1 - a_2)>
             """
             #TODO: Replace with gpu kernel
-            self.anchors = self.libpy.random.choice(self.gids, 2, replace=False)
+            self.anchors = cp.random.choice(self.gids, 2, replace=False)
             dist = util.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
             self.local_ = dist[0] - dist[1]
 
@@ -208,9 +237,9 @@ class RKDT:
             """
 
             if (idx >= 0):
-                return self.libpy.mean(self.tree.data[self.gids, idx])
+                return cp.mean(self.tree.data[self.gids, idx])
             else:
-                return self.libpy.mean(self.local_)
+                return cp.mean(self.local_)
 
         def median(self, idx=0):
             """Return the median of points in the node along a specified axis (0 < idx < d-1)
@@ -220,9 +249,9 @@ class RKDT:
             """
 
             if (idx >= 0):
-                return self.libpy.median(self.tree.data[self.gids, idx])
+                return cp.median(self.tree.data[self.gids, idx])
             else:
-                return self.libpy.median(self.local_)
+                return cp.median(self.local_)
 
         def split(self, stream):
             """Split a node and assign both children.
@@ -255,9 +284,9 @@ class RKDT:
             #project onto line (projection stored in self.local_)
             with stream:
                 #cp.random.RandomState(1001+self.id)
-                self.vector = self.libpy.random.random((self.data[0].shape),dtype='float32')
-                proj = self.libpy.dot(self.data, self.vector)
-                lids = self.libpy.argpartition(proj, middle)
+                self.vector = cp.random.random((self.data[0].shape),dtype='float32')
+                proj = cp.dot(self.data, self.vector)
+                lids = cp.argpartition(proj, middle)
                 self.median = proj[lids[middle]]
                 data_left = self.data[lids[:middle]]
                 data_right = self.data[lids[middle:]]
@@ -266,8 +295,8 @@ class RKDT:
                 del self.data
             
             #Initialize left and right nodes
-            left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
-            right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
+            left = self.tree.Node(cp, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
+            right = self.tree.Node(cp, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
             del data_left
             del data_right
 
@@ -303,9 +332,9 @@ class RKDT:
             
             with stream:
                 #cp.random.RandomState(1001+self.id)
-                self.vector = self.libpy.random.random((self.data[0].shape),dtype='float32')
-                proj = self.libpy.dot(self.data, self.vector)
-                lids = self.libpy.argpartition(proj, middle)
+                self.vector = cp.random.random((self.data[0].shape),dtype='float32')
+                proj = cp.dot(self.data, self.vector)
+                lids = cp.argpartition(proj, middle)
                 self.median = proj[lids[middle]]
                 data_left = self.data[lids[:middle]]
                 data_right = self.data[lids[middle:]]
@@ -407,7 +436,7 @@ class RKDT:
         """
 
         N, d = Q.shape
-        idx = self.libpy.zeros(N)
+        idx = cp.zeros(N)
 
         #TODO: Restructure this for a GPU kernel
 
@@ -461,8 +490,8 @@ class RKDT:
         """
         N, d = Q.shape
         bins = self.query_bin(Q)
-        neighbor_list = self.libpy.full([N, k], self.libpy.inf)
-        neighbor_dist = self.libpy.full([N, k], self.libpy.inf)
+        neighbor_list = cp.full([N, k], cp.inf)
+        neighbor_dist = cp.full([N, k], cp.inf)
 
         #TODO: Key area for PARLA Tasks
 
@@ -489,8 +518,8 @@ class RKDT:
         """
 
         N = self.size
-        neighbor_list = self.libpy.full([N, k], -1)
-        neighbor_dist = self.libpy.full([N, k], -1.0)
+        neighbor_list = cp.full([N, k], -1)
+        neighbor_dist = cp.full([N, k], -1.0)
         max_level = self.levels
 
         #TODO: Key area for PARLA tasks
