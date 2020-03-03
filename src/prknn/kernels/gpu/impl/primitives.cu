@@ -99,7 +99,7 @@ void device_kelley_reduce_kernel(const float* arr, const size_t n, float* val){
         update[0] = abs(diff);
 
         //compute subgradient
-        //todo replace 0 with rand()?
+        //todo replace 0 with rand()? How does the subgradient matter?
         update[1] = ( diff > eps) ? float(1.0) : float(1.0);
         //bool swit = (diff > eps) ? false : true;
         update[1] = ( diff < -1*eps) ? float(0) : update[1];
@@ -124,13 +124,14 @@ void small_update_kernel(float* val){
 }
 
 float device_kelley_cutting(float *arr, const size_t n){
-    const size_t MAXITER = 100;
+    const size_t MAXITER = 7;
     const size_t threads = 256;
     const size_t maxblocks = 2048;
     const size_t blocks = min((n+threads-1)/threads, maxblocks);
 
     const size_t wss = 9;
-    const float eps = 1e-15;
+    const float THRES = 1e-6;
+    const float MAXGAP = 10000;
     //Initialize and allocate workspace
     //d_w = [Y_r, F_r, G_r, Y_l, F_l, G_l, Y1, F1, G1]
 
@@ -147,10 +148,10 @@ float device_kelley_cutting(float *arr, const size_t n){
     
     //Set Y_l to min
     w[3] = extrema_tuple.first[0];
-    printf("MIN %f\n", w[3]);
+    //printf("MIN %f\n", w[3]);
     //Set Y_r to max
     w[0] = extrema_tuple.second[0];
-    printf("MAX %f\n", w[0]);
+    //printf("MAX %f\n", w[0]);
 
     //Copy to device
     cudaMemcpy(d_w, w, sizeof(float)*wss, cudaMemcpyHostToDevice);
@@ -161,13 +162,13 @@ float device_kelley_cutting(float *arr, const size_t n){
     //Reduce right
     device_kelley_reduce_kernel<<<blocks, threads>>>(arr, n, d_w);
 
-    float g = 0;
+    float g = 0;    
 
     cudaMemcpy(w, d_w, sizeof(float)*wss, cudaMemcpyDeviceToHost);
     w[2] = 2*w[2] - n;
     w[5] = 2*w[5] - n;
     cudaMemcpy(d_w, w, sizeof(float)*wss, cudaMemcpyHostToDevice);
-
+    /*
     printf("YR %f\n", w[0]);
     printf("OBJ %f\n", w[1]);
     printf("SUBGRAD (COUNT) %f\n", w[2]);
@@ -176,11 +177,17 @@ float device_kelley_cutting(float *arr, const size_t n){
     printf("YL %f\n", w[3]);
     printf("OBJ %f\n", w[4]);
     printf("SUBGRAD (COUNT) %f\n", w[5]);
+    */
     float median;
 
     size_t iter = 0;
-    bool no_swap = true;
+    bool no_median = true;
     bool not_converged = true;
+    bool req_sort = true;
+
+    float lessL = 0;
+    float lessR = 0;
+
     while(not_converged && iter < MAXITER){
     
         small_update_kernel<<<1, 1>>>(d_w);
@@ -192,49 +199,104 @@ float device_kelley_cutting(float *arr, const size_t n){
 
         w[8] = 2*w[8] - n;
         g =  w[8];
+
+        /*
         printf("Iteration %d\n", iter);
         printf("SPLITPOINT %f\n", w[6]);
         printf("OBJ %f\n", w[7]);
         printf("SUBGRAD (COUNT) %f\n", g);
+        */
 
-        no_swap = true;
+        no_median = true;
 
         //TODO: Write a CUDA kernel for this swap? How can I avoid the two copies here? Should I?
+        
         //YL is updated
-        if (g < -1){
+        if (g <= -0.5){
             #pragma unroll
             for (size_t i = 0; i < wss/3; ++i){
                 w[i+3] = w[i+6];
             }
-            no_swap = false;
-            printf("TO THE LEFT\n");
+            no_median = g < -1 ? false : true;
+            //printf("TO THE LEFT\n");
         }
 
         //YR is updated
-        if (g > 1 and no_swap){
+        if (g >= 0.5 and no_median){
             #pragma unroll
             for (size_t i = 0; i < wss/3; ++i){
                 w[i] = w[i+6];
             }
-            no_swap = false;
-            printf("TO THE RIGHT\n");
+            no_median = g > 1 ? false : true;
+            //printf("TO THE RIGHT\n");
         }
-
+        
         median = w[6];
         w[7] = float(0);
         w[8] = float(0);
         
         cudaMemcpy(d_w, w, sizeof(float)*wss, cudaMemcpyHostToDevice);        
 
-        if (no_swap || abs(w[1] - w[4]) < eps){
+        if (no_median || abs(w[0] - w[3]) < THRES || w[2] - w[5] < MAXGAP){
             not_converged=false;
+            if(n%2 != 0 && (w[5] == 0 || w[2] == 0)){
+                req_sort = false;
+                //printf("MEDIAN FOUND EXACTLY");
+            }
+            else if(n%2 == 0 && (w[5] == 1 || w[2] == -1)){
+                req_sort=false;
+                //printf("MEDIAN FOUND EXACTLY");
+            }
+            else{
+                //printf("Need to partition the gap %f\n", w[2] - w[5]);
+            }
         }
 
         ++iter;
             
     }
- 
 
+    if(w[5] >= -1){
+        median = w[3];
+    } 
+
+    if(w[3] <= 1){
+        median = w[0];
+    }
+    /*
+    if(req_sort){
+
+        size_t* d_idx;
+        //allocate space for idx keys
+        cudaMalloc((void**)&d_idx, sizeof(size_t)*n);
+        auto idx = thrust::device_pointer_cast(d_idx);
+        auto copy = [=] __device__ ( double x ){ return (x < w[3] ) ? 1 : 
+        thrust::transform(idx, idx+n, );
+          
+        
+        //scan right
+        //partition right
+        
+        //scan left
+        //partition left
+
+        //parition middle
+
+        //sort middle
+        
+    }
+    else{
+        //thrust partition median
+        
+        
+
+
+
+    }
+    */
+    //printf("==========================\n");
+    //printf("LEFT BOUND: %f:%f \n", w[3], w[5]);
+    //printf("RIGHT BOUND: %f:%f \n", w[0], w[2]);
     cudaFree(d_w);
     free(w);
 
