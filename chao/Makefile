@@ -8,17 +8,23 @@ EXE=$(SCRATCH)/bin/knn.exe
 
 default: $(EXE)
 
-$(EXE): knn.o kernel_gpu.o timer.o
-	nvcc knn.o kernel_gpu.o timer.o -o $(EXE) $(LFLAG)
+$(EXE): knn.o timer.o kernel_single.o kernel_bbf.o kernel_opt.o
+	nvcc $^ -o $@ $(LFLAG)
 	
 knn.o: knn.cpp knn.hpp
 	$(CC) -c knn.cpp $(CFLAG)
 
-kernel_gpu.o: kernel_gpu.cu kernel_gpu.hpp
-	nvcc -c kernel_gpu.cu $(VFLAG)
-
 timer.o: timer.cpp timer.hpp
 	$(CC) -c timer.cpp $(CFLAG)
+
+kernel_single.o: kernel_single.cu kernel_gpu.hpp
+	nvcc -c kernel_single.cu $(VFLAG)
+
+kernel_bbf.o: kernel_bbf.cu kernel_gpu.hpp
+	nvcc -c kernel_bbf.cu $(VFLAG)
+
+kernel_opt.o: kernel_opt.cu kernel_gpu.hpp
+	nvcc -c kernel_opt.cu $(VFLAG)
 
 run: $(EXE)
 	$(EXE)

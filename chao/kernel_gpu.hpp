@@ -55,7 +55,8 @@ void print(const thrust::device_vector<T>& vec, const std::string &name) {
   std::cout<<std::endl<<std::endl;
 }
 
-void print(const float *x, int N, const std::string &name) {
+template <typename T>
+void print(const T *x, int N, const std::string &name) {
   std::cout<<std::endl<<name<<":"<<std::endl;
   for (int i=0; i<N; i++)
     std::cout<<x[i]<<" ";
@@ -117,12 +118,12 @@ struct equal : public thrust::binary_function<int, int, bool>
 };
 
 template <typename T>
-struct module : public thrust::unary_function<int, T> {
+struct modID : public thrust::unary_function<int, T> {
   int k, N;
   const T *value;
 
   __host__ __device__
-    module(int k_, int N_, const T *value_) : k(k_), N(N_), value(value_)  {}
+    modID(int k_, int N_, const T *value_) : k(k_), N(N_), value(value_)  {}
 
   __host__ __device__
     T operator()(int i) {
@@ -133,12 +134,12 @@ struct module : public thrust::unary_function<int, T> {
 };
 
 
-struct module2 : public thrust::unary_function<int, int> {
+struct modDist : public thrust::unary_function<int, int> {
   int k, N;
   const int *value;
 
   __host__ __device__
-    module2(int k_, int N_, const int *value_) : k(k_), N(N_), value(value_)  {}
+    modDist(int k_, int N_, const int *value_) : k(k_), N(N_), value(value_)  {}
 
   __host__ __device__
     int operator()(int i) {

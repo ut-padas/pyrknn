@@ -14,6 +14,113 @@ typedef Matrix<float, Dynamic, Dynamic, RowMajor> Mat;
 typedef Matrix<int, Dynamic, Dynamic, RowMajor> MatInt;
 typedef VectorXf Vec;
 
+
+
+int main(int argc, char* argv[]) {
+
+  int n = 1024;
+  int d = 64;
+  int k = 64;
+  int s = 1;
+  int repeat = 5;
+  bool debug = false;
+  bool benchmark = false;
+  for (int i=1; i<argc; i++) {
+    if (!strcmp(argv[i],"-n"))
+      n = atoi(argv[i+1]);
+    if (!strcmp(argv[i],"-d"))
+      d = atoi(argv[i+1]);
+    if (!strcmp(argv[i],"-k"))
+      k = atoi(argv[i+1]);
+    if (!strcmp(argv[i],"-s"))
+      s = atoi(argv[i+1]);
+    if (!strcmp(argv[i],"-r"))
+      repeat = atoi(argv[i+1]);
+    if (!strcmp(argv[i],"-D"))
+      debug = true;
+    if (!strcmp(argv[i],"-B"))
+      benchmark = true;
+  }
+  assert(n>0);
+  assert(k>0);
+  assert(d>0);
+  assert(s>0);
+  std::cout<<"\n======================\n"
+           <<"Inputs:\n"
+           <<"----------------------\n"
+           <<"N: "<<n<<std::endl
+           <<"d: "<<d<<std::endl
+           <<"k: "<<k<<std::endl
+           <<"num_leaf: "<<s<<std::endl
+           <<"repeat: "<<repeat<<std::endl
+           <<"debug: "<<debug<<std::endl
+           <<"benchmark: "<<benchmark<<std::endl
+           <<"======================\n\n";
+
+  const int nLeaf = s;
+  const int N = n;
+  double t_init = 0.;
+  Timer t;
+
+  // points
+  Mat R, Q;
+  float *R_ptr[nLeaf], *Q_ptr[nLeaf];
+
+  // ID of R points
+  std::vector<int> ID;
+  int *ID_ptr[nLeaf];
+
+  // initialize
+  t.start();
+  R = Mat::Random(N*nLeaf, d);
+  Q = Mat::Random(N*nLeaf, d);
+  for (int i=0; i<nLeaf; i++) {
+    R_ptr[i] = R.data()+i*N*d;
+    Q_ptr[i] = Q.data()+i*N*d;
+  }
+
+  ID.resize(N*nLeaf);
+  std::iota(ID.begin(), ID.end(), 0);
+  for (int j=0; j<nLeaf; j++) {
+    ID_ptr[j] = ID.data()+j*N;
+  }
+  t.stop(); t_init = t.elapsed_time();
+
+  
+  // output from GPU
+  Mat    nborDistGPU(N*nLeaf, k);
+  MatInt nborIDGPU(N*nLeaf, k);
+  float *ptrDist[nLeaf];
+  int   *ptrID[nLeaf];
+  for (int i=0; i<nLeaf; i++) {
+    ptrDist[i] = nborDistGPU.data()+i*N*k;
+    ptrID[i]   = nborIDGPU.data()+i*N*k;
+  }
+
+  // warm up the GPU
+  float t_dist = 0., t_sort = 0., t_store = 0., t_kernel = 0.;
+  gemm_kselect_opt(nLeaf, R_ptr, Q_ptr, ID_ptr, N, d, ptrDist, ptrID, k,
+      t_dist, t_sort, t_store, t_kernel);
+
+  if (benchmark) {
+    t_dist = 0., t_sort = 0., t_store = 0., t_kernel = 0.;
+    for (int i=0; i<repeat; i++) {
+      gemm_kselect_opt(nLeaf, R_ptr, Q_ptr, ID_ptr, N, d, ptrDist, ptrID, k,
+          t_dist, t_sort, t_store, t_kernel);
+    }
+  }
+
+  std::cout<<"Time for initialization: "<<t_init<<" s"<<std::endl;
+  std::cout<<"Time for distance: "<<t_dist/repeat<<" s\n"
+           <<"Time for sort: "<<t_sort/repeat<<" s\n"
+           <<"Time for store: "<<t_store/repeat<<" s\n"
+           <<"Time for GEMM-kselect: "<<t_kernel/repeat<<" s\n\n";
+
+
+  return 0;
+}
+
+
 Mat distSquared_cpu(const Mat& R, const Mat& Q, bool debug=false) {
   Vec R2 = R.rowwise().squaredNorm();
   Vec Q2 = Q.rowwise().squaredNorm();
@@ -46,14 +153,6 @@ void kselect(const float *value, const int *ID, int n, float *kval, int *kID, in
   }
 }
 
-template<typename T>
-void print(const std::vector<T>& vec, const std::string &name) {
-  std::cout<<std::endl<<name<<":"<<std::endl;
-  for (size_t i=0; i<vec.size(); i++)
-    std::cout<<vec[i]<<" ";
-  std::cout<<std::endl<<std::endl;
-}
-    
 void merge_neighbor(const float *D2PtrL, const int *IDl, int kl, 
 		    const float *D2PtrR, const int *IDr, int kr, 
 		    float *nborDistPtr, int *nborIDPtr, int k) {
@@ -83,13 +182,15 @@ void merge_neighbor(const float *D2PtrL, const int *IDl, int kl,
   kselect(value.data(), ID.data(), ID.size(), nborDistPtr, nborIDPtr, k);
 }
 
-int main(int argc, char* argv[]) {
+int test_knn_vector(int argc, char* argv[]) {
 
   int n = 1024;
   int d = 64;
   int k = 64;
   int s = 1;
+  int repeat = 5;
   bool debug = false;
+  bool benchmark = false;
   for (int i=1; i<argc; i++) {
     if (!strcmp(argv[i],"-n"))
       n = atoi(argv[i+1]);
@@ -99,8 +200,12 @@ int main(int argc, char* argv[]) {
       k = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-s"))
       s = atoi(argv[i+1]);
+    if (!strcmp(argv[i],"-r"))
+      repeat = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-D"))
       debug = true;
+    if (!strcmp(argv[i],"-B"))
+      benchmark = true;
   }
   assert(n>0);
   assert(k>0);
@@ -113,6 +218,9 @@ int main(int argc, char* argv[]) {
            <<"d: "<<d<<std::endl
            <<"k: "<<k<<std::endl
            <<"num_leaf: "<<s<<std::endl
+           <<"repeat: "<<repeat<<std::endl
+           <<"debug: "<<debug<<std::endl
+           <<"benchmark: "<<benchmark<<std::endl
            <<"======================\n\n";
 
   const int nLeaf = s;
@@ -122,57 +230,47 @@ int main(int argc, char* argv[]) {
   assert(Nq.size() == (size_t)nLeaf);
   std::vector<Mat> vecR;
   std::vector<Mat> vecQ;
-  std::vector<Mat> vecD2;
   float *vecRptr[nLeaf], *vecQptr[nLeaf];
-  double t_cpu = 0.;
-  Timer t;
   for (int i=0; i<nLeaf; i++) {
     vecR.push_back( Mat::Random(Nr[i],d) );
     vecQ.push_back( Mat::Random(Nq[i],d) );
     vecRptr[i] = vecR[i].data();
     vecQptr[i] = vecQ[i].data();
-    t.start();
-    vecD2.push_back( distSquared_cpu(vecR[i],vecQ[i], debug) );
-    t.stop(); t_cpu += t.elapsed_time();
   }
-  std::cout<<"Compute distance on CPU: "<<t_cpu<<" s."<<std::endl;
+
+  std::vector<std::vector<int>> vecID(nLeaf);
+  int *IDPtr[nLeaf];
+  int firstID = 0;
+  for (int j=0; j<nLeaf; j++) {
+    vecID[j].resize(Nr[j]);
+    std::iota(vecID[j].begin(), vecID[j].end(), firstID);
+    firstID += Nr[j];
+    IDPtr[j] = vecID[j].data();
+  }
+
+
+  std::vector<Mat> vecNborDist;
+  std::vector<MatInt> vecNborID;
+  
+  if (!benchmark) { // skip (slow) computation on CPU
+  double t_cpu = 0.;
+  Timer t; t.start();
+  std::vector<Mat> vecD2;
+  for (int i=0; i<nLeaf; i++) {
+    vecD2.push_back( distSquared_cpu(vecR[i],vecQ[i], debug) );
+  }
  
   if (debug) {
     print(vecD2, "D2");
   }
 
-  /*
-  std::vector<Mat> vecD2t;
-  float *vecD2tptr[nLeaf];
-  for (int i=0; i<nLeaf; i++) {
-    vecD2t.push_back( Mat::Zero(Nr[i],Nq[i]) );
-    vecD2tptr[i] = vecD2t[i].data();
-  }
-  distSquared_gpu_stream(nLeaf, vecRptr, vecQptr, vecD2tptr, Nr.data(), Nq.data(), d);
-
-  double ErrD2 = 0., NrmD2 = 0.;
-  for (int i=0; i<nLeaf; i++) {
-    NrmD2 += (vecD2[i]).norm();
-    ErrD2 += (vecD2[i]-vecD2t[i].transpose()).norm();
-  }
-  std::cout<<"Check error of distance: "<<ErrD2/NrmD2<<std::endl;
-  */
 
   /*
    * Compute k-nearest neighbors
    */
-  std::vector<Mat> vecNborDist;
-  std::vector<MatInt> vecNborID;
-  std::vector<std::vector<int>> vecID(nLeaf);
-  int *IDPtr[nLeaf];
-  int firstID = 0;
   for (int j=0; j<nLeaf; j++) {
     vecNborDist.push_back( Mat(Nq[j],k) );
     vecNborID.push_back( MatInt(Nq[j],k) );
-    vecID[j].resize(Nr[j]);
-    std::iota(vecID[j].begin(), vecID[j].end(), firstID);
-    firstID += Nr[j];
-    IDPtr[j] = vecID[j].data();
     for (int i=0; i<Nq[j]; i++) {
       float *D2Ptr = vecD2[j].data() + i*Nr[j];
       float *nborDistPtr = vecNborDist[j].data() + i*k;
@@ -180,30 +278,10 @@ int main(int argc, char* argv[]) {
       kselect(D2Ptr, IDPtr[j], Nr[j], nborDistPtr, nborIDPtr, k);
     }   
   }
-
-  /*
-  std::vector<Mat> vecNborDistGPU;
-  std::vector<MatInt> vecNborIDGPU;
-  float *ptrD2[nLeaf], *ptrNborDist[nLeaf];
-  int *ptrNborID[nLeaf];
-  for (int i=0; i<nLeaf; i++) {
-    vecNborDistGPU.push_back( Mat::Zero(Nq[i],k) );
-    vecNborIDGPU.push_back( MatInt::Zero(Nq[i],k) );
-    ptrD2[i] = vecD2[i].data();
-    ptrNborDist[i] = vecNborDistGPU[i].data();
-    ptrNborID[i] = vecNborIDGPU[i].data();
+  t.stop(); t_cpu += t.elapsed_time();
+  std::cout<<"Computation on CPU: "<<t_cpu<<" s."<<std::endl;
   }
-  kselect_gpu_stream(nLeaf, ptrD2, ptrID, Nq.data(), Nr.data(), ptrNborDist, ptrNborID, k);
 
-  double ErrNborDist = 0., ErrNborID = 0.;
-  for (int i=0; i<nLeaf; i++) {
-    ErrNborDist += (vecNborDist[i]-vecNborDistGPU[i]).norm();
-    ErrNborID += (vecNborID[i]-vecNborIDGPU[i]).norm();
-  }
-  std::cout<<"Check error of neighbor distance: "<<ErrNborDist<<std::endl
-	   <<"Check error of neighbor ID: "<<ErrNborID<<std::endl;
-  */
- 
 
   /*
    * Blocked batched GEMM fused with k-select
@@ -219,8 +297,24 @@ int main(int argc, char* argv[]) {
     ptrDist[i] = vecNborDistBBF[i].data();
     ptrID[i] = vecNborIDBBF[i].data();
   }
-  bb_gemm_kselect(nLeaf, vecRptr, vecQptr, IDPtr, n, d, ptrDist, ptrID, k, debug);
 
+  // warm up the GPU
+  float t_dist = 0., t_sort = 0., t_store = 0., t_kernel = 0.;
+  bb_gemm_kselect(nLeaf, vecRptr, vecQptr, IDPtr, n, d, ptrDist, ptrID, k,
+      t_dist, t_sort, t_store, t_kernel);
+
+  t_dist = 0., t_sort = 0., t_store = 0., t_kernel = 0.;
+  for (int i=0; i<repeat; i++) {
+    bb_gemm_kselect(nLeaf, vecRptr, vecQptr, IDPtr, n, d, ptrDist, ptrID, k,
+        t_dist, t_sort, t_store, t_kernel);
+  }
+  std::cout<<"Time for distance: "<<t_dist/repeat<<" s\n"
+           <<"Time for sort: "<<t_sort/repeat<<" s\n"
+           <<"Time for store: "<<t_store/repeat<<" s\n"
+           <<"Time for GEMM-kselect: "<<t_kernel/repeat<<" s\n\n";
+          
+ 
+  if (!benchmark) {
   double NrmNborDist = 0., ErrNborDist = 0., ErrNborID = 0.;
   for (int i=0; i<nLeaf; i++) {
     NrmNborDist += vecNborDist[i].norm();
@@ -231,7 +325,7 @@ int main(int argc, char* argv[]) {
            <<ErrNborDist/NrmNborDist<<std::endl
 	         <<"Check error of neighbor ID: "<<ErrNborID<<std::endl;
 
-  
+  if (false) { 
   std::cout<<"Finding error ..."<<std::endl;
   for (int i=0; i<nLeaf; i++) {
     for (int r=0; r<n; r++) {
@@ -245,19 +339,9 @@ int main(int argc, char* argv[]) {
       }
     }
   }
+  }
+  }
   
-
-  /*
-   * Merge neighbors
-   */
-  /*
-  std::vector<int> kL {Nr[0]-1, Nr[1]-1}; 
-  std::vector<int> kR {Nr[0]-1, Nr[1]-1};
-  std::vector<Mat> RL {vecR[0].topRows(kL[0]), vecR[1].topRows(kL[1])};
-  std::vector<Mat> RR {vecR[0].bottomRows(kR[0]), vecR[1].bottomRows(kR[1])};
-  std::vector<Mat> D2L {distSquared_cpu(RL[0], vecQ[0]), distSquared_cpu(RL[1], vecQ[1])};
-  std::vector<Mat> D2R {distSquared_cpu(RR[0], vecQ[0]), distSquared_cpu(RR[1], vecQ[1])};
-  */
 
   return 0;
 }
