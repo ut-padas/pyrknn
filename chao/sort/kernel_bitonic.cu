@@ -1,6 +1,7 @@
-
 #include <iostream>
 #include <cuda_runtime.h>
+
+#include "sort_gpu.hpp"
 
 using namespace std;
 

@@ -1,19 +1,33 @@
-#include "sort.hpp"
+#include "sort_gpu.hpp"
+#include <thrust/functional.h>
 
-void sort_matrix_rows_thrust(dvec<float> &A, dvec<int> &idx, int m, int n, double &t_sort) {
+
+void sortGPU::sort_matrix_rows_thrust(dvec<float> &A, dvec<int> &idx, int m, int n) {
+
+  auto Acpy = A; 
   dvec<int> seg(m*n);
-  for (int i=0; i<m; i++) {
-    thrust::fill_n(seg.begin()+i*n, n, i);
-  }
-  auto Acpy = A;
- 
-  Timer t;
-  cudaDeviceSynchronize(); t.start();
+  auto itr = thrust::counting_iterator<int>(0);
+  thrust::transform(itr, itr+m*n, seg.begin(), rowIdx(n));
+
   thrust::stable_sort_by_key(Acpy.begin(), Acpy.end(), seg.begin());
   thrust::stable_sort_by_key(A.begin(), A.end(), idx.begin());
   thrust::stable_sort_by_key(seg.begin(), seg.end(), idx.begin());
-  cudaDeviceSynchronize(); t.stop();
-  t_sort += t.elapsed_time();
+}
+
+
+void sortGPU::sort_matrix_rows_thrust2(dvec<float> &A, dvec<int> &idx, int m, int n) {
+
+  dvec<int> seg(m*n);
+  auto itr = thrust::counting_iterator<int>(0);
+  thrust::transform(itr, itr+m*n, seg.begin(), rowIdx(n));
+
+  typedef thrust::device_vector<int>::iterator   IntIterator;
+  typedef thrust::tuple<IntIterator, IntIterator> IteratorTuple;
+  typedef thrust::zip_iterator<IteratorTuple> ZipIterator;
+  ZipIterator zipItr(thrust::make_tuple(seg.begin(), idx.begin()));
+
+  thrust::stable_sort_by_key(A.begin(), A.end(), zipItr);
+  thrust::stable_sort_by_key(seg.begin(), seg.end(), idx.begin());
 }
 
 

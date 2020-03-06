@@ -1,31 +1,41 @@
 
 EXE=sort
+LIB=libsortgpu.so
 
 default: $(EXE)
 
-CFLAG=-use_fast_math -O3 -arch=compute_70 -code=sm_70 -shared -Xcompiler -fPIC
+CFLAG=-g -arch=compute_70 -code=sm_70 -Xcompiler -fPIC \
+			-I $(MGPU_ROOT) --expt-extended-lambda
+
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart -lcublas
 
-$(EXE): sort.o timer.o kernel_thrust.o kernel_cub.o kernel_mgpu.o kernel_bitonic.o
-	g++ $^ -o $@ $(LFLAG)
+KERNEL=kernel_thrust.o kernel_cub.o kernel_mgpu.o kernel_bitonic.o
 
-sort.o: sort.cu
-	nvcc -c $^ $(CFLAG) 
+OBJS=sort.o timer_gpu.o 
 
-kernel_thrust.o: kernel_thrust.cu
-	nvcc -c $^ $(CFLAG) 
+$(EXE): $(OBJS) $(LIB)
+	g++ $^ -o $@ $(LFLAG) -L./ -lsortgpu
 
-kernel_cub.o: kernel_cub.cu
-	nvcc -c $^ $(CFLAG) -I $(CUB_ROOT)
+sort.o: sort.cu sort_gpu.hpp
+	nvcc -c $< $(CFLAG) 
 
-kernel_mgpu.o: kernel_mgpu.cu
-	nvcc -c $^ $(CFLAG) -I $(MGPU_ROOT) --expt-extended-lambda
+timer_gpu.o: timer_gpu.cu timer_gpu.hpp
+	nvcc -c $< $(CFLAG)
 
-kernel_bitonic.o: kernel_bitonic.cu
-	nvcc -c $^ $(CFLAG) 
+$(LIB): $(KERNEL)
+	g++ -shared $^ -o $@
 
-timer.o: timer.cpp
-	g++ $^ -c -O3
+kernel_thrust.o: kernel_thrust.cu sort_gpu.hpp
+	nvcc -c $< $(CFLAG) 
+
+kernel_cub.o: kernel_cub.cu sort_gpu.hpp
+	nvcc -c $< $(CFLAG) -I $(CUB_ROOT)
+
+kernel_mgpu.o: kernel_mgpu.cu sort_gpu.hpp
+	nvcc -c $< $(CFLAG) -I $(MGPU_ROOT) --expt-extended-lambda
+
+kernel_bitonic.o: kernel_bitonic.cu sort_gpu.hpp
+	nvcc -c $< $(CFLAG) 
 
 run: $(EXE)
 	./$(EXE)
@@ -34,6 +44,6 @@ benchmark: $(EXE)
 	./$(EXE) -B -n 1024 -m 65536
 
 clean:
-	rm -rf *.o $(EXE)
+	rm -rf *.o *.so $(EXE)
 
 

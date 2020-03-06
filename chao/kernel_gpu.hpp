@@ -56,6 +56,16 @@ void print(const thrust::device_vector<T>& vec, const std::string &name) {
 }
 
 template <typename T>
+void print(const thrust::device_vector<T>& vec, int m, int n, const std::string &name) {
+  std::cout<<std::endl<<name<<":"<<std::endl;
+  for (int i=0; i<m; i++) {
+    for (int j=0; j<n; j++)
+      std::cout<<vec[i*n+j]<<" ";
+    std::cout<<std::endl;
+  }
+}
+
+template <typename T>
 void print(const T *x, int N, const std::string &name) {
   std::cout<<std::endl<<name<<":"<<std::endl;
   for (int i=0; i<N; i++)
@@ -77,14 +87,13 @@ struct square : public thrust::unary_function<float,float>
 template <typename T>
 struct linear_index_to_row_index : public thrust::unary_function<T,T>
 {
-    T C; // number of rows
+    T C; // number of columns
     
     __host__ __device__
     linear_index_to_row_index(T _C) : C(_C) {}
 
     __host__ __device__
-    T operator()(T i)
-    {
+    T operator()(T i) {
         return i / C;
     }
 };

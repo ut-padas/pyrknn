@@ -1,9 +1,9 @@
-#ifndef timer_hpp
-#define timer_hpp
+#ifndef timer_gpu_hpp
+#define timer_gpu_hpp
 
 #include <string>
 
-class Timer {
+class TimerGPU {
 public:
   void start();
   void stop();
@@ -17,4 +17,4 @@ private:
   double tStop = 0.0;
 };
 
-#endif /* timer_hpp */
+#endif /* timer_gpu_hpp */

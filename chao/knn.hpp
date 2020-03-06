@@ -1,8 +1,8 @@
 #ifndef KNN_HPP
 #define KNN_HPP
 
-void gemm_kselect_opt(int, float*[], float*[], int*[], int, int, float*[], int*[], int, 
-                float&, float&, float&, float&);
+void gemm_kselect_opt(int, float*[], float*[], int*[], int, int, float*[], int*[], int, int,
+                float&, float&, float&);
 
 void bb_gemm_kselect(int, float*[], float*[], int*[], int, int, float*[], int*[], int, 
                 float&, float&, float&, float&);
@@ -27,5 +27,6 @@ void print(const std::vector<T>& vec, const std::string &name) {
   std::cout<<std::endl<<std::endl;
 }
 
+void init_random_gpu(float*, int);
 
 #endif

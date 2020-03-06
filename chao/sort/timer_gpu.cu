@@ -1,8 +1,10 @@
-#include "timer.hpp"
+#include "timer_gpu.hpp"
 
 #include <sys/time.h>
 #include <sstream>
 #include <iostream>
+
+//#include 
 
 // Return time in seconds since the Unix epoch
 static double timer() {
@@ -13,28 +15,30 @@ static double timer() {
   return time;
 }
 
-void Timer::start() {
+void TimerGPU::start() {
+  cudaDeviceSynchronize();
   tStart = timer();
 }
 
-void Timer::stop() {
+void TimerGPU::stop() {
+  cudaDeviceSynchronize();
   tStop = timer();
 }
 
-double Timer::elapsed_time() {
+double TimerGPU::elapsed_time() {
   return tStop-tStart;
 }
 
-void Timer::show_elapsed_time() {
+void TimerGPU::show_elapsed_time() {
   std::cout << "Elapsed time : " << tStop-tStart << ".\n";
 }
 
-void Timer::show_elapsed_time(const char* msg) {
+void TimerGPU::show_elapsed_time(const char* msg) {
   std::cout << msg << " : "
 	    << tStop-tStart << " seconds." << std::endl;
 }
 
-std::string Timer::get_elapsed_time(const char* msg) {
+std::string TimerGPU::get_elapsed_time(const char* msg) {
   std::stringstream ss;
   ss << msg << " : " << tStop-tStart << " seconds." << std::endl;
   return ss.str();
