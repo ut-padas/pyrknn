@@ -94,7 +94,7 @@ class RKDT:
         root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
         self.root = root
         del self.data
-        root.split(cp.cuda.Stream())
+        root.split(cp.cuda.Stream(non_blocking=True))
 
         self.built=True
 
@@ -285,7 +285,7 @@ class RKDT:
             '''
             if self.level < 4:
                 stream.synchronize()
-                stream2 = cp.cuda.Stream()
+                stream2 = cp.cuda.Stream(non_blocking=True)
                 left.split(stream)
                 right.split(stream2)
                 stream.synchronize()
