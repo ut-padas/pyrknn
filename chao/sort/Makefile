@@ -11,16 +11,13 @@ LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart -lcublas
 
 KERNEL=kernel_thrust.o kernel_cub.o kernel_mgpu.o kernel_bitonic.o
 
-OBJS=sort.o timer_gpu.o 
+OBJS=sort.o 
 
 $(EXE): $(OBJS) $(LIB)
-	g++ $^ -o $@ $(LFLAG) -L./ -lsortgpu
+	g++ $^ -o $@ $(LFLAG) -L./ -lsortgpu -L../util -lutil
 
 sort.o: sort.cu sort_gpu.hpp
 	nvcc -c $< $(CFLAG) 
-
-timer_gpu.o: timer_gpu.cu timer_gpu.hpp
-	nvcc -c $< $(CFLAG)
 
 $(LIB): $(KERNEL)
 	g++ -shared $^ -o $@

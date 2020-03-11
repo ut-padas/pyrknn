@@ -10,25 +10,7 @@ template <typename T>
 using dvec = thrust::device_vector<T>;
 
 #include "sort_gpu.hpp"
-#include "timer_gpu.hpp"
-
-template <typename T>
-void print(const thrust::device_vector<T>& vec, const std::string &name) {
-  std::cout<<std::endl<<name<<":"<<std::endl;
-  for (int i=0; i<vec.size(); i++)
-    std::cout<<vec[i]<<" ";
-  std::cout<<std::endl<<std::endl;
-}
-
-template <typename T>
-void print(const thrust::device_vector<T>& vec, int m, int n, const std::string &name) {
-  std::cout<<std::endl<<name<<":"<<std::endl;
-  for (int i=0; i<m; i++) {
-    for (int j=0; j<n; j++)
-      std::cout<<vec[i*n+j]<<" ";
-    std::cout<<std::endl;
-  }
-}
+#include "../util/util.hpp"
 
 struct prg : public thrust::unary_function<unsigned int, float> {
   float a, b;
@@ -111,6 +93,22 @@ int main(int argc, char *argv[]) {
   assert(m > 0);
   assert(n > 0);
   assert(k > 0 && k <= n);
+  std::cout.precision(2);
+  std::cout<<"\n======================\n"
+           <<"Inputs:\n"
+           <<"----------------------\n"
+           <<"m: "<<m<<std::endl
+           <<"n: "<<n<<std::endl
+           <<"k: "<<k<<std::endl
+           <<"----------------------\n"
+           <<"repeat: "<<repeat<<std::endl
+           <<"debug: "<<debug<<std::endl
+           <<"benchmark: "<<benchmark<<std::endl
+           <<"----------------------\n"
+           <<std::scientific
+           <<"Mem (input): "<<4.*m*n*2/1.e9<<" GB"<<std::endl
+           <<"Mem (output): "<<4.*m*k*2/1.e9<<" GB"<<std::endl
+           <<"======================\n\n";
 
   dvec<float> A(m*n);
   dvec<int> idx(m*n); // ID
