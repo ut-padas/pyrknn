@@ -18,7 +18,7 @@
 #include<iostream>
 #include<numeric>
 #include<mkl.h>
-
+#include<limits>
 #include<gsknn.h>
 //#include<gsknn_ref.h>
 //#include<gsknn_ref_stl.hpp>
@@ -34,6 +34,118 @@ using idx_type = int;//typename vector<T>::size_type;
 
 template<typename T>
 using neigh_type = typename std::pair<T, idx_type<T>>;
+
+
+void choose2(int* out, int N){
+    out[0] = rand() % N;
+    out[1] = rand() % N;
+    while(out[0] == out[1]){
+        out[1] = rand() % N;
+    }
+}
+
+
+unsigned int intlog2(uint64_t n){
+    #define S(k) if (n >= (UINT64_C(1) << k)) { i+=k; n >>=k; }
+    
+    unsigned int i = -(n == 0); S(32); S(16); S(8); S(4); S(1); return i;
+
+    #undef S
+
+}
+
+//sequential partition algorithm
+template<typename T>
+unsigned int partition(T* array, const unsigned int N, const T elem, const unsigned int ind){
+    unsigned int start = 0;
+    unsigned int idx = 0;
+    unsigned int p = 0;
+    while(idx <= N){
+        T item = array[idx];
+        
+        if(item < elem){
+            array[idx] = array[start];
+            array[start] = item;
+            start++;     
+        }
+        if(idx == ind){
+            p = start;
+        }
+
+        idx++;
+    }
+    return p;
+}
+
+template<typename T>
+unsigned int parallel_partition(T* array, const unsigned int N, const T elem, const unsigned int idx, unsigned int* workspace){
+
+    bool dealloc_workspace = false;
+
+    if(!workspace) {
+        workspace = new unsigned int[N];
+        dealloc_workspace = true;
+    }
+    
+    unsigned int scan_a = 0;
+    unsigned int scan_b = 0;
+    #pragma omp simd reduction(inscan +:scan_a, scan_b)
+    for(unsigned int i = 0; i < N; ++i){
+        workspace[i] = (array[i] > elem) ? scan_a : scan_b;
+        #pragma omp scan exclusive(scan_a, scan_b)
+        scan_a += (array[i] > elem)
+        scan_b += (array[i] < elem)
+    }
+
+    #pragma omp parallel for
+    for(unsigned int i = 0; i < N; ++i){
+        workspace[i] = array[workspace[i]]
+    }
+
+    unsigned int k = workspace[idx];
+
+    #pragma omp parallel for
+    for(unsigned int i = 0; i < N; ++i){
+        array[i] = workspace[i];
+    }
+
+    if(dealloc_workspace){
+        delete [] workspace;
+    }
+
+    return k;
+}
+
+//sequential quicksort algorithm
+template<typename T>
+T quickselect(T* array, const unsigned int N, const unsigned int k){
+    
+     unsigned int start = 0;
+     unsigned int stop = N;
+     unsigned int idx = 0;
+     T elem;
+     int iter = 0;
+     while(start <= stop){
+        iter++;
+        printf("Iter %d\n", iter);
+        idx = rand() % N;
+        elem = array[idx];
+        auto p = partition((float*) array+start, stop-start, elem, idx);
+        printf("Selected %d, Loc %d \n", idx, p);
+        if (k == p){
+            return elem;
+        }
+        if (k > p){
+            start = p;
+        }
+        else{
+            stop = p;
+        }
+        quickselect((float*) array+start, stop-start, k); 
+     }
+    return -1;
+}
+
 
 /*
 //Nearest Neighbor Kernel (from GOFMM Not Fused)

@@ -33,6 +33,12 @@ try:
 except:
     raise Exception("Enviornment variable CUDA_LIB is not set. Please set this to your CUDA library path.")
 
+#TODO: Make this optional
+GSKNN_DIR = ""
+try:
+    GSKNN_DIR = os.environ["GSKNN_DIR"]
+except:
+    raise Exception("Enviornment variable GSKNN_DIR is not set. Please set this to link against the GSKNN Library")
 
 #Parse command line arguments to get learn required object files
 parser = argparse.ArgumentParser(description='Cython setup script to link against compiled object files')
@@ -51,6 +57,7 @@ inc_dirs = inc_dirs + [np.get_include()]
 
 #setup the cpu include directories
 cpu_inc_dirs = inc_dirs
+cpu_inc_dirs = cpu_inc_dirs + [GSKNN_DIR+'build/include']
 
 #setup the gpu include directories
 gpu_inc_dirs = inc_dirs + [CUDA_LIB]
@@ -61,6 +68,7 @@ lib_dirs = []
 
 #setup the cpu library directories
 cpu_lib_dirs = lib_dirs
+cpu_lib_dirs = cpu_lib_dirs + [GSKNN_DIR+'build/lib']
 
 #setup the gpu library directories
 gpu_lib_dirs = lib_dirs + [CUDA_LIB]
@@ -93,8 +101,8 @@ def makeExtension(extName):
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
                 extra_objects=args.gpu_obj,
-                extra_compile_args=["-std=c++11", "-O3", "-fPIC", "--expt-extended-lambda", "-Xcudafe", "--diag_suppress=esa_on_defaulted_function_ignored"],
-                extra_link_args=["-ldl", "-lpthread", "-lcuda", "-lcudart"]
+                extra_compile_args=["-std=c++11", "-O3", "-fPIC"],
+                extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lcuda", "-lcudart"]
                 )
     return Extension(
             extName,
@@ -103,9 +111,9 @@ def makeExtension(extName):
             language="c++",
             library_dirs = cpu_lib_dirs,
             runtime_library_dirs = cpu_lib_dirs,
-            extra_objects=args.cpu_obj,
-            extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp"],
-            extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm"]
+            extra_objects=args.cpu_obj+[GSKNN_DIR+"/build/lib/libgsknn_shared.so", GSKNN_DIR+"/build/lib/libgsknn_ref_stl_shared.so"],
+            extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp","-qopenmp-report 2", "-Wno-sign-compare"],
+            extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn_shared"]
             )
 
 

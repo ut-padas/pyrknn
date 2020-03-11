@@ -1,9 +1,14 @@
 from prknn.kdforest.reference.tree import *
-from prknn.kdforest.reference.util import *
+from prknn.kdforest.parla.util import *
 from prknn.kernels.cpu.core import *
 
 import numpy as np
 import time
+
+from parla import Parla
+from parla.array import copy, storage_size
+from parla.cpu import cpu
+from parla.tasks import *
 
 #This is a large collection of helper function I wrote to debug and verify the reference implementation
 #This will not be maintained but you (or most likely me) may find it useful
@@ -35,12 +40,15 @@ def test_node_split():
             print(kid)
 
 def test_build():
-    N = 101
+    elapsed_t = time.time()
+    N = 10000000
     arr = np.random.rand(N, 5)
-    RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=5, leafsize=5)
+    RKDT.set_verbose(False)
+    tree = RKDT(pointset=arr, levels=20, leafsize=512)
     tree.build()
-
+    elapsed_t = time.time() - elapsed_t
+    print("Finished Build: ", elapsed_t, "(s)")
+    """
     for i in range(tree.get_levels()):
         level = tree.get_level(i)
         gids = []
@@ -48,6 +56,7 @@ def test_build():
             gids.append(node.gids)
         gids = np.concatenate(gids)
         assert(len(np.unique(gids)) == N)
+    """
 
 def test_query():
     N = 20
@@ -411,7 +420,7 @@ def time_numpy():
         N = 2048
         d = 10
         k = 64
-        MAX = 25
+        MAX = 205
         MT = 2048;
         full_time = []
         for leaves in range(5, MAX, 5):
@@ -430,7 +439,7 @@ def time_numpy():
 
 def test_multileaf():
     #test_par()
-    leaves = 20;
+    leaves = 200;
     N = 2560
     d = 5
     k = 15
@@ -467,13 +476,13 @@ def test_multileaf():
 
 #test_distance()
 #test_node_split()
-#test_build()
+test_build()
 #test_query()
 
 #test_neighbor_kernel()
 #test_neighbor_multileaf()
 #time_full_equivalent()
-time_numpy()
+#time_numpy()
 #test_multileaf()
 #test_neighbor_node()
 #test_neighbor()
