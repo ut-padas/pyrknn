@@ -1,25 +1,16 @@
 #include <iostream>
 #include <vector>
 
-#include "sort.hpp"
+#include <thrust/random.h>
+#include <thrust/device_vector.h>
+#include <thrust/functional.h>
+#include <thrust/iterator/counting_iterator.h>
 
 template <typename T>
-void print(const thrust::device_vector<T>& vec, const std::string &name) {
-  std::cout<<std::endl<<name<<":"<<std::endl;
-  for (int i=0; i<vec.size(); i++)
-    std::cout<<vec[i]<<" ";
-  std::cout<<std::endl<<std::endl;
-}
+using dvec = thrust::device_vector<T>;
 
-template <typename T>
-void print(const thrust::device_vector<T>& vec, int m, int n, const std::string &name) {
-  std::cout<<std::endl<<name<<":"<<std::endl;
-  for (int i=0; i<m; i++) {
-    for (int j=0; j<n; j++)
-      std::cout<<vec[i*n+j]<<" ";
-    std::cout<<std::endl;
-  }
-}
+#include "sort_gpu.hpp"
+#include "../util/util.hpp"
 
 struct prg : public thrust::unary_function<unsigned int, float> {
   float a, b;
@@ -102,6 +93,22 @@ int main(int argc, char *argv[]) {
   assert(m > 0);
   assert(n > 0);
   assert(k > 0 && k <= n);
+  std::cout.precision(2);
+  std::cout<<"\n======================\n"
+           <<"Inputs:\n"
+           <<"----------------------\n"
+           <<"m: "<<m<<std::endl
+           <<"n: "<<n<<std::endl
+           <<"k: "<<k<<std::endl
+           <<"----------------------\n"
+           <<"repeat: "<<repeat<<std::endl
+           <<"debug: "<<debug<<std::endl
+           <<"benchmark: "<<benchmark<<std::endl
+           <<"----------------------\n"
+           <<std::scientific
+           <<"Mem (input): "<<4.*m*n*2/1.e9<<" GB"<<std::endl
+           <<"Mem (output): "<<4.*m*k*2/1.e9<<" GB"<<std::endl
+           <<"======================\n\n";
 
   dvec<float> A(m*n);
   dvec<int> idx(m*n); // ID
@@ -110,20 +117,28 @@ int main(int argc, char *argv[]) {
     print(A, m, n, "Initial matrix");
     print(idx, m, n, "Initial ID");
   }
+  TimerGPU t;
 
+  
   // MGPU
   double t_mgpu = 0.;
+  sortGPU::init_mgpu();
   initialize(A, idx);
-  sort_matrix_rows_mgpu(A, idx, m, n, t_mgpu);
-  
+  t.start();
+  sortGPU::sort_matrix_rows_mgpu(A, idx, m, n);
+  t.stop(); t_mgpu += t.elapsed_time();
+
   if (benchmark) {
     t_mgpu = 0.;
     for (int i=0; i<repeat; i++) {
       initialize(A, idx);
-      sort_matrix_rows_mgpu(A, idx, m, n, t_mgpu); 
+      t.start();
+      sortGPU::sort_matrix_rows_mgpu(A, idx, m, n); 
+      t.stop(); t_mgpu += t.elapsed_time();
     }
     t_mgpu /= repeat;
   }
+  sortGPU::final_mgpu();
  
   dvec<int> nbor_idx_mgpu(m*k);
   dvec<float> nbor_dist_mgpu(m*k);
@@ -139,17 +154,23 @@ int main(int argc, char *argv[]) {
 
   // CUB
   double t_cub = 0.;
+  sortGPU::init_cub(A, idx, m, n); 
   initialize(A, idx);
-  sort_matrix_rows_cub(A, idx, m, n, t_cub); 
+  t.start();
+  sortGPU::sort_matrix_rows_cub(A, idx, m, n); 
+  t.stop(); t_cub += t.elapsed_time();
 
   if (benchmark) {
     t_cub = 0.;
     for (int i=0; i<repeat; i++) {
       initialize(A, idx);
-      sort_matrix_rows_cub(A, idx, m, n, t_cub); 
+      t.start();
+      sortGPU::sort_matrix_rows_cub(A, idx, m, n); 
+      t.stop(); t_cub += t.elapsed_time();
     }
     t_cub /= repeat;
   }
+  sortGPU::final_cub();
 
   dvec<int> nbor_idx_cub(m*k);
   dvec<float> nbor_dist_cub(m*k);
@@ -165,17 +186,23 @@ int main(int argc, char *argv[]) {
 
   // CUB2
   double t_cub2 = 0.;
+  sortGPU::init_cub2(A, idx, m, n); 
   initialize(A, idx);
-  sort_matrix_rows_cub2(A, idx, m, n, t_cub2); 
+  t.start();
+  sortGPU::sort_matrix_rows_cub2(A, idx, m, n); 
+  t.stop(); t_cub2 += t.elapsed_time();
 
   if (benchmark) {
     t_cub2 = 0.;
     for (int i=0; i<repeat; i++) {
       initialize(A, idx);
-      sort_matrix_rows_cub2(A, idx, m, n, t_cub2); 
+      t.start();
+      sortGPU::sort_matrix_rows_cub2(A, idx, m, n); 
+      t.stop(); t_cub2 += t.elapsed_time();
     }
     t_cub2 /= repeat;
   }
+  sortGPU::final_cub2();
 
   dvec<int> nbor_idx_cub2(m*k);
   dvec<float> nbor_dist_cub2(m*k);
@@ -186,19 +213,23 @@ int main(int argc, char *argv[]) {
     print(nbor_idx_cub2, m, k, "CUB2");
     print(nbor_dist_cub2, m, k, "CUB2");
   }
-  std::cout<<"Time for CUB2: "<<t_cub2<<" s\n";
- 
+  std::cout<<"Time for CUB2 sort: "<<t_cub2<<" s\n";
+
 
   // thrust 
   double t_thrust = 0.;
   initialize(A, idx);
-  sort_matrix_rows_thrust(A, idx, m, n, t_thrust);
+  t.start();
+  sortGPU::sort_matrix_rows_thrust(A, idx, m, n);
+  t.stop(); t_thrust += t.elapsed_time();
   
   if (benchmark) {
     t_thrust = 0.;
     for (int i=0; i<repeat; i++) {
       initialize(A, idx);
-      sort_matrix_rows_thrust(A, idx, m, n, t_thrust);
+      t.start();
+      sortGPU::sort_matrix_rows_thrust(A, idx, m, n);
+      t.stop(); t_thrust += t.elapsed_time();
     }
     t_thrust /= repeat;
   }
@@ -210,8 +241,34 @@ int main(int argc, char *argv[]) {
     print(nbor_idx_thrust, m, k, "Thrust");
   }
   std::cout<<"Time for thrust sort: "<<t_thrust<<" s\n";
+ 
 
-
+  // thrust2 
+  double t_thrust2 = 0.;
+  initialize(A, idx);
+  t.start();
+  sortGPU::sort_matrix_rows_thrust2(A, idx, m, n);
+  t.stop(); t_thrust2 += t.elapsed_time();
+  
+  if (benchmark) {
+    t_thrust2 = 0.;
+    for (int i=0; i<repeat; i++) {
+      initialize(A, idx);
+      t.start();
+      sortGPU::sort_matrix_rows_thrust2(A, idx, m, n);
+      t.stop(); t_thrust2 += t.elapsed_time();
+    }
+    t_thrust2 /= repeat;
+  }
+  
+  dvec<int> nbor_idx_thrust2(m*k);
+  get_kcols(idx, nbor_idx_thrust2, m, n, k);
+  
+  if (debug) {
+    print(nbor_idx_thrust2, m, k, "Thrust2");
+  }
+  std::cout<<"Time for thrust2 sort: "<<t_thrust2<<" s\n";
+  
   /*
   // bitonic merge sort
   auto idx_bitonic = idx;
@@ -230,8 +287,9 @@ int main(int argc, char *argv[]) {
 
 
   // check results
-  std::cout<<"Error between MGPU and CUB: "<<error_l2(nbor_idx_mgpu, nbor_idx_cub)<<std::endl
-           <<"Error between MGPU and Thurst: "<<error_l2(nbor_idx_mgpu, nbor_idx_thrust)<<std::endl;
+  //std::cout<<"Error between MGPU and CUB: "<<error_l2(nbor_idx_mgpu, nbor_idx_cub)<<std::endl
+    //       <<"Error between MGPU and Thrust: "<<error_l2(nbor_idx_mgpu, nbor_idx_thrust)<<std::endl
+      //     <<"Error between MGPU and Thrust2: "<<error_l2(nbor_idx_mgpu, nbor_idx_thrust2)<<std::endl;
           
 
   return 0;

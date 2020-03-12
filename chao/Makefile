@@ -1,37 +1,38 @@
 
+EXE=knn
+LIB=libknngpu.so
+
 CC=g++
 CFLAG=-O3 -Wall -I $(EIGEN_ROOT)
-VFLAG=-O3 -DTHRUST_DEBUG -arch=compute_70 -code=sm_70 -shared -Xcompiler -fPIC
-LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart -lcublas
+VFLAG=-O3 -gencode arch=compute_70,code=sm_70 -shared -Xcompiler -fPIC
+LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart -lcublas \
+			-L./sort/ -lsortgpu -L./merge/ -lmergegpu -L./util/ -lutil -L./ -lknngpu
 
-EXE=$(SCRATCH)/bin/knn.exe
+KERNEL=kernel_knn.o
 
 default: $(EXE)
 
-$(EXE): knn.o timer.o kernel_single.o kernel_bbf.o kernel_opt.o
+$(EXE): knn.o $(LIB)
 	nvcc $^ -o $@ $(LFLAG)
 	
-knn.o: knn.cpp knn.hpp
-	$(CC) -c knn.cpp $(CFLAG)
+$(LIB): $(KERNEL)
+	g++ -shared $^ -o $@
+		
+knn.o: knn.cpp knn_gpu.hpp
+	$(CC) -c $< $(CFLAG)
 
-timer.o: timer.cpp timer.hpp
-	$(CC) -c timer.cpp $(CFLAG)
-
-kernel_single.o: kernel_single.cu kernel_gpu.hpp
-	nvcc -c kernel_single.cu $(VFLAG)
-
-kernel_bbf.o: kernel_bbf.cu kernel_gpu.hpp
-	nvcc -c kernel_bbf.cu $(VFLAG)
-
-kernel_opt.o: kernel_opt.cu kernel_gpu.hpp
-	nvcc -c kernel_opt.cu $(VFLAG)
+kernel_knn.o: kernel_knn.cu knn_gpu.hpp
+	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda
 
 run: $(EXE)
 	$(EXE)
 
 debug: $(EXE)
-	$(EXE) -D -n 2 -d 2 -k 2
+	$(EXE) -D -n 2 -d 2 -k 2 -m 2
+
+benchmark: $(EXE)
+	$(EXE) -s 8192 -k 16
 
 clean:
-	rm -f *.o $(EXE)
+	rm -f *.o $(EXE) $(LIB)
 
