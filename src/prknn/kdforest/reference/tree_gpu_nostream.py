@@ -96,6 +96,7 @@ class RKDT:
         del self.data
         root.split()
 
+        cp.cuda.Device().synchronize()
         self.built=True
 
     def populate_data(self, data):
