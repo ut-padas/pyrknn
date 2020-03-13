@@ -41,7 +41,7 @@ int main()
 
     for (int i = 1; i < 10; i++)
     {
-        n = i * 1e5;
+        n = i * 1e6;
         matrix = (float *) calloc(n*d, sizeof(float));
         createRandomMatrix(gen,n,d,(void **) &matrix_gpu);
         
