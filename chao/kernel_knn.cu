@@ -192,11 +192,31 @@ void find_knn(dvec<float> &Dist, const int *ID,
 }
 
 
-void knn_gpu(const float *R, const float *Q, const int *ID, float *nborDist, int *nborID,
-    int nLeaf, int N, int d, int k, int m, cublasHandle_t &handle,
+void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], 
+    float *nborDist, int *nborID,
+    int nLeaf, int N, int d, int k, int m,
     float &t_dist, float &t_sort, float &t_kernel) {
+  
+  // copy data to contiguous memory
+  dvec<float> dR(N*d*nLeaf), dQ(N*d*nLeaf);
+  dvec<int>   dID(N*nLeaf); // ID of reference points
+  for (int i=0; i<nLeaf; i++) {
+    thrust::copy(ptrR[i], ptrR[i]+N*d, dR.begin()+i*N*d);
+    thrust::copy(ptrQ[i], ptrQ[i]+N*d, dQ.begin()+i*N*d);
+    thrust::copy(ptrID[i], ptrID[i]+N, dID.begin()+i*N);
+  }
 
+  float *R = thrust::raw_pointer_cast(dR.data());
+  float *Q = thrust::raw_pointer_cast(dQ.data());
+  int  *ID = thrust::raw_pointer_cast(dID.data());
+  
+  // auxilliary data for distance calculation
   const dvec<float> ones(N*nLeaf, 1.0);
+  
+  // initialize for CUBLAS
+  cublasHandle_t handle;
+  cublasCheck( cublasCreate(&handle) );  
+ 
 
   Timer t, t1;
   cudaCheck( cudaDeviceSynchronize() ); t1.start();
@@ -231,6 +251,9 @@ void knn_gpu(const float *R, const float *Q, const int *ID, float *nborDist, int
   
   cudaCheck( cudaDeviceSynchronize() );
   t1.stop(); t_kernel += t1.elapsed_time();
+
+  // destroy CUBLAS handle
+  cublasDestroy(handle);
 }
 
 
@@ -239,34 +262,42 @@ void gemm_kselect_opt(int nLeaf, float *ptrR[], float *ptrQ[], int *ptrID[], int
          float &t_dist, float &t_sort, float &t_kernel) {
 
   // copy data to device
-  dvec<float> R(N*d*nLeaf), Q(N*d*nLeaf);
-  dvec<int>   ID(N*nLeaf); // ID of reference points
+  float *dR[nLeaf], *dQ[nLeaf];
+  int *dID[nLeaf];
+  std::vector<dvec<float>> vecR(nLeaf);
+  std::vector<dvec<float>> vecQ(nLeaf);
+  std::vector<dvec<int>> vecID(nLeaf);
   for (int i=0; i<nLeaf; i++) {
-    thrust::copy(ptrR[i], ptrR[i]+N*d, R.begin()+i*N*d);
-    thrust::copy(ptrQ[i], ptrQ[i]+N*d, Q.begin()+i*N*d);
-    thrust::copy(ptrID[i], ptrID[i]+N, ID.begin()+i*N);
+    vecR[i].resize(N*d);
+    vecQ[i].resize(N*d);
+    vecID[i].resize(N);
+    thrust::copy(ptrR[i], ptrR[i]+N*d, vecR[i].begin());
+    thrust::copy(ptrQ[i], ptrQ[i]+N*d, vecQ[i].begin());
+    thrust::copy(ptrID[i], ptrID[i]+N, vecID[i].begin());
+    dR[i] = thrust::raw_pointer_cast(vecR[i].data());
+    dQ[i] = thrust::raw_pointer_cast(vecQ[i].data());
+    dID[i] = thrust::raw_pointer_cast(vecID[i].data());
   }
-  
+
   // output
   dvec<float> nborDist(N*k*nLeaf);
   dvec<int>   nborID(N*k*nLeaf);
 
-  // initialize for CUBLAS and MGPU
-  cublasHandle_t handle;
-  cublasCheck( cublasCreate(&handle) );  
+
+  // initialize MGPU for sorting
   sortGPU::init_mgpu();
  
 
   // run kernel
-  knn_gpu(
-      thrust::raw_pointer_cast(R.data()),
-      thrust::raw_pointer_cast(Q.data()),
-      thrust::raw_pointer_cast(ID.data()),
+  knn_gpu(dR, dQ, dID, 
       thrust::raw_pointer_cast(nborDist.data()),
       thrust::raw_pointer_cast(nborID.data()),
-      nLeaf, N, d, k, m, handle,
+      nLeaf, N, d, k, m,
       t_dist, t_sort, t_kernel);
 
+
+  // finalize MGPU
+  sortGPU::final_mgpu();
 
   // copy results back to host
   for (int i=0; i<nLeaf; i++) {
@@ -274,8 +305,5 @@ void gemm_kselect_opt(int nLeaf, float *ptrR[], float *ptrQ[], int *ptrID[], int
     thrust::copy(nborID.begin()+i*N*k, nborID.begin()+(i+1)*N*k, ptrNborID[i]);
   }
 
-  // clean up resouce
-  cublasDestroy(handle);
-  sortGPU::final_mgpu();
 }
 
