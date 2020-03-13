@@ -1,14 +1,14 @@
-from prknn.kdforest.reference.tree import *
-from prknn.kdforest.parla.util import *
+from prknn.kdforest.merge.tree import *
+from prknn.kdforest.merge.util import *
 from prknn.kernels.cpu.core import *
 
 import numpy as np
 import time
 
-from parla import Parla
-from parla.array import copy, storage_size
-from parla.cpu import cpu
-from parla.tasks import *
+#from parla import Parla
+#from parla.array import copy, storage_size
+#from parla.cpu import cpu
+#from parla.tasks import *
 
 #This is a large collection of helper function I wrote to debug and verify the reference implementation
 #This will not be maintained but you (or most likely me) may find it useful
@@ -223,21 +223,34 @@ def test_converge():
     print(change_arr)
 
 def test_all_nearest():
-    N = 200000
-    d = 1
+    N = 10000000
+    d = 5
     k = 64
     idx = [1, 2, 3, 4, 5]
+    idx = np.asarray(idx, dtype=np.int32)
     arr = np.random.rand(N, d)
+    arr = np.asarray(arr, dtype=np.float32)
     q = arr[idx, ...].reshape((len(idx), d))
     RKDT.set_verbose(True)
-    tree = RKDT(pointset=arr, levels=15, leafsize=512)
+    tree = RKDT(pointset=arr, levels=15, leafsize=1024)
+
+    build_t = time.time()
     tree.build()
+    build_t = time.time() - build_t
+    print("Time to build:", build_t)
+
+    #truen = tree.knn(arr, k)
+    #print(truen)
 
     #neighbors = tree.aknn(q, k)
     #print(neighbors)
 
+    search_t = time.time()
     neighbors = tree.all_nearest_neighbor(k);
-    print(neighbors)
+    search_t = time.time() - search_t
+    print("Time to Search:", search_t)
+
+    #print(neighbors)
 
 def test_distance():
     N = 1
@@ -287,7 +300,7 @@ def test_neighbor_multileaf():
     gsknn_time = []
     block_time = []
     batch_time = []
-    MAX = 20;
+    MAX = 10;
     MT = 2;
     for size in range(5, MAX, 5):
         leaves = size;
@@ -362,16 +375,14 @@ def test_neighbor_multileaf():
         t_GSKNN_block = np.mean(trial)
         """
         
-        """
         trial = []
         for t in range(MT):
             t_batchedGSKNN = time.time()
             a = PyGSKNNBatched(gidsList, Rlist, Qlist, k)
             t_batchedGSKNN = time.time() - t_batchedGSKNN
             trial.append(t_batchedGSKNN)
-            print("BATCH:", t_batchedGSKNN)
+            print("BATCH:", a)
         t_batchedGSKNN = np.mean(trial)
-        """
 
         numpy_time.append(t_NUMPY)
         #stl_time.append(t_STL)
@@ -439,10 +450,10 @@ def time_numpy():
 
 def test_multileaf():
     #test_par()
-    leaves = 200;
-    N = 2560
+    leaves = 1024;
+    N = 1024
     d = 5
-    k = 15
+    k = 64
     Rlist = []
     Qlist = []
     gidsList = []
@@ -453,37 +464,53 @@ def test_multileaf():
         idx = np.arange(256, dtype=np.int32)
         #idx = np.asarray([0, 1, 2], dtype=np.int32)
         Q = R[idx, ...].reshape((len(idx), d))
-        #Q = R
+        Q = R
         gids = np.arange(0, N, dtype=np.int32);   
-
+        #gids = np.random.shuffle(gids)
         Rlist.append(R)
         Qlist.append(Q)
         gidsList.append(gids)
 
+#    print(gidsList)
+#    print(Rlist)
+#    print(Qlist)
+
     t_batchedGSKNN = time.time()
     a = PyGSKNNBatched(gidsList, Rlist, Qlist, k)
     t_batchedGSKNN = time.time() - t_batchedGSKNN
+    print(t_batchedGSKNN)
 
     AnsList = []
     t_GSKNN = time.time()
     for l in range(leaves):
         AnsList.append(PyGSKNN(gids, Rlist[l], Qlist[l], k)[0])
     t_GSKNN = time.time() - t_GSKNN
+    print(t_GSKNN)
 
-    print(a)
-    print(AnsList[:][:])
+    #print(a)
+    #print(AnsList[:][:])
     print("END")
+
+def test_quickselect():
+    N = 10
+    arr = np.random.rand((10, 1), dtype=np.float32);
+    print(arr)
+    kselect(arr, 5)
+    print(arr)
+
+#test_quickselect()
 
 #test_distance()
 #test_node_split()
-test_build()
+#test_build()
 #test_query()
 
 #test_neighbor_kernel()
 #test_neighbor_multileaf()
 #time_full_equivalent()
 #time_numpy()
-#test_multileaf()
+test_multileaf()
+#print("end test")
 #test_neighbor_node()
 #test_neighbor()
 

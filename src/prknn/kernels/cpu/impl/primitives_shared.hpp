@@ -877,8 +877,8 @@ void batchedGSKNN(idx_type<T> **rgids,
         T* localQ = (T*)Q[l];
         idx_type<T>* local_rgids= (idx_type<T>*) rgids[l];
         //idx_type<T>* local_qgids= (idx_type<T>*) qgids[l];
-        idx_type<T>* local_qgids= new idx_type<T>[blocksize];
-        for(idx_type<T> z = 0; z < blocksize; ++z) local_qgids[z] = z;
+        idx_type<T>* local_qgids= new idx_type<T>[localn];
+        for(idx_type<T> z = 0; z < localn; ++z) local_qgids[z] = z;
         
         //Verify all of these exist and can be accessed
         /*
@@ -945,9 +945,10 @@ void batchedGSKNN(idx_type<T> **rgids,
            heap_t *heap = heapCreate_s(current_blocksize, k, 1.79E+30);
            //printf("Leaf %d; block %d; Calling GSKNN\n", l, i);
            //sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) local_rgids, currquery, sqnormq, (idx_type<T>*) (qgids), heap);
-           sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) local_rgids, currquery, sqnormq, (idx_type<T>*) (local_qgids), heap);
+           sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) (local_qgids), currquery, sqnormq, (idx_type<T>*) (local_qgids), heap);
            //printf("Leaf %d; block %d; FINISHED GSKNN\n", l, i); 
-           
+          
+ 
            //copy over results
            auto D = heap->D_s;
            auto I = heap->I;
@@ -986,6 +987,86 @@ float* Distances(float* Q, float* R){
     return D;
 }
 */
+
+
+void sort_select(const float *value, const int *ID, int n, float *kval, int *kID, int k) {
+      std::vector<int> idx(n);
+      std::iota(idx.begin(), idx.end(), 0);
+      std::stable_sort(idx.begin(), idx.end(),
+          [&value](int i, int j) {return value[i]<value[j];});
+      
+        for (int i=0; i<k; i++) {
+            int j = idx[i];
+            kval[i] = value[j];
+            kID[i] = ID[j];
+      }
+}
+
+
+template<typename T>
+void merge_neighbor(const T *D2PtrL, const int *IDl, int kl, 
+                    const T *D2PtrR, const int *IDr, int kr, 
+                    T *nborDistPtr, int *nborIDPtr,  int k) {
+
+      std::vector<T> D2(kl+kr);
+      std::vector<int> ID(kl+kr);
+      std::memcpy(D2.data(), D2PtrL, sizeof(T)*kl);
+      std::memcpy(D2.data()+kl, D2PtrR, sizeof(T)*kr);
+      std::memcpy(ID.data(), IDl, sizeof(int)*kl);
+      std::memcpy(ID.data()+kl, IDr, sizeof(int)*kr);
+
+      // (sort and) unique
+      std::vector<int> idx(kl+kr);
+      std::iota(idx.begin(), idx.end(), 0);
+      std::stable_sort(idx.begin(), idx.end(),
+           [&ID](int i, int j) {return ID[i] < ID[j];});
+      std::stable_sort(ID.begin(), ID.end());
+      std::vector<int> idx2(kl+kr);
+      std::iota(idx2.begin(), idx2.end(), 0);
+      std::unique(idx2.begin(), idx2.end(),
+                       [&ID](int i, int j) {return ID[i]==ID[j];});
+      ID.erase(std::unique(ID.begin(), ID.end()), ID.end());
+      std::vector<T> value(ID.size());
+      for (size_t i=0; i<ID.size(); i++) {
+        int j = idx2[i];
+        value[i] = D2[ idx[j] ];
+      }
+      // call k-select
+      sort_select(value.data(), ID.data(), ID.size(), nborDistPtr, nborIDPtr, k);
+}
+
+/**
+template<typename T>
+void merge_neighbor_gofmm(const T *D2PtrL, const int *IDl, 
+                    const T *D2PtrR, const int *IDr,
+                    T *nborDistPtr, int *nborIDPtr,  int k) {
+
+      // Enlarge temporary buffer if it is too small.
+      
+      std::vector<std::pair<T, int>> aux;
+      aux.resize(2*k);
+
+      // Merge two lists into one.
+      for ( sizeType i = 0; i < k; i++ ) 
+      {
+        aux[                 i ] = std::make_pair<T, int>(D2PtrL[i], ;
+        aux[ num_neighbors + i ] = B[ i ];
+      }
+
+      // First sort according to the index.
+      std::sort( aux.begin(), aux.end(), less_value<T, TINDEX> );
+      auto last = std::unique( aux.begin(), aux.end(), equal_value<T, TINDEX> );
+      std::sort( aux.begin(), last, less_key<T, TINDEX> );
+
+      // Copy the results back from aux.
+      for ( sizeType i = 0; i < num_neighbors; i++ ) 
+      {
+        A[ i ] = aux[ i ];
+      }
+
+}; // end MergeNeighbors()
+**/
+
 
 template<typename T>
 void test(){

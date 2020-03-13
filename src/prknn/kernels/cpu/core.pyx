@@ -210,8 +210,6 @@ cpdef RefBatched(gidsList, RList, QList, k):
     #NDL = np.asarray(cNDList);
     return (NLL, NDL)
 
-
-
 cpdef test_par():
     with nogil:
         test[float]();
