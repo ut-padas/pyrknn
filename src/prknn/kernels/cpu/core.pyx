@@ -210,18 +210,24 @@ cpdef RefBatched(gidsList, RList, QList, k):
     #NDL = np.asarray(cNDList);
     return (NLL, NDL)
 
-
-
-
-
-
-
-
-
-
 cpdef test_par():
     with nogil:
         test[float]();
+
+cpdef choice(arr):
+    cdef int N = len(arr);
+    cdef int[:] anchors = np.zeros(2, dtype=np.int32)
+    with nogil:
+        choose2(&anchors[0], N)
+    return anchors
+
+cpdef kselect(arr, k):
+    cdef int c_k = k
+    cdef int N = len(arr)
+    cdef float[:] c_arr = arr;
+    print("Entered Select")
+    with nogil:
+        quickselect[float](&c_arr[0], N, c_k)
 
 def scan(l):
     if type(l) is not np.ndarray:

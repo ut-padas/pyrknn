@@ -1,7 +1,7 @@
 from . import error as ErrorType
 from . import util as Primitives
-from ...kernels.cpu import core as cpu
-import numpy as np
+
+#import numpy as np
 from collections import defaultdict
 
 class RKDT:
@@ -9,7 +9,7 @@ class RKDT:
 
     verbose = False #Note: This is a static variable shared by all instances
 
-    def __init__(self, levels=0, leafsize=None, pointset=None):
+    def __init__(self, libpy, levels=0, leafsize=None, pointset=None):
         """Initialize  Randomized KD Tree
 
             Keyword arguments:
@@ -17,13 +17,14 @@ class RKDT:
                 leafsize -- Leaves of size (2*leafsize + 1) will not be split
                 pointset -- the N x d dataset of N d dimensional points in Rn
         """
+        self.libpy = libpy
         self.id = id(self)                      #unique id for instance of this class
         self.levels = levels
         self.leafsize = leafsize
         if (pointset is not None):
             self.size = len(pointset)           #the number of points in the pointset
-            self.gids = np.arange(self.size)    #the global ids of the points in the pointset (assign original ordering)
-            self.data = np.asarray(pointset)
+            self.gids = self.libpy.arange(self.size)    #the global ids of the points in the pointset (assign original ordering)
+            self.data = self.libpy.asarray(pointset)
             if (leafsize is None):              #if no leafsize is given, assume this is a degenerate tree (only root)
                 self.leafsize = self.size
             if (self.size == 0):
@@ -33,8 +34,8 @@ class RKDT:
         else:
             self.empty= True
             self.size = 0
-            self.data = np.asarray([])
-            self.gids = np.asarray([])
+            self.data = self.libpy.asarray([])
+            self.gids = self.libpy.asarray([])
 
         self.built=False
 
@@ -50,7 +51,7 @@ class RKDT:
             raise ErrorType.InitializationError('You cannot call set on a tree that has already been built')
 
         if (pointset is not None):
-            self.data = np.asarray(pointset)
+            self.data = self.libpy.asarray(pointset)
             self.size = len(pointset)
             if (self.size > 0):
                 self.empty= False
@@ -97,14 +98,14 @@ class RKDT:
 
         #Find out the maximum number of levels required
         #TODO: Fix definition of leafsize to make this proper. Can often overestimate level by one.
-        self.levels = int(min( np.ceil(np.log2(np.ceil(self.size/self.leafsize))), self.levels ))
+        self.levels = int(min( self.libpy.ceil(self.libpy.log2(self.libpy.ceil(self.size/self.leafsize))), self.levels ))
 
         #Create treelist to store nodes in binary tree array order
         N = 2 ** int(self.levels+1) - 1
         self.treelist = [None] * N
 
         #Create the root node
-        root = self.Node(self, idx=0, level=0, size=self.size, gids=self.gids)
+        root = self.Node(self.libpy, self, idx=0, level=0, size=self.size, gids=self.gids)
         self.treelist[0] = root
 
         #Build tree in in-order traversal
@@ -128,7 +129,7 @@ class RKDT:
 
         verbose = False
 
-        def __init__(self, tree, idx=0, level=0, size=0, gids=None):
+        def __init__(self, libpy, tree, idx=0, level=0, size=0, gids=None, libpy="numpy"):
             """Initalize a member of the RKDT.Node class
 
             Arguments:
@@ -140,7 +141,7 @@ class RKDT:
                 size -- the number of points that this node corresponds to
                 gids -- the list of global indicies for the owned points
             """
-
+            self.libpy = libpy
             self.tree = tree
             self.id = idx
             self.level = level
@@ -215,7 +216,7 @@ class RKDT:
                     This computes <x, (a_1 - a_2)>
             """
             #TODO: Replace with gpu kernel
-            self.anchors = cpu.choice(self.gids)
+            self.anchors = self.libpy.random.choice(self.gids, 2, replace=False)
             dist = Primitives.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
             self.local_ = dist[0] - dist[1]
 
@@ -227,9 +228,9 @@ class RKDT:
             """
 
             if (idx >= 0):
-                return np.mean(self.tree.data[self.gids, idx])
+                return self.libpy.mean(self.tree.data[self.gids, idx])
             else:
-                return np.mean(self.local_)
+                return self.libpy.mean(self.local_)
 
         def median(self, idx=0):
             """Return the median of points in the node along a specified axis (0 < idx < d-1)
@@ -239,9 +240,9 @@ class RKDT:
             """
 
             if (idx >= 0):
-                return np.median(self.tree.data[self.gids, idx])
+                return self.libpy.median(self.tree.data[self.gids, idx])
             else:
-                return np.median(self.local_)
+                return self.libpy.median(self.local_)
 
         def split(self):
             """Split a node and assign both children.
@@ -267,7 +268,7 @@ class RKDT:
             #project onto line (projection stored in self.local_)
             self.select_hyperplane()
 
-            self.lids = np.argpartition(self.local_, middle)  #parition the local ids
+            self.lids = self.libpy.argpartition(self.local_, middle)  #parition the local ids
             self.gids = self.gids[self.lids]                  #partition the global ids
 
             #TODO: When replacing this with Hongru's kselect the above should be the same step in a key-value pair
@@ -277,8 +278,8 @@ class RKDT:
             self.cleanup()                                    #delete the local projection (it isn't required any more)
 
             #Initialize left and right nodes
-            left = self.tree.Node(self.tree, level = self.level+1, idx = 2*self.id+1, size=middle, gids=self.gids[:middle])
-            right = self.tree.Node(self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle), gids=self.gids[middle:])
+            left = self.tree.Node(self.libpy, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle, gids=self.gids[:middle])
+            right = self.tree.Node(self.libpy, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle), gids=self.gids[middle:])
 
             left.set_parent(self)
             right.set_parent(self)
@@ -362,7 +363,7 @@ class RKDT:
         """
 
         N, d = Q.shape
-        idx = np.zeros(N)
+        idx = self.libpy.zeros(N)
 
         #TODO: Restructure this for a GPU kernel
 
@@ -416,8 +417,8 @@ class RKDT:
         """
         N, d = Q.shape
         bins = self.query_bin(Q)
-        neighbor_list = np.full([N, k], np.inf)
-        neighbor_dist = np.full([N, k], np.inf)
+        neighbor_list = self.libpy.full([N, k], self.libpy.inf)
+        neighbor_dist = self.libpy.full([N, k], self.libpy.inf)
 
         #TODO: Key area for PARLA Tasks
 
@@ -444,8 +445,8 @@ class RKDT:
         """
 
         N = self.size
-        neighbor_list = np.full([N, k], -1)
-        neighbor_dist = np.full([N, k], -1.0)
+        neighbor_list = self.libpy.full([N, k], -1)
+        neighbor_dist = self.libpy.full([N, k], -1.0)
         max_level = self.levels
 
         #TODO: Key area for PARLA tasks

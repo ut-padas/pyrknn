@@ -1,4 +1,3 @@
-from numba import jit
 import numpy as np
 
 """File that contains key kernels to be replaced with high performance implementations"""
@@ -15,8 +14,6 @@ import numpy as np
 env = "PYTHON" #Coarse kernel context switching mechanism for debugging (this is a bad pattern, to be replace in #TODO 3)
 
 #TODO: Q2 and R2 could be precomputed and given as arguments to distance(), should make keyword parameters for this option
-
-@jit(fastmath=True, parallel=True)
 def distance(R, Q):
     """Compute the distances between a reference set R (|R| x d) and query set Q (|Q| x d).
 
@@ -33,7 +30,6 @@ def distance(R, Q):
         D = D + Q2[:, np.newaxis]               #Add in ||q_i||^2 row-wise
         D = D + R2                              #Add in ||q_i||^2 colum-wise
         return D
-
 
 
 def direct_knn(gids, R, Q, k):

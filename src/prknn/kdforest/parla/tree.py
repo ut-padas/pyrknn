@@ -1,6 +1,14 @@
 from . import error as ErrorType
 from . import util as Primitives
-from ...kernels.cpu import core as cpu
+
+from parla import Parla
+from parla.array import copy, storage_size
+from parla.cpu import cpu
+from parla.tasks import *
+
+import time
+import os
+
 import numpy as np
 from collections import defaultdict
 
@@ -103,21 +111,34 @@ class RKDT:
         N = 2 ** int(self.levels+1) - 1
         self.treelist = [None] * N
 
-        #Create the root node
-        root = self.Node(self, idx=0, level=0, size=self.size, gids=self.gids)
-        self.treelist[0] = root
-
-        #Build tree in in-order traversal
-        #TODO: Key area for PARLA Tasks
-        for l in range(N):
-            current_node = self.treelist[l]
-            if current_node is not None:
-                children = current_node.split()
-                children = list(filter(None, children))
-                for child in children:
-                    idx = child.get_id()
-                    self.treelist[idx]=child
-
+        with Parla():
+            @spawn(placement = cpu)
+            async def build_tree():
+                T = TaskSpace()
+                #Create the root node
+                @spawn(T[0], placement = cpu)
+                def create_root():
+                    root = self.Node(self, idx=0, level=0, size=self.size, gids=self.gids)
+                    self.treelist[0] = root
+                
+                #Build tree in in-order traversal
+                #TODO: Key area for PARLA Tasks
+                for level in range(self.levels):
+                    start = 2**level -1
+                    stop  = 2**(level+1) - 1
+                    level_size = stop - start
+                    data_size = self.size/2**level * 4
+                    for i in range(level_size):
+                        @spawn(T[start+i+1], [T[0], T[int((start+i+1)/2)]], placement = cpu, memory=data_size)
+                        def create_children_task():
+                            current_node = self.treelist[start+i]
+                            if current_node is not None:
+                                children = current_node.split()
+                                children = list(filter(None, children))
+                                for child in children:
+                                    idx = child.get_id()
+                                    self.treelist[idx] = child
+                await T
         self.built=True
 
         #Fix overestimate of tree levels (see #TODO above)
@@ -215,7 +236,7 @@ class RKDT:
                     This computes <x, (a_1 - a_2)>
             """
             #TODO: Replace with gpu kernel
-            self.anchors = cpu.choice(self.gids)
+            self.anchors = np.random.choice(self.gids, 2, replace=False)
             dist = Primitives.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
             self.local_ = dist[0] - dist[1]
 
