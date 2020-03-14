@@ -2,11 +2,18 @@
 EXE=knn
 LIB=libknngpu.so
 
+PROD?=0
+
 CC=g++
 CFLAG=-O3 -Wall -I $(EIGEN_ROOT)
 VFLAG=-O3 -gencode arch=compute_70,code=sm_70 -shared -Xcompiler -fPIC
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart -lcublas \
 			-L./sort/ -lsortgpu -L./merge/ -lmergegpu -L./util/ -lutil -L./ -lknngpu
+
+ifeq ($(PROD), 1)
+	VFLAG+=-DPROD
+endif
+
 
 KERNEL=kernel_knn.o
 

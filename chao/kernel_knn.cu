@@ -1,4 +1,3 @@
-#include "util/timer.hpp"
 #include "sort/sort_gpu.hpp"
 #include "knn_gpu.hpp"
 
@@ -13,6 +12,10 @@
 
 #include "cublas_v2.h"
 #include <cuda_runtime.h>
+
+#ifndef PROD
+#include "util/timer.hpp"
+#endif
 
 #define cudaCheck(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
@@ -192,11 +195,14 @@ void find_knn(dvec<float> &Dist, const int *ID,
 }
 
 
-void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], 
-    float *nborDist, int *nborID,
-    int nLeaf, int N, int d, int k, int m,
-    float &t_dist, float &t_sort, float &t_kernel) {
-  
+void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], int *ptrNborID[],
+    int nLeaf, int N, int d, int k, int m
+#ifdef PROD
+    ) {
+#else
+    , float &t_dist, float &t_sort, float &t_kernel) {
+#endif
+
   // copy data to contiguous memory
   dvec<float> dR(N*d*nLeaf), dQ(N*d*nLeaf);
   dvec<int>   dID(N*nLeaf); // ID of reference points
@@ -217,17 +223,21 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[],
   cublasHandle_t handle;
   cublasCheck( cublasCreate(&handle) );  
  
-
+#ifndef PROD
   Timer t, t1;
   cudaCheck( cudaDeviceSynchronize() ); t1.start();
-
+#endif
 
   // compute row norms  
   dvec<float> R2(N*nLeaf), Q2(N*nLeaf);
+#ifndef PROD
   cudaCheck( cudaDeviceSynchronize() ); t.start();
+#endif
   compute_row_norms(R, Q, R2, Q2, N*nLeaf, d);
+#ifndef PROD
   cudaCheck( cudaDeviceSynchronize() );
   t.stop(); t_dist += t.elapsed_time();
+#endif
 
 
   // blocking
@@ -237,20 +247,30 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[],
 
   for (int r=0; r<M; r++) {
 
+#ifndef PROD
     cudaCheck( cudaDeviceSynchronize() ); t.start();
+#endif
     compute_distance(R, Q, R2, Q2, ones, Dist, nLeaf, N, d, r, m, handle);
+#ifndef PROD
     cudaCheck( cudaDeviceSynchronize() );
     t.stop(); t_dist += t.elapsed_time();
+#endif
 
 
+#ifndef PROD
     cudaCheck( cudaDeviceSynchronize() ); t.start();
-    find_knn(Dist, ID, nborDist, nborID, nLeaf, m, N, k, r);
+#endif
+    find_knn(Dist, ID, ptrNborDist[0], ptrNborID[0], nLeaf, m, N, k, r);
+#ifndef PROD
     cudaCheck( cudaDeviceSynchronize() );
     t.stop(); t_sort += t.elapsed_time();
+#endif
   }
   
+#ifndef PROD
   cudaCheck( cudaDeviceSynchronize() );
   t1.stop(); t_kernel += t1.elapsed_time();
+#endif
 
   // destroy CUBLAS handle
   cublasDestroy(handle);
@@ -279,21 +299,27 @@ void gemm_kselect_opt(int nLeaf, float *ptrR[], float *ptrQ[], int *ptrID[], int
     dID[i] = thrust::raw_pointer_cast(vecID[i].data());
   }
 
-  // output
+  // results
+  float *nborDistPtr[nLeaf];
+  int *nborIDPtr[nLeaf];
   dvec<float> nborDist(N*k*nLeaf);
   dvec<int>   nborID(N*k*nLeaf);
-
+  for (int i=0; i<nLeaf; i++) {
+    nborDistPtr[i] = thrust::raw_pointer_cast(nborDist.data()+i*N*k);
+    nborIDPtr[i] = thrust::raw_pointer_cast(nborID.data()+i*N*k);
+  }
 
   // initialize MGPU for sorting
   sortGPU::init_mgpu();
  
 
   // run kernel
-  knn_gpu(dR, dQ, dID, 
-      thrust::raw_pointer_cast(nborDist.data()),
-      thrust::raw_pointer_cast(nborID.data()),
-      nLeaf, N, d, k, m,
-      t_dist, t_sort, t_kernel);
+  knn_gpu(dR, dQ, dID, nborDistPtr, nborIDPtr, nLeaf, N, d, k, m
+#ifdef PROD
+      );
+#else
+      , t_dist, t_sort, t_kernel);
+#endif
 
 
   // finalize MGPU

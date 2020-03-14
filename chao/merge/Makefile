@@ -1,12 +1,17 @@
 
 EXE=merge
 LIB=libmergegpu.so
+PROD?=0
 
 default: $(EXE)
 
 CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC
 
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart
+
+ifeq ($(PROD), 1)
+	CFLAG+=-DPROD
+endif
 
 KERNEL=kernel_merge.o
 
