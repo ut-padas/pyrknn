@@ -13,6 +13,8 @@
 #include "cublas_v2.h"
 #include <cuda_runtime.h>
 
+#include <iostream>
+
 #ifndef PROD
 #include "util/timer.hpp"
 #endif
@@ -207,10 +209,18 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
   dvec<float> dR(N*d*nLeaf), dQ(N*d*nLeaf);
   dvec<int>   dID(N*nLeaf); // ID of reference points
   for (int i=0; i<nLeaf; i++) {
-    thrust::copy(ptrR[i], ptrR[i]+N*d, dR.begin()+i*N*d);
+    printf("Copy Leaf %d \n", i);
+    printf("Start of ptrR: %ld", (long) &ptrR);
+    printf("ptrR[i]: %ld \n", (long) ptrR[i]);
+    thrust::copy((float*) ptrR[i], (float*)(ptrR[i])+N*d, dR.begin()+i*N*d);
+    printf("Finished R copy \n");
     thrust::copy(ptrQ[i], ptrQ[i]+N*d, dQ.begin()+i*N*d);
+    printf("Finished Q copy \n");
     thrust::copy(ptrID[i], ptrID[i]+N, dID.begin()+i*N);
+    printf("Finished ID copy \n");
   }
+
+  printf("Finished Copy\n");
 
   float *R = thrust::raw_pointer_cast(dR.data());
   float *Q = thrust::raw_pointer_cast(dQ.data());
@@ -238,7 +248,7 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
   cudaCheck( cudaDeviceSynchronize() );
   t.stop(); t_dist += t.elapsed_time();
 #endif
-
+    printf("Finished RowNorms\n");
 
   // blocking
   assert(N%m==0); // m is block size
@@ -246,7 +256,7 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
   dvec<float> Dist(m*N*nLeaf); // block/partial results 
 
   for (int r=0; r<M; r++) {
-
+    printf("On iteration: %d \n", r);
 #ifndef PROD
     cudaCheck( cudaDeviceSynchronize() ); t.start();
 #endif
@@ -255,8 +265,9 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
     cudaCheck( cudaDeviceSynchronize() );
     t.stop(); t_dist += t.elapsed_time();
 #endif
+    printf("Finished Distance\n");
 
-
+    printf("check ptrNborDist[0]: %ld \n", (long) ptrNborDist[0]);
 #ifndef PROD
     cudaCheck( cudaDeviceSynchronize() ); t.start();
 #endif
@@ -265,13 +276,20 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
     cudaCheck( cudaDeviceSynchronize() );
     t.stop(); t_sort += t.elapsed_time();
 #endif
+   printf("Finished KNN\n");
   }
-  
+
+  thrust::device_ptr<float> dev_ptr( (float*) ptrNborDist[0] );
+  for(int i = 0; i < k; ++i){
+      printf("Neighbor %i, GID: %f", i, (float) dev_ptr[i]);
+  }
+
 #ifndef PROD
   cudaCheck( cudaDeviceSynchronize() );
   t1.stop(); t_kernel += t1.elapsed_time();
 #endif
 
+  cudaCheck( cudaDeviceSynchronize() );
   // destroy CUBLAS handle
   cublasDestroy(handle);
 }
@@ -330,6 +348,8 @@ void gemm_kselect_opt(int nLeaf, float *ptrR[], float *ptrQ[], int *ptrID[], int
     thrust::copy(nborDist.begin()+i*N*k, nborDist.begin()+(i+1)*N*k, ptrNborDist[i]);
     thrust::copy(nborID.begin()+i*N*k, nborID.begin()+(i+1)*N*k, ptrNborID[i]);
   }
+
+
 
 }
 

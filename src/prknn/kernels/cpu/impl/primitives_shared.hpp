@@ -864,7 +864,7 @@ void batchedGSKNN(idx_type<T> **rgids,
     #pragma omp parallel for
     for(idx_type<T> l=0; l < nleaves; ++l){
         
-        //printf("Starting Leaf %d \n", l);
+        printf("Starting Leaf %d \n", l);
         const idx_type<T> localm = m[l];
         const idx_type<T> localn = n[l];
 
@@ -933,7 +933,7 @@ void batchedGSKNN(idx_type<T> **rgids,
             } //end last block
 
            const idx_type<T> offset = i*blocksize;
-           //printf("Leaf %d; Block %d; offset %d \n",l, i, offset); 
+           printf("Leaf %d; Block %d; offset %d \n",l, i, offset); 
            if(!useSqnormrInput){
                 //printf("Calculating R2 \n");
                 sqnorm((T*) localR, (idx_type<T>) localn, (idx_type<T>) d, (T *)sqnormr);

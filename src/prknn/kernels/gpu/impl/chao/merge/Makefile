@@ -1,7 +1,7 @@
 
 EXE=merge
 LIB=libmergegpu.so
-PROD?=0
+PROD=1
 
 default: $(EXE)
 

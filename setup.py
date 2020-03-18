@@ -40,6 +40,9 @@ try:
 except:
     raise Exception("Enviornment variable GSKNN_DIR is not set. Please set this to link against the GSKNN Library")
 
+
+GPU_IMPL_DIR = "prknn/kernels/gpu/impl/"
+
 #Parse command line arguments to get learn required object files
 parser = argparse.ArgumentParser(description='Cython setup script to link against compiled object files')
 parser.add_argument('--gpu_obj', '--cuda_obj', nargs="+", help='Pass a list of file names to link as cuda objects to the cython script', required=False, dest="gpu_obj", default=[])
@@ -48,6 +51,8 @@ parser.add_argument("--setup", nargs="+", help="Pass setuptools arguments into s
 args, unknown = parser.parse_known_args()
 
 sys.argv = ['setup.py'] + args.setup + unknown
+
+print(args.gpu_obj)
 
 #TODO(p3)[Will] One of these includes/libraries doesn't need CUDA. Which way is it again?
 
@@ -62,6 +67,10 @@ cpu_inc_dirs = cpu_inc_dirs + [GSKNN_DIR+'build/include']
 #setup the gpu include directories
 gpu_inc_dirs = inc_dirs + [CUDA_LIB]
 gpu_inc_dirs = gpu_inc_dirs + [CUDA_LIB+'/stubs/']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/sort']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/merge']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/util']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/']
 
 #setup the shared library directories
 lib_dirs = []
@@ -72,7 +81,12 @@ cpu_lib_dirs = cpu_lib_dirs + [GSKNN_DIR+'build/lib']
 
 #setup the gpu library directories
 gpu_lib_dirs = lib_dirs + [CUDA_LIB]
-gpu_lib_dirs = lib_dirs + [CUDA_LIB+'/stubs/']
+gpu_lib_dirs = gpu_lib_dirs + [CUDA_LIB+'/stubs/']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/sort']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/merge']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/util']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/']
+
 
 #Grab all the required pyx files to compile
 def scandir(directory, files=[]):
@@ -101,8 +115,9 @@ def makeExtension(extName):
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
                 extra_objects=args.gpu_obj,
-                extra_compile_args=["-std=c++11", "-O3", "-fPIC"],
-                extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lcuda", "-lcudart"]
+                libraries=["cuda", "cudart", "cublas", "util", "sortgpu", "mergegpu", "knngpu"], 
+                extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-DPROD"],
+                extra_link_args=["-ldl", "-lpthread", "-qopenmp"]
                 )
     return Extension(
             extName,
@@ -113,7 +128,7 @@ def makeExtension(extName):
             runtime_library_dirs = cpu_lib_dirs,
             extra_objects=args.cpu_obj+[GSKNN_DIR+"/build/lib/libgsknn_shared.so", GSKNN_DIR+"/build/lib/libgsknn_ref_stl_shared.so"],
             extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp","-qopenmp-report 2", "-Wno-sign-compare"],
-            extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn_shared"]
+            extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn"]
             )
 
 

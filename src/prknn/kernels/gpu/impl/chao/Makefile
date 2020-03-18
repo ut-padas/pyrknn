@@ -2,7 +2,7 @@
 EXE=knn
 LIB=libknngpu.so
 
-PROD?=0
+PROD=1
 
 CC=g++
 CFLAG=-O3 -Wall -I $(EIGEN_ROOT)
