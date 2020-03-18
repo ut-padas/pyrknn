@@ -150,7 +150,7 @@ struct strideBlock : public thrust::unary_function<int, int> {
 };
 
 
-void get_kcols(const dvec<float> &D, float *Dk, int nLeaf, int m, int N, int k, int r) {
+void get_kcols(const dvec<float> &D, typename thrust::device_ptr<float> &Dk, int nLeaf, int m, int N, int k, int r) {
   auto zero  = thrust::make_counting_iterator<int>(0);
   auto iterD = thrust::make_transform_iterator(zero, firstKCols(k, N));
   auto permD = thrust::make_permutation_iterator(D.begin(), iterD);
@@ -176,7 +176,7 @@ struct firstKVals : public thrust::unary_function<int, int> {
 
 
 void get_kcols(const dvec<int> &idx, const int *ID,
-    int *IDk, int nLeaf, int m, int N, int k, int r) {
+    typename thrust::device_ptr<int> &IDk, int nLeaf, int m, int N, int k, int r) {
   const int* vals  = thrust::raw_pointer_cast(idx.data());
   auto zero  = thrust::make_counting_iterator<int>(0);
   auto iterD = thrust::make_transform_iterator(zero, firstKVals(k, N, m, vals));
@@ -188,14 +188,22 @@ void get_kcols(const dvec<int> &idx, const int *ID,
 
 
 void find_knn(dvec<float> &Dist, const int *ID, 
-    float *nborDist, int *nborID, int nLeaf, int m, int N, int k, int r) {
+    typename thrust::device_ptr<float> &nborDist, typename thrust::device_ptr<int> nborID, int nLeaf, int m, int N, int k, int r) {
   
   dvec<int> idx(m*nLeaf*N); // no need to initialize for mgpu
   sortGPU::sort_matrix_rows_mgpu(Dist, idx, m*nLeaf, N);
   get_kcols(Dist, nborDist, nLeaf, m, N, k, r);
+  /**
+  auto zero  = thrust::make_counting_iterator<int>(0);
+  auto iterD = thrust::make_transform_iterator(zero, firstKCols(k, N));
+  auto permD = thrust::make_permutation_iterator(Dist.begin(), iterD);
+  auto iterK = thrust::make_transform_iterator(zero, strideBlock(m*k, N*k, r));
+  auto permK = thrust::make_permutation_iterator(thrust::device_ptr<float>(nborDist), iterK);
+  thrust::copy(permD, permD+nLeaf*m*k, permK);
+  cudaCheck( cudaDeviceSynchronize() );
+  *//
   get_kcols(idx, ID, nborID, nLeaf, m, N, k, r);
 }
-
 
 void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], int *ptrNborID[],
     int nLeaf, int N, int d, int k, int m
@@ -209,18 +217,10 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
   dvec<float> dR(N*d*nLeaf), dQ(N*d*nLeaf);
   dvec<int>   dID(N*nLeaf); // ID of reference points
   for (int i=0; i<nLeaf; i++) {
-    printf("Copy Leaf %d \n", i);
-    printf("Start of ptrR: %ld", (long) &ptrR);
-    printf("ptrR[i]: %ld \n", (long) ptrR[i]);
     thrust::copy((float*) ptrR[i], (float*)(ptrR[i])+N*d, dR.begin()+i*N*d);
-    printf("Finished R copy \n");
     thrust::copy(ptrQ[i], ptrQ[i]+N*d, dQ.begin()+i*N*d);
-    printf("Finished Q copy \n");
     thrust::copy(ptrID[i], ptrID[i]+N, dID.begin()+i*N);
-    printf("Finished ID copy \n");
   }
-
-  printf("Finished Copy\n");
 
   float *R = thrust::raw_pointer_cast(dR.data());
   float *Q = thrust::raw_pointer_cast(dQ.data());
@@ -248,15 +248,16 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
   cudaCheck( cudaDeviceSynchronize() );
   t.stop(); t_dist += t.elapsed_time();
 #endif
-    printf("Finished RowNorms\n");
-
+  
   // blocking
   assert(N%m==0); // m is block size
   int M = N/m; // number of blocks
   dvec<float> Dist(m*N*nLeaf); // block/partial results 
 
+  auto pND = thrust::device_pointer_cast<float>((float*) ptrNborDist[0]);
+  auto pNL = thrust::device_pointer_cast<int>((int*) ptrNborID[0]);
+
   for (int r=0; r<M; r++) {
-    printf("On iteration: %d \n", r);
 #ifndef PROD
     cudaCheck( cudaDeviceSynchronize() ); t.start();
 #endif
@@ -265,23 +266,15 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
     cudaCheck( cudaDeviceSynchronize() );
     t.stop(); t_dist += t.elapsed_time();
 #endif
-    printf("Finished Distance\n");
 
-    printf("check ptrNborDist[0]: %ld \n", (long) ptrNborDist[0]);
 #ifndef PROD
     cudaCheck( cudaDeviceSynchronize() ); t.start();
 #endif
-    find_knn(Dist, ID, ptrNborDist[0], ptrNborID[0], nLeaf, m, N, k, r);
+    find_knn(Dist, ID, pND, pNL, nLeaf, m, N, k, r);
 #ifndef PROD
     cudaCheck( cudaDeviceSynchronize() );
     t.stop(); t_sort += t.elapsed_time();
 #endif
-   printf("Finished KNN\n");
-  }
-
-  thrust::device_ptr<float> dev_ptr( (float*) ptrNborDist[0] );
-  for(int i = 0; i < k; ++i){
-      printf("Neighbor %i, GID: %f", i, (float) dev_ptr[i]);
   }
 
 #ifndef PROD

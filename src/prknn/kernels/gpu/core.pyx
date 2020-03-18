@@ -17,17 +17,17 @@ cpdef multileaf_knn(gidsList, RList, QList, k):
 
     cdef int blocksize = cd; 
 
-    cRList = cp.zeros(nleaves, dtype=cp.uintp);
-    cQList = cp.zeros(nleaves, dtype=cp.uintp);
+    cdef size_t[:] cRList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cQList = np.zeros(nleaves, dtype=np.uintp);
 
-    cqgidsList = cp.zeros(nleaves, dtype=cp.uintp);
-    crgidsList = cp.zeros(nleaves, dtype=cp.uintp);
+    cdef size_t[:] cqgidsList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] crgidsList = np.zeros(nleaves, dtype=np.uintp);
 
     NLList = []
     NDList = []
-
-    cNL = cp.zeros(nleaves, dtype=cp.uintp);
-    cND = cp.zeros(nleaves, dtype=cp.uintp);
+    gidsList_temp = []
+    cdef size_t[:] cNL = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cND = np.zeros(nleaves, dtype=np.uintp);
 
     cdef int[:] cns = np.zeros(nleaves, dtype=np.int32)
     cdef int[:] cms = np.zeros(nleaves, dtype=np.int32)
@@ -39,12 +39,13 @@ cpdef multileaf_knn(gidsList, RList, QList, k):
         localn = localR.shape[0];
         localm = localQ.shape[0];
 
-        cRList[i] = <np.uintp_t> (<long> localR.data.mem.ptr)
-        cQList[i] = <np.uintp_t> (<long> localQ.data.mem.ptr)
+        cRList[i] = <np.uintp_t> (<long> localR.data.ptr)
+        cQList[i] = <np.uintp_t> (<long> localQ.data.ptr)
 
         rgids = cp.copy(gidsList[i])
-        
-        crgidsList[i] = <np.uintp_t>(<long> rgids.data.mem.ptr)
+        gidsList_temp.append(rgids)
+
+        crgidsList[i] = <np.uintp_t>(<long> rgids.data.ptr)
   
         cns[i] = localn;
         cms[i] = localm;
@@ -52,8 +53,8 @@ cpdef multileaf_knn(gidsList, RList, QList, k):
     total_queries = np.sum(cms);
 
     print(cRList)
-    print("Rloc", cRList.data.ptr)
-    print("Rloc[0]", cRList[0].data.ptr)
+    print("Rloc", <long> &cRList[0])
+    print("Rloc[0]", cRList[0])
     print(cQList)
     print(crgidsList)
 
@@ -70,23 +71,20 @@ cpdef multileaf_knn(gidsList, RList, QList, k):
         
         localNL = NL[start:stop, ...]
         localND = ND[start:stop, ...]
-
+        
         NLList.append(localNL)
         NDList.append(localND)
-
+        print(NDList[i].flags["OWNDATA"])
         cND[i] = <np.uintp_t>(<long>(localND.data.ptr))
-        cNL[i] = <np.uintp_t>(<long>(localND.data.ptr))
+        print(cND[i])
+        cNL[i] = <np.uintp_t>(<long>(localNL.data.ptr))
 
-    cdef long ptr_cNL = <long> cNL.data.ptr
-    cdef long ptr_cND = <long> cND.data.ptr
-
-    cdef long ptr_cRList = <long> cRList.data.ptr
-    cdef long ptr_cQList = <long> cQList.data.ptr
-    cdef long ptr_crgidsList = <long> crgidsList.data.ptr
+    print("ND loc", <long> cND[0])
     print("Starting GPU Kernel")
     with nogil:
-        knn_gpu(<float**> ptr_cRList, <float**> ptr_cQList, <int**> ptr_crgidsList, <float**>ptr_cND, <int **> ptr_cNL, <int> nleaves, <int> cns[0], <int> cd, <int> ck, <int> blocksize)
+        knn_gpu(<float**> &cRList[0], <float**> &cQList[0], <int**> &crgidsList[0], <float**> &cND[0], <int **> &cNL[0], <int> nleaves, <int> cns[0], <int> cd, <int> ck, <int> blocksize)
     print("Finished GPU Kernel")
+    print(long(NDList[0].data.ptr))
     return (NLList, NDList)
     
         
