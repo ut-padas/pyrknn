@@ -94,8 +94,9 @@ class RKDT:
         root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
         self.root = root
         del self.data
-        root.split(cp.cuda.Stream(non_blocking=True))
+        root.split()
 
+        cp.cuda.Device().synchronize()
         self.built=True
 
     def populate_data(self, data):
@@ -224,7 +225,7 @@ class RKDT:
             else:
                 return self.libpy.median(self.local_)
 
-        def split(self, stream):
+        def split(self):
             """Split a node and assign both children.
 
             Return value:
@@ -253,17 +254,17 @@ class RKDT:
                 print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
             '''
             #project onto line (projection stored in self.local_)
-            with stream:
-                #cp.random.RandomState(1001+self.id)
-                self.vector = self.libpy.random.random((self.data[0].shape),dtype='float32')
-                proj = self.libpy.dot(self.data, self.vector)
-                lids = self.libpy.argpartition(proj, middle)
-                self.median = proj[lids[middle]]
-                data_left = self.data[lids[:middle]]
-                data_right = self.data[lids[middle:]]
-                del proj
-                del lids
-                del self.data
+            
+            #cp.random.RandomState(1001+self.id)
+            self.vector = self.libpy.random.random((self.data[0].shape),dtype='float32')
+            proj = self.libpy.dot(self.data, self.vector)
+            lids = self.libpy.argpartition(proj, middle)
+            self.median = proj[lids[middle]]
+            data_left = self.data[lids[:middle]]
+            data_right = self.data[lids[middle:]]
+            del proj
+            del lids
+            del self.data
             
             #Initialize left and right nodes
             left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
@@ -283,16 +284,9 @@ class RKDT:
                 print('after creating stream and deleting, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
                 print('after creating stream and deleting, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
             '''
-            if self.level < 4:
-                stream.synchronize()
-                stream2 = cp.cuda.Stream(non_blocking=True)
-                left.split(stream)
-                right.split(stream2)
-                stream.synchronize()
-                stream2.synchronize()
-            else:
-                left.split(stream)
-                right.split(stream)
+
+            left.split()
+            right.split()
             return children
 
         def populate_data(self,data,stream):

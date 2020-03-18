@@ -8,11 +8,12 @@ import util
 def split_node(node):
     if node is None:
         return
-    node.split(cp.cuda.Stream())
+    node.split()
     return 
 
 class RKDT:
     """Class for Randomized KD Tree Nearest Neighbor Searches"""
+    """The split method in this file is done with synchronization at each level"""
 
     verbose = False #Note: This is a static variable shared by all instances
 
@@ -29,11 +30,15 @@ class RKDT:
         self.levels = levels
         self.leafsize = leafsize
         self.nodelist = []
+        #assert(pointset is not None)
+        self.data = [pointset, cp.zeros(pointset.shape)]
         self.size = len(pointset)
-        self.data = pointset
-        self.root = None
+        self.proj_array = cp.zeros(self.size)
+        self.index_array = cp.zeros(self.size,dtype='int32')
+        self.entry_shape = pointset[0].shape
         self.built=False
 
+    '''
     def set(pointset=None, leafsize=None, levels=None):
         """Set or redefine the key values of a RKDT
 
@@ -58,6 +63,7 @@ class RKDT:
         if (levels is not None):
             assert(levels >= 0)
             self.levels = levels
+    '''
 
     @classmethod
     def set_verbose(self, v):
@@ -76,12 +82,14 @@ class RKDT:
 
         Keyword Arguments:
             levels -- maximum number of levels in the tree
-            leafsize -- Leaves of size(2*leafsize+1) will not be split
+            leafsize -- Leaves of size = 2048 will not be split
         """
+
         #Various error checking methods to make sure tree is initialized properly
         if self.built:
             raise ErrorType.InitializationError('You cannot call build on a tree that has already been built')
-        '''if self.empty:
+        '''
+        if self.empty:
             raise ErrorType.InitializationError('Cannot build an empty tree')
         if self.size < 0:
             raise ErrorType.InitializationError('Invalid size parameter: Cannot build a tree of size '+str(self.size))
@@ -91,24 +99,48 @@ class RKDT:
             raise ErrorType.InitializationError('Invalid max levels parameter: Cannot build a tree of '+str(self.levels)+' levels')
         '''
         #Create the root node
-        root = self.Node(self.libpy, self.data, self, idx=0, level=0, size=self.size)
-        self.root = root
-        del self.data
-        root.split(cp.cuda.Stream(non_blocking=True))
+        root = self.Node(self.libpy, self.entry_shape, self, idx=0, level=0, size=self.size, start=0, end=self.size)
 
+        data_size = self.size
+        start = 0
+        stride = 1
+        streams = [] # We only need 16 streams max
+        for i in range(16):
+            streams.append(cp.cuda.Stream(null=False, non_blocking=True))
+        while data_size > 1024:
+            '''
+                For the first group of 16 nodes, we should get the stream and call node split.
+                For the later groups of 16 nodes, we first call stream synchronize then call 
+                node split. 
+
+                Node split function should add itself to self.nodelist.  
+            '''
+            if stride <=8:
+                for i in range(stride):
+                    node = self.nodelist[start+i]
+                    node.split(streams[i])
+                for i in range(stride):
+                    streams[i].synchronize()
+            else:
+                nelem = stride//16
+                for i in range(16):
+                    for j in range(nelem):
+                        node = self.nodelist[start + j + i*nelem]
+                        node.split(streams[i])
+
+            data_size //= 2
+            start += stride
+            stride *= 2
+
+        for stream in streams:
+            stream.synchronize()
         self.built=True
-
-    def populate_data(self, data):
-        assert(self.built)
-        self.root.populate_data(data, cp.cuda.Stream())
-        del data
-        return
 
     class Node:
 
         verbose = False
 
-        def __init__(self, libpy, data, tree, idx=0, level=0, size=0):
+        def __init__(self, libpy, entry_shape, tree, idx=0, level=0, size=0, start=None, end=None):
             """Initalize a member of the RKDT.Node class
 
             Arguments:
@@ -120,18 +152,22 @@ class RKDT:
                 size -- the number of points that this node corresponds to
                 gids -- the list of global indicies for the owned points
             """
-            self.data = data # permuted data for the tree node
+            
+            self.entry_shape = entry_shape
             self.libpy = libpy
             self.tree = tree
             self.id = idx
             self.level = level
             self.size = size
-            self.isleaf = False
+            #self.gids = gids
+            self.isleaf = True
             self.parent = None
             self.children = [None, None]
-            #self.anchors = None
-            self.vector = None
-            self.median = 0.0 # stored median is the modified distance
+            self.plane = [None, 0.0]
+            self.tree.nodelist.append(self)
+            assert(start is not None)
+            self.start = start
+            self.end = end
 
         def __str__(self):
             """Overloading the print function for a RKDT.Node class"""
@@ -144,7 +180,7 @@ class RKDT:
                 anchors = self.anchors if self.anchors is not None else []
                 for anchor in anchors:
                     msg += '\ngid:'+str(anchor)+' value: '+str(self.tree.data[anchor, ...])
-                msg += '\nSplitting Line: '+str(self.vector)
+                msg += '\nSplitting Line: '+str(self.plane)
                 msg += '\nContains gids:' +str(self.gids)
                 #msg += '\nData:'+str(self.tree.data[self.gids, ...])
                 msg += '\n--------------------------'
@@ -185,6 +221,7 @@ class RKDT:
             """Set the 'pointer' to the parent node"""
             self.parent = node
 
+        '''
         def select_hyperplane(self):
             """Select the random line and project onto it.
 
@@ -199,6 +236,7 @@ class RKDT:
             self.anchors = self.libpy.random.choice(self.gids, 2, replace=False)
             dist = util.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
             self.local_ = dist[0] - dist[1]
+        '''
 
         def average(self, idx=0):
             """Return the average of points in the node along a specified axis (0 < idx < d-1)
@@ -238,11 +276,10 @@ class RKDT:
 
             middle = self.size//2
 
-            #Stop the split if the leafsize is too small, or the maximum level has been reached
+            #Stop the split if the leafsize is too small
             if (middle < self.tree.leafsize):
                 '''if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:'''
-                self.vector = None
-                #self.anchors = None
+                self.plane = None
                 self.isleaf=True
                 return [None, None]
 
@@ -252,25 +289,24 @@ class RKDT:
                 print('before creating stream, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
                 print('before creating stream, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
             '''
-            #project onto line (projection stored in self.local_)
+        
+            #project onto line
+            data_index1 = self.level % 2
+            data_index2 = (data_index1 + 1) % 2
             with stream:
-                #cp.random.RandomState(1001+self.id)
-                self.vector = self.libpy.random.random((self.data[0].shape),dtype='float32')
-                proj = self.libpy.dot(self.data, self.vector)
-                lids = self.libpy.argpartition(proj, middle)
-                self.median = proj[lids[middle]]
-                data_left = self.data[lids[:middle]]
-                data_right = self.data[lids[middle:]]
-                del proj
-                del lids
-                del self.data
-            
-            #Initialize left and right nodes
-            left = self.tree.Node(self.libpy, data_left, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle)
-            right = self.tree.Node(self.libpy, data_right, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle))
-            del data_left
-            del data_right
+                #cp.random.seed(1001+self.id)
+                self.plane[0] = self.libpy.random.random((self.entry_shape),dtype='float32')
+                self.tree.proj_array[self.start:self.end] = self.libpy.dot(self.tree.data[data_index1][self.start:self.end], self.plane[0])
+                self.tree.index_array[self.start:self.end] = self.libpy.argpartition(self.tree.proj_array[self.start:self.end], middle)
+                self.plane[1] = self.tree.proj_array[self.start + self.tree.index_array[self.start+middle]]
+                #Copy data here
+                self.tree.data[data_index2][self.start:self.start+middle] = self.tree.data[data_index1][self.tree.index_array[self.start:self.start+middle]]
+                self.tree.data[data_index2][self.start+middle:self.end] = self.tree.data[data_index1][self.tree.index_array[self.start+middle:self.end]]
 
+            #Initialize left and right nodes
+            left = self.tree.Node(self.libpy, self.entry_shape, self.tree, level = self.level+1, idx = 2*self.id+1, size=middle, start=self.start, end=self.start+middle)
+            right = self.tree.Node(self.libpy, self.entry_shape, self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle),start=self.start+middle,end=self.end)
+            
             left.set_parent(self)
             right.set_parent(self)
 
@@ -283,53 +319,8 @@ class RKDT:
                 print('after creating stream and deleting, used bytes at level', self.level, 'are ', mem_pool.used_bytes())
                 print('after creating stream and deleting, total bytes at level ', self.level,' are ', mem_pool.total_bytes())
             '''
-            if self.level < 4:
-                stream.synchronize()
-                stream2 = cp.cuda.Stream(non_blocking=True)
-                left.split(stream)
-                right.split(stream2)
-                stream.synchronize()
-                stream2.synchronize()
-            else:
-                left.split(stream)
-                right.split(stream)
+           
             return children
-
-        def populate_data(self,data,stream):
-            middle = self.size//2
-            self.data = data
-            if self.isleaf:
-                return
-            
-            with stream:
-                #cp.random.RandomState(1001+self.id)
-                self.vector = self.libpy.random.random((self.data[0].shape),dtype='float32')
-                proj = self.libpy.dot(self.data, self.vector)
-                lids = self.libpy.argpartition(proj, middle)
-                self.median = proj[lids[middle]]
-                data_left = self.data[lids[:middle]]
-                data_right = self.data[lids[middle:]]
-                del proj
-                del lids
-                del self.data
-                del data
-            
-            left,right = self.children
-
-            if self.level < 4:
-                stream.synchronize()
-                stream2 = cp.cuda.Stream()
-                left.populate_data(data_left,stream)
-                del data_left
-                right.populate_data(data_right,stream2)
-                del data_right
-                stream.synchronize()
-                stream2.synchronize()
-            else:
-                left.populate_data(data_left,stream)
-                right.populate_data(data_right,stream)
-            return
-
 
         def knn(self, Q, k):
             """
@@ -372,7 +363,7 @@ class RKDT:
             print(dist.shape)
             print("1x1")
             #compare against splitting plane
-            return 2*self.id+1 if dist < self.median else 2*self.id+2
+            return 2*self.id+1 if dist < self.plane else 2*self.id+2
 
     def get_levels(self):
         """Return the maximum number of levels in this RKDT."""
@@ -382,7 +373,7 @@ class RKDT:
         """Return the list of nodes at a level in-order."""
         start = 2**level -1
         stop  = 2**(level+1) - 1
-        return self.treelist[start:stop]
+        return self.nodelist[start:stop]
 
     def single_query(self, q):
         """Find the leaf index corresponding to a single query point.
@@ -392,7 +383,7 @@ class RKDT:
         """
         idx = 0
         for l in range(self.levels):
-            current_node = self.treelist[idx]
+            current_node = self.nodelist[idx]
             idx = current_node.single_query(q)
         return idx
 
@@ -444,7 +435,7 @@ class RKDT:
             neighbor_list -- |Q| x k list of neighbor gids. In local ordering og the query points.
             neighbor_dist -- the corresponding distances
         """
-        root = self.treelist[0]
+        root = self.nodelist[0]
         return root.knn(Q, k)
 
     def aknn(self, Q, k):
@@ -468,7 +459,7 @@ class RKDT:
 
         for leaf in bins:
             idx = bins[leaf]
-            node = self.treelist[leaf]
+            node = self.nodelist[leaf]
             lk = min(k, node.size-1) #TODO: Ascend tree if k > leafsize?
             lneighbor_list, lneighbor_dist = node.knn(Q[idx, ...], lk)
             neighbor_list[idx, :lk] = lneighbor_list

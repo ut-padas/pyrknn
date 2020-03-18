@@ -1,5 +1,6 @@
 from numba import jit
 import numpy as np
+import cupy as cp
 
 """File that contains key kernels to be replaced with high performance implementations"""
 
@@ -27,8 +28,8 @@ def distance(R, Q):
     global env
     if env == "PYTHON":
         D= -2*np.dot(Q, R.T)                    #Compute -2*<q_i, r_j>, Note: Python is row-major
-        Q2 = np.linalg.norm(Q, axis=1)**2       #Compute ||q_i||^2
-        R2 = np.linalg.norm(R, axis=1)**2       #Compute ||r_j||^2
+        Q2 = np.linalg.norm(Q, axis=-1)**2       #Compute ||q_i||^2
+        R2 = np.linalg.norm(R, axis=-1)**2       #Compute ||r_j||^2
 
         D = D + Q2[:, np.newaxis]               #Add in ||q_i||^2 row-wise
         D = D + R2                              #Add in ||q_i||^2 colum-wise
@@ -50,8 +51,11 @@ def direct_knn(gids, R, Q, k):
     global env
     if env == "PYTHON":
         #Note: My Pure python implementation is quite wasteful with memory.
-
-        N, d, = Q.shape
+        if len(Q.shape) == 1:
+            N = 1
+            d = Q.shape[0]
+        else:
+            N, d, = Q.shape
 
         #Allocate storage space for neighbor ids and distances
         neighbor_list = np.zeros([N, k])                #TODO: Change type to int
@@ -176,6 +180,26 @@ def merge_neighbors(a, b, k):
             a_dist[i] = merged_dist
 
         return (a_list, a_dist), changes
+
+# Notice that the norm of refs don't need to be computed every single time
+# Kernel one only parallelize with respect to each query points. 
+# Future work should consider batche-sized querys and refs.
+def knn_stream_kernel1(querys, refs, ref_norm_sq, k):
+    results = []
+    streams = []
+    for i in range(len(querys)):
+        streams.append(cp.cuda.stream.Stream(null=False,non_blocking=True))
+    for i in range(len(streams)):
+        with streams[i]:
+            r = ref_norm_sq - 2*cp.dot(refs,querys[i])
+            indices = cp.argpartition(r, k)
+            results.append(cp.asnumpy(indices[:k], stream=streams[i]))
+    for stream in streams:
+        stream.synchronize()
+    return results
+
+
+
 
 #This isn't really an HPC kernel, just a useful utility function I didn't know where else to put
 def neighbor_dist(a, b):
