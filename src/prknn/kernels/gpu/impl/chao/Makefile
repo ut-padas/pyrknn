@@ -35,7 +35,7 @@ run: $(EXE)
 	$(EXE)
 
 debug: $(EXE)
-	$(EXE) -D -n 2 -d 2 -k 2 -m 2
+	$(EXE) -D -n 10 -d 2 -k 5 -m 2 -s 2
 
 benchmark: $(EXE)
 	$(EXE) -s 8192 -k 16

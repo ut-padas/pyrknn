@@ -499,10 +499,10 @@ def test_multileaf():
 
 def test_gpu_multileaf():
     #test_par()
-    leaves = 10;
-    N = 1000
+    leaves = 1;
+    N = 10
     d = 5
-    k = 64
+    k = 10
     Rlist = []
     Qlist = []
     gidsList = []
@@ -529,7 +529,6 @@ def test_gpu_multileaf():
 
     print(a)
     print("END")
-
 
 
 def test_quickselect():
