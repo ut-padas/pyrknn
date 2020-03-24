@@ -45,10 +45,10 @@ kernel_leaf.o: kernel_leaf.cu
 	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I ../merge
 
 kernel_test.o: kernel_test.cu
-	nvcc -c $< $(VFLAG)
+	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda
 
 kernel_gemm.o: kernel_gemm.cu
-	nvcc -c $< $(VFLAG)
+	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda
 
 run: $(EXE)
 	$(EXE) -s 1
