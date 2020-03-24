@@ -538,6 +538,7 @@ def test_quickselect():
     kselect(arr, 5)
     print(arr)
 
+test_par()
 #test_quickselect()
 #test_distance()
 #test_node_split()
@@ -548,7 +549,7 @@ def test_quickselect():
 #time_full_equivalent()
 #time_numpy()
 #test_multileaf()
-test_gpu_multileaf()
+#test_gpu_multileaf()
 #print("end test")
 #test_neighbor_node()
 #test_neighbor()

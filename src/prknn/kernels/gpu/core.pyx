@@ -4,14 +4,20 @@ cimport numpy as np
 import cupy as cp
 from numba import cuda
 
+import time
+
 import cython
 
 from primitives cimport *
 
+cpdef batched_knn(gidsList, RList, QList, k):
 
-cpdef multileaf_knn(gidsList, RList, QList, k):
-    
+    book_t = time.time()    
+
     cdef int nleaves = len(RList)
+
+    #print("nleaves", nleaves)
+
     cdef int cd = RList[0].shape[1];
     cdef int ck = k;
 
@@ -26,6 +32,7 @@ cpdef multileaf_knn(gidsList, RList, QList, k):
     NLList = []
     NDList = []
     gidsList_temp = []
+    
     cdef size_t[:] cNL = np.zeros(nleaves, dtype=np.uintp);
     cdef size_t[:] cND = np.zeros(nleaves, dtype=np.uintp);
 
@@ -49,19 +56,15 @@ cpdef multileaf_knn(gidsList, RList, QList, k):
   
         cns[i] = localn;
         cms[i] = localm;
+        #print(localn)
 
     total_queries = np.sum(cms);
-
-    print(cRList)
-    print("Rloc", <long> &cRList[0])
-    print("Rloc[0]", cRList[0])
-    print(cQList)
-    print(crgidsList)
 
     NL = cp.zeros((total_queries, k), dtype=cp.int32)
     ND = cp.zeros((total_queries, k), dtype=cp.float32)
 
     prefix_n = np.cumsum(cms) #do prefix sum
+    #print(prefix_n)
 
     #This shouldn't be making copies
     for i in range(nleaves):
@@ -74,22 +77,22 @@ cpdef multileaf_knn(gidsList, RList, QList, k):
         
         NLList.append(localNL)
         NDList.append(localND)
-        print(NDList[i].flags["OWNDATA"])
         cND[i] = <np.uintp_t>(<long>(localND.data.ptr))
-        print(cND[i])
         cNL[i] = <np.uintp_t>(<long>(localNL.data.ptr))
 
-    print("ND loc", <long> cND[0])
-    print("Starting GPU Kernel")
+    book_t = time.time() - book_t
+    print("Bookkeeping to C++ took ",book_t) 
+
     with nogil:
         knn_gpu(<float**> &cRList[0], <float**> &cQList[0], <int**> &crgidsList[0], <float**> &cND[0], <int **> &cNL[0], <int> nleaves, <int> cns[0], <int> cd, <int> ck, <int> blocksize)
-    print("Finished GPU Kernel")
-    print(long(NDList[0].data.ptr))
+    
     return (NLList, NDList)
     
         
 def merge_neighbors(a, b, k):
 
+    print("starting merge")
+    merge_t = time.time()
     D1 = a[0]
     I1 = a[1]
     D2 = b[0]
@@ -107,6 +110,7 @@ def merge_neighbors(a, b, k):
     cI2 = <long> I2.data.mem.ptr
 
     cdef int ck = k;
+    print(D1)
     cdef int cm = D1.shape[0]
     cdef int cn = D1.shape[1]
 
@@ -116,6 +120,9 @@ def merge_neighbors(a, b, k):
     cdef int* ptr_cI2 = <int*> cI2
     with nogil:
         merge_neighbors_gpu( ptr_cD1, ptr_cI1, ptr_cD2, ptr_cI2, cm, cn, ck); 
+
+    merge_t = time.time() - merge_t
+    print("Merge time:", merge_t)
 
     return (D1, I1)
 

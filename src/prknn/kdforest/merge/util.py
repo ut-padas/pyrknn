@@ -1,5 +1,7 @@
 import numpy as np
+import cupy as cp
 from ...kernels.cpu import core as cpu
+from ...kernels.gpu import core as gpu
 
 """File that contains key kernels to be replaced with high performance implementations"""
 
@@ -13,7 +15,20 @@ from ...kernels.cpu import core as cpu
 
 
 env = "CPU" #Coarse kernel context switching mechanism for debugging (this is a bad pattern, to be replace in #TODO 3)
+lib = np
 batched = 1
+
+def set_env(loc):
+    global env
+    env = loc
+
+    if env == "CPU":
+        lib = np
+    elif env == "GPU":
+        lib = cp
+    else:
+        raise Exception("Not a valid enviorment target. Specify CPU or GPU")
+    
 
 #TODO: Q2 and R2 could be precomputed and given as arguments to distance(), should make keyword parameters for this option
 def distance(R, Q):
@@ -24,21 +39,22 @@ def distance(R, Q):
         Note: Positivity not enforced for rounding errors in distances near zero.
     """
     global env
-    if env == "PYTHON" or env == "CPU":
-        D= -2*np.dot(Q, R.T)                    #Compute -2*<q_i, r_j>, Note: Python is row-major
-        Q2 = np.linalg.norm(Q, axis=1)**2       #Compute ||q_i||^2
-        R2 = np.linalg.norm(R, axis=1)**2       #Compute ||r_j||^2
+    if env == "PYTHON" or env == "CPU" or env=="GPU":
+        D= -2*lib.dot(Q, R.T)                    #Compute -2*<q_i, r_j>, Note: Python is row-major
+        Q2 = lib.linalg.norm(Q, axis=1)**2       #Compute ||q_i||^2
+        R2 = lib.linalg.norm(R, axis=1)**2       #Compute ||r_j||^2
 
         D = D + Q2[:, np.newaxis]               #Add in ||q_i||^2 row-wise
         D = D + R2                              #Add in ||q_i||^2 colum-wise
         return D
+
 
     """
     if env == "CPU":
         return cpu.distance(R, Q);
     """
 
-def direct_knn(gids, R, Q, k):
+def single_knn(gids, R, Q, k):
     """Compute the k nearest neighbors from a query set Q (|Q| x d) in a reference set R (|R| x d).
 
     Note: Neighbors are indexed globally by gids, which provides a local (row idx) to global map.
@@ -50,14 +66,14 @@ def direct_knn(gids, R, Q, k):
 
     """
     global env
-    if env == "PYTHON":
+    if env == "PYTHON" or env=="GPU":
         #Note: My Pure python implementation is quite wasteful with memory.
 
         N, d, = Q.shape
 
         #Allocate storage space for neighbor ids and distances
-        neighbor_list = np.zeros([N, k])                #TODO: Change type to int
-        neighbor_dist = np.zeros([N, k])
+        neighbor_list = lib.zeros([N, k])                #TODO: Change type to int
+        neighbor_dist = lib.zeros([N, k])
 
         dist = distance(R, Q)                           #Compute all distances
         for q_idx in range(N):
@@ -66,12 +82,12 @@ def direct_knn(gids, R, Q, k):
             #TODO: neighbor_dist, neighbor_list  = np.kselect(dist, k, key=gids)
 
             #Perform k selection on distance list
-            neighbor_lids = np.argpartition(dist[q_idx, ...], k)[:k]            #This performs a copy of dist and allocated lids
+            neighbor_lids = lib.argpartition(dist[q_idx, ...], k)[:k]            #This performs a copy of dist and allocated lids
             neighbor_dist[q_idx, ...] = dist[q_idx, neighbor_lids]              #This performs a copy of dist
             neighbor_gids = gids[neighbor_lids]                                 #This performs a copy of gids
 
             #Sort and store the selected k neighbors
-            shuffle_idx = np.argsort(neighbor_dist[q_idx, ...])                 #This performs a copy of dist and allocates idx
+            shuffle_idx = lib.argsort(neighbor_dist[q_idx, ...])                 #This performs a copy of dist and allocates idx
             neighbor_dist[q_idx, ...] = neighbor_dist[q_idx, shuffle_idx]       #This performs a copy of dist
             neighbor_gids = neighbor_gids[shuffle_idx]                          #This performs a copy of gids
 
@@ -80,11 +96,13 @@ def direct_knn(gids, R, Q, k):
             return neighbor_list, neighbor_dist
 
     if env == "CPU":
-        return cpu.PyGSKNN(gids, R, Q, k)
+        return cpu.single_knn(gids, R, Q, k)
 
 def batched_knn(gidsList, RList, QList, k):
    if env == "CPU":
-        return cpu.PyGSKNNBatched(gidsList, RList, QList, k)
+        return cpu.batched_knn(gidsList, RList, QList, k)
+   if env == "GPU":
+        return gpu.batched_knn(gidsList, RList, QList, k)
 
 def multileaf_knn(gidsList, RList, QList, k):
 
@@ -97,7 +115,7 @@ def multileaf_knn(gidsList, RList, QList, k):
         NDL = []
 
         for i in range(N):
-            NL, ND  = direct_knn(gidsList[i], RList[i], QList[i], k)
+            NL, ND  = single_knn(gidsList[i], RList[i], QList[i], k)
             print(NL)
             NLL.append(NL)
             NDL.append(NDL)
@@ -118,9 +136,9 @@ def kselect(values, k, key=None):
         k_smallest_keys -- keys corresponding to the values returned in the order of k_smallest_values
     """
     global env
-    if env == "PYTHON":
+    if env == "PYTHON" or env=="GPU":
         #A pure python implementation
-        lids = np.argpartition(values, k)[:k]
+        lids = lib.argpartition(values, k)[:k]
         k_smallest_values = values[lids]
         k_smallest_keys = None
         if keys is not None:
@@ -162,6 +180,9 @@ def merge_neighbors(a, b, k):
 
     if env == "CPU":
         return cpu.merge_neighbors(a, b, k)
+
+    if env == "GPU":
+        return gpu.merge_neighbors(a, b, k)
 
     if env == "PYTHON":
         # This is currently very wasteful/suboptimal
@@ -234,17 +255,17 @@ def neighbor_dist(a, b):
     assert(ka == kb)
 
     changes = 0
-    nn_dist = np.zeros(Na)
-    first_diff = np.zeros(Na)
+    nn_dist = lib.zeros(Na)
+    first_diff = lib.zeros(Na)
     for i in range(Na):
-        changes += (ka - np.sum(a_list[i] == b_list[i]))
-        nn_dist[i] = np.abs(a_dist[i, -1] - b_dist[i, -1])/np.abs(a_dist[i, -1])
-        diff_array = np.abs(a_list[i, ...] - b_list[i, ...])
-        first_diff[i] = np.argmax(diff_array > 0.5)
+        changes += (ka - lib.sum(a_list[i] == b_list[i]))
+        nn_dist[i] = lib.abs(a_dist[i, -1] - b_dist[i, -1])/lib.abs(a_dist[i, -1])
+        diff_array = lib.abs(a_list[i, ...] - b_list[i, ...])
+        first_diff[i] = lib.argmax(diff_array > 0.5)
 
     perc = changes/(Na*ka)
 
-    return perc, np.mean(nn_dist), first_diff
+    return perc, lib.mean(nn_dist), first_diff
 
 
 
