@@ -3,6 +3,7 @@ from . import util as Primitives
 from .tree import *
 
 import numpy as np
+import cupy as cp
 from collections import defaultdict
 
 class RKDForest:
@@ -10,7 +11,7 @@ class RKDForest:
 
     verbose = False #Note: This is a static variable
 
-    def __init__(self, ntrees=1, levels=0, leafsize=None, pointset=None):
+    def __init__(self, ntrees=1, levels=0, leafsize=None, pointset=None, location="CPU"):
         """Initialize Randomized KD Forest.
 
         Keyword Arguments:
@@ -29,11 +30,16 @@ class RKDForest:
         self.levels = levels
         self.leafsize = leafsize
         self.ntrees = ntrees
-
+        self.location = location
+        if self.location == "CPU":
+            self.lib = np
+        elif self.location == "GPU":
+            self.lib = cp
+ 
         if (pointset is not None):
             self.size = len(pointset)
-            self.gids = np.arange(self.size)
-            self.data = np.asarray(pointset)
+            self.gids = self.lib.arange(self.size)
+            self.data = self.lib.asarray(pointset)
             if (leafsize is None):
                 self.leafsize = self.size
             if (self.ntrees == 0):
@@ -46,8 +52,8 @@ class RKDForest:
         else:
             self.empty= True
             self.ntrees = 0
-            self.data = np.asarray([])
-            self.gids = np.asarray([])
+            self.data = self.lib.asarray([])
+            self.gids = self.lib.asarray([])
 
         self.built=False
 
@@ -72,7 +78,7 @@ class RKDForest:
         self.forestlist = [None]*self.ntrees
 
         for i in range(self.ntrees):
-            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize)
+            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location)
             tree.build()
             self.forestlist[i] = tree
 
@@ -123,7 +129,7 @@ class RKDForest:
 
         return result
 
-    def all_nearest_neighbor(k):
+    def aknn_all(self, k, verbose=False):
         """Perform an approximate all knn search over all trees in forest, merging results.
 
         Arguments:
@@ -141,7 +147,7 @@ class RKDForest:
         #TODO: Key Area for PARLA Tasks
 
         for tree in self.forestlist:
-            neighbors = tree.all_nearest_neighbor(k)
+            neighbors = tree.aknn_all(k)
 
             if result is None:
                 result = neighbors
@@ -157,7 +163,7 @@ class RKDForest:
 
         #TODO: Key Area for PARLA Tasks
         for i in range(l):
-            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize)
+            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location)
             self.treelist.append(tree)
         self.ntrees = len(self.treelist)
 

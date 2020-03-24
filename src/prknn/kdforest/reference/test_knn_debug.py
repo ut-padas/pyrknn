@@ -2,6 +2,7 @@ from tree_gpu_cpu import *
 from util import *
 import numpy as np
 import cupy as cp
+import time
 
 #This is a large collection of helper function I wrote to debug and verify the reference implementation
 #This will not be maintained but you (or most likely me) may find it useful
@@ -36,7 +37,7 @@ def test_node_split():
 
 def test_build():
     N = 101
-    arr = np.random.rand(N, 5)
+    arr = libpy.random.rand(N, 5)
     RKDT.set_verbose(True)
     tree = RKDT(libpy,pointset=arr, levels=5, leafsize=5)
     tree.build()
@@ -212,6 +213,7 @@ def test_converge():
     print(change_arr)
 
 def test_all_nearest():
+    print("Started Test")
     N = 200000
     d = 1
     k = 64
@@ -220,10 +222,14 @@ def test_all_nearest():
     q = arr[idx, ...].reshape((len(idx), d))
     RKDT.set_verbose(True)
     tree = RKDT(libpy, pointset=arr, levels=15, leafsize=512)
+    
+    build_t = time.time()
     tree.build()
+    build_t = time.time() - build_t
+    print(build_t)
 
-    #neighbors = tree.aknn(q, k)
-    #print(neighbors)
+    neighbors = tree.aknn(q, k)
+    print(neighbors)
 
     neighbors = tree.all_nearest_neighbor(k);
     print(neighbors)

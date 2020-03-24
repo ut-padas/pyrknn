@@ -126,7 +126,8 @@ def makeExtension(extName):
             language="c++",
             library_dirs = cpu_lib_dirs,
             runtime_library_dirs = cpu_lib_dirs,
-            extra_objects=args.cpu_obj+[GSKNN_DIR+"/build/lib/libgsknn_shared.so", GSKNN_DIR+"/build/lib/libgsknn_ref_stl_shared.so"],
+            extra_objects=args.cpu_obj,
+            #libraries=["gsknn"],
             extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp","-qopenmp-report 2", "-Wno-sign-compare"],
             extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn"]
             )

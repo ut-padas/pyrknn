@@ -201,7 +201,7 @@ void find_knn(dvec<float> &Dist, const int *ID,
   auto permK = thrust::make_permutation_iterator(thrust::device_ptr<float>(nborDist), iterK);
   thrust::copy(permD, permD+nLeaf*m*k, permK);
   cudaCheck( cudaDeviceSynchronize() );
-  *//
+  */
   get_kcols(idx, ID, nborID, nLeaf, m, N, k, r);
 }
 
@@ -248,7 +248,7 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
   cudaCheck( cudaDeviceSynchronize() );
   t.stop(); t_dist += t.elapsed_time();
 #endif
-  
+  printf("%d:%d\n", N, m);
   // blocking
   assert(N%m==0); // m is block size
   int M = N/m; // number of blocks
