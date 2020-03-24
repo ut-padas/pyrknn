@@ -1,8 +1,10 @@
 from prknn.kdforest.merge.tree import *
 from prknn.kdforest.merge.util import *
 from prknn.kernels.cpu.core import *
+from prknn.kernels.gpu import core as gpu
 
 import numpy as np
+import cupy as cp
 import time
 
 #from parla import Parla
@@ -491,6 +493,44 @@ def test_multileaf():
     #print(AnsList[:][:])
     print("END")
 
+
+
+
+
+def test_gpu_multileaf():
+    #test_par()
+    leaves = 1;
+    N = 10
+    d = 5
+    k = 10
+    Rlist = []
+    Qlist = []
+    gidsList = []
+    AnsList = []
+    for l in range(leaves):
+        R = cp.random.rand(N, d, dtype=cp.float32);
+        idx = cp.arange(256, dtype=np.int32)
+        Q = R[idx, ...].reshape((len(idx), d))
+        Q = R
+        gids = cp.arange(0, N, dtype=np.int32);   
+        #gids = np.random.shuffle(gids)
+        Rlist.append(R)
+        Qlist.append(Q)
+        gidsList.append(gids)
+
+#    print(gidsList)
+#    print(Rlist)
+#    print(Qlist)
+
+    t_batched = time.time()
+    a = gpu.multileaf_knn(gidsList, Rlist, Qlist, k)
+    t_batched = time.time() - t_batched
+    print(t_batched)
+
+    print(a)
+    print("END")
+
+
 def test_quickselect():
     N = 10
     arr = np.random.rand((10, 1), dtype=np.float32);
@@ -499,24 +539,21 @@ def test_quickselect():
     print(arr)
 
 #test_quickselect()
-
 #test_distance()
 #test_node_split()
 #test_build()
 #test_query()
-
 #test_neighbor_kernel()
 #test_neighbor_multileaf()
 #time_full_equivalent()
 #time_numpy()
-test_multileaf()
+#test_multileaf()
+test_gpu_multileaf()
 #print("end test")
 #test_neighbor_node()
 #test_neighbor()
-
 #test_all_nearest()
 #test_merge()
-
 #test_converge()
 
 
