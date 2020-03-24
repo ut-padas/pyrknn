@@ -27,7 +27,7 @@ cpdef KNNLowMem(gids, R, Q, k):
 
     return neighbor_list, neighbor_dist
 
-cpdef PyGSKNN(gids, R, Q, k):
+cpdef single_knn(gids, R, Q, k):
     cdef int cn = R.shape[0];
     cdef int cm = Q.shape[0];
     cdef int cd = Q.shape[1];
@@ -69,7 +69,7 @@ cpdef PyGSKNNBlocked(gids, R, Q, k):
 
     return neighbor_list, neighbor_dist 
 
-cpdef PyGSKNNBatched(gidsList, RList, QList, k):
+cpdef batched_knn(gidsList, RList, QList, k):
     cdef int nleaves = len(RList); #Assume input is proper #TODO: Add checks
     cdef int cd = RList[0].shape[1];
     cdef int ck = k;
