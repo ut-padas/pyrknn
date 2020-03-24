@@ -14,6 +14,20 @@ using dvec = thrust::device_vector<T>;
 #include "../util/util.hpp"
 #endif
 
+
+struct printf_functor
+{
+  __host__ __device__
+  void operator()(int x)
+  {
+    // note that using printf in a __device__ function requires
+    // code compiled for a GPU with compute capability 2.0 or
+    // higher (nvcc --arch=sm_20)
+    printf("%d\n", x);
+  }
+};
+
+
 struct strideBlock: public thrust::unary_function<int, int> {
 
   int start; 
@@ -45,13 +59,13 @@ struct sameNborID: public thrust::binary_function<int, int, bool> {
 };
 
 
-struct firstKCols: public thrust::unary_function<int, int> {
+struct firstKColumn: public thrust::unary_function<int, int> {
 
   int k;
-  int *perm, *head;
+  const int *perm, *head;
 
   __host__ __device__
-  firstKCols(int k_, int *p, int *h): k(k_), perm(p), head(h) {}
+  firstKColumn(int k_, int *p, int *h): k(k_), perm(p), head(h) {}
     
   __host__ __device__
   int operator()(int i){
@@ -71,6 +85,7 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   tk.start();
   t.start();
 #endif
+
 
   dvec<int> nborID(2*n*m);
   dvec<float> nborDist(2*n*m);
@@ -157,7 +172,7 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   // sort distance
   auto distCpy = uniqueDist;
   sortGPU::sort_matrix_rows_mgpu(distCpy, idx, idx.size(), segments, m);
-
+    
 #ifndef PROD
   t.stop(); t_sort2 = t.elapsed_time();
   
@@ -167,13 +182,19 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   }
   t.start();
 #endif
-
+  
   // get first k-cols
   ID = thrust::raw_pointer_cast(idx.data());
   int *head  = thrust::raw_pointer_cast(segments.data());
-  auto iter  = thrust::make_transform_iterator(zero, firstKCols(k, ID, head));
+  auto iter  = thrust::make_transform_iterator(zero, firstKColumn(k, ID, head));
   auto permID = thrust::make_permutation_iterator(uniqueID.begin(), iter);
   auto permDist = thrust::make_permutation_iterator(uniqueDist.begin(), iter);
+
+
+  //std::cout<<"Iter:"<<std::endl;
+  //thrust::for_each(thrust::device, iter, iter+m*k, printf_functor());
+
+
   thrust::copy(thrust::device, permID, permID+m*k, nborI1);
   thrust::copy(thrust::device, permDist, permDist+m*k, nborD1);
 

@@ -223,17 +223,17 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
   cublasHandle_t handle;
   cublasCheck( cublasCreate(&handle) );  
  
-#ifndef PROD
-  Timer t, t1;
-  cudaCheck( cudaDeviceSynchronize() ); t1.start();
-#endif
-
   // compute row norms  
   dvec<float> R2(N*nLeaf), Q2(N*nLeaf);
+
 #ifndef PROD
-  cudaCheck( cudaDeviceSynchronize() ); t.start();
+  Timer t, t1;
+  cudaCheck( cudaDeviceSynchronize() ); 
+  t1.start(); t.start();
 #endif
+
   compute_row_norms(R, Q, R2, Q2, N*nLeaf, d);
+
 #ifndef PROD
   cudaCheck( cudaDeviceSynchronize() );
   t.stop(); t_dist += t.elapsed_time();
@@ -254,22 +254,19 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
 #ifndef PROD
     cudaCheck( cudaDeviceSynchronize() );
     t.stop(); t_dist += t.elapsed_time();
+    t.start();
 #endif
 
-
-#ifndef PROD
-    cudaCheck( cudaDeviceSynchronize() ); t.start();
-#endif
     find_knn(Dist, ID, ptrNborDist[0], ptrNborID[0], nLeaf, m, N, k, r);
+
 #ifndef PROD
     cudaCheck( cudaDeviceSynchronize() );
     t.stop(); t_sort += t.elapsed_time();
-#endif
   }
-  
-#ifndef PROD
   cudaCheck( cudaDeviceSynchronize() );
   t1.stop(); t_kernel += t1.elapsed_time();
+#else
+  }
 #endif
 
   // destroy CUBLAS handle
