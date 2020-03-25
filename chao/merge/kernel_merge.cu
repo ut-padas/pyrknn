@@ -236,6 +236,7 @@ void merge_neighbors(float *nborD1, const float *nborD2, int *nborI1, const int 
   thrust::copy(d_D1.begin(), d_D1.end(), ptrDist);
   sortGPU::final_mgpu();
 
+  if (!debug) {
   std::cout<<"\n==============\n"
            <<"Kernel profile\n"
            <<"--------------\n"
@@ -248,5 +249,6 @@ void merge_neighbors(float *nborD1, const float *nborD2, int *nborI1, const int 
            <<"sort2: "<<t_sort2/t_kernel*100<<" %\n"
            <<"out: "<<t_out/t_kernel*100<<" %\n"
            <<"==============\n\n";
+  }
 }
 
