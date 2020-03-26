@@ -10,6 +10,70 @@ import cython
 
 from primitives cimport *
 
+"""
+Assume:
+gids is a cp array (int32)
+csr_data is a cpyx.csr datatype (float32, int32, int32)
+current_offset is a cp array(int32)
+new_offset is a cp array(int32)
+dim is an int
+"""
+cpdef sparse_build_level(gids, csr_data, current_offset, new_offset, dim):
+
+    built_t = time.time()
+
+
+    cdef int current_nleaves = len(current_offset)
+    cdef int next_nleaves = len(new_offset)
+    cdef int nnz = csr_data.count_nonzero()
+
+    cdef int n = csr_data.shape[0]
+    cdef int d = dim
+
+    #Create pointer to gids array
+    cdef long ptr_gids = <long> gids.data.ptr
+
+
+    #Create pointers to CSR data (data, indicies, indptr)
+    local_data = csr_data.data
+    local_indices = csr_data.indicies
+    local_indptr = csr_data.indptr
+
+    cdef long ptr_data = <long> local_data.data.ptr
+    cdef long ptr_indices = <long> local_indices.data.ptr
+    cdef long ptr_indptr = <long> csr_data.indptr
+
+
+    #Create pointers to Segment Heads (Current, and Next)
+
+    cdef long ptr_seghead = <long> current_offset.data.ptr
+    cdef long ptr_segHeadNext = <long> new_offset.data.ptr
+
+    #Allocate and create pointers to random array (value X)
+    X = cp.random.rand((current_nleaves*d), dtype=np.float32)
+    cdef long ptr_X = <long> X.data.ptr
+
+    #Allocate and create pointer to median array
+    median = cp.zeros(current_nleaves, dtype=np.float32)
+    cdef long ptr_median = <long> median.data.ptr
+
+    #with nogil:
+        #Call out to Chao's function
+
+    return (csr_data, median)
+
+"""
+Assume:
+gidsList is a list of cp arrays (int32)
+RList is a list of csr_matrices (float32, int32, int32)
+Qlist is a list of csr_matrices (float32, int32, int32)
+k int
+"""
+#cpdef sparse_batched_knn(gidsList, RList, QList, k):
+#    t_batched =   
+
+
+
 cpdef batched_knn(gidsList, RList, QList, k):
 
     book_t = time.time()    
@@ -93,38 +157,53 @@ def merge_neighbors(a, b, k):
 
     print("starting merge")
     merge_t = time.time()
-    D1 = a[0]
-    I1 = a[1]
-    D2 = b[0]
-    I2 = b[1]
+
+    I1 = a[0]
+    D1 = a[1]
+
+    I2 = b[0]
+    D2 = b[1]
 
     cdef long cD1;
     cdef long cD2;
+
     cdef long cI1;
     cdef long cI2;
 
-    cD1 = <long> D1.data.mem.ptr
-    cD2 = <long> D2.data.mem.ptr
+    cD1 = <long> D1.data.ptr
+    cD2 = <long> D2.data.ptr
 
-    cI1 = <long> I1.data.mem.ptr
-    cI2 = <long> I2.data.mem.ptr
+    cI1 = <long> I1.data.ptr
+    cI2 = <long> I2.data.ptr
 
     cdef int ck = k;
+
+    print("Neighbors 1")
+    print(I1)
     print(D1)
-    cdef int cm = D1.shape[0]
-    cdef int cn = D1.shape[1]
+
+    print("Neighbors 2")
+    print(I2)
+    print(D2)
+
+    cdef int cm = D1.shape[0] #Should be N
+    cdef int cn = D1.shape[1] #Should be k
+
+    print("m, n, k", (cm, cn, k))
 
     cdef float* ptr_cD1 = <float*> cD1
     cdef float* ptr_cD2 = <float*> cD2
+
     cdef int* ptr_cI1 = <int*> cI1
     cdef int* ptr_cI2 = <int*> cI2
+    
     with nogil:
-        merge_neighbors_gpu( ptr_cD1, ptr_cI1, ptr_cD2, ptr_cI2, cm, cn, ck); 
+        merge_neighbors_gpu(ptr_cD1, ptr_cI1, ptr_cD2, ptr_cI2, cm, cn, ck); 
 
     merge_t = time.time() - merge_t
     print("Merge time:", merge_t)
 
-    return (D1, I1)
+    return (I1, D1)
 
              
         

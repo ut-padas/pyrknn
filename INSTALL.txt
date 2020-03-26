@@ -1,0 +1,12 @@
+
+At the moment, this can be a hassle to build. I will fix this to use one makefile once the kernels stop changing so often. (and/or I have a chance to learn cmake properly) 
+
+Require a python enviornment with:
+numpy, cupy, cython, parla
+
+Code must be run on a node with a GPU in the current build (as I'm not selectively importing cupy in util.py, tree.py, etc...)
+
+0) Run source set_env.sh
+1) Run make in every subdirectory of src/prknn/kernels/gpu/impl/chao
+2) Run make in src/prknn/kernel/gpu/impl/chao
+3) Run make
