@@ -11,7 +11,8 @@ import os
 
 import numpy as np
 import cupy as cp
-
+import scipy.sparse as sp
+ 
 from collections import defaultdict
 
 class RKDT:
@@ -19,7 +20,7 @@ class RKDT:
 
     verbose = False #Note: This is a static variable shared by all instances
 
-    def __init__(self, levels=0, leafsize=None, pointset=None, location="CPU"):
+    def __init__(self, levels=0, leafsize=512, pointset=None, location="CPU", sparse=False):
         """Initialize  Randomized KD Tree
 
             Keyword arguments:
@@ -27,44 +28,96 @@ class RKDT:
                 leafsize -- Leaves of size (2*leafsize + 1) will not be split
                 pointset -- the N x d dataset of N d dimensional points in Rn
         """
+
         self.id = id(self)                      #unique id for instance of this class
         self.levels = levels
         self.leafsize = leafsize
         self.location = location
+        self.sparse = sparse 
 
+        self.ordered = False  #Is self.data stored in a tree order in memory
+        self.loaded_data = False   #Does self.data exist?
+        self.loaded_query = False  #Does self.projection exist?
+        self.lowmem = False   #Is self.projection 
+        self.batch_levels = self.levels
+
+        self.data_offset = 0
+        
         if(self.location == "CPU"):
             self.lib = np
         elif(self.location == "GPU"):
-            self.lib = cp 
+            self.lib = cp
 
         if (pointset is not None):
             self.size = len(pointset)           #the number of points in the pointset
             self.gids = self.lib.arange(self.size, dtype=np.int32)    #the global ids of the points in the pointset (assign original ordering)
-            self.data = self.lib.asarray(pointset, dtype=np.float32)
 
-            if (leafsize is None):              #if no leafsize is given, assume this is a degenerate tree (only root)
-                self.leafsize = self.size
+            if( self.sparse ):
+                #(data, indices, indptr)
+                #Copy of data in CPU Memory
+
+                local_data = np.asarray(pointset.data, dtype=np.float32)
+                local_indices = np.asarray(pointset.indices, dtype=np.int32)
+                local_indptr = np.asarray(pointset.indptr, dtype=np.int32)
+
+                self.host_data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
+
+                #Copy of data in location Memory
+                local_data = self.lib.asarray(pointset.data, dtype=np.float32)
+                local_indices = self.lib.asarray(pointset.indices, dtype=np.int32)
+                local_indptr = self.lib.asarray(pointset.indptr, dtype=np.int32)
+                self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
+            else:
+                #Copy of data in CPU Memory
+                self.host_data = np.asarray(pointset, dtype=np.float32)
+                #Copy of data in location memory
+                self.data = self.lib.asarray(pointset, dtype=np.float32)
+
+            self.dim = self.host_data.shape[1]
+
             if (self.size == 0):
                 self.empty = True
             else:
                 self.empty = False
+
         else:
             self.empty= True
             self.size = 0
-            self.data = self.lib.asarray([])
             self.gids = self.lib.asarray([])
-        
-        Primitives.set_env(self.location)
+
+            if(self.sparse):
+                #Copy of CPU Memory
+                local_data = np.asarray([], dtype=np.float32)
+                local_indices = np.asarray([], dtype=np.int32)
+                local_indptr = np.asarray([], dtype=np.float32)
+                
+                self.data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
+
+                #Copy of location memory
+                local_data = self.lib.asarray([], dtype=np.float32)
+                local_indices = self.lib.asarray([], dtype=np.int32)
+                local_indptr = self.lib.asarray([], dtype=np.float32)
+                
+                self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
+            else:
+                #Copy of data in CPU Memory
+                self.host_data = np.asarray([], dtype=np.float32)
+                #Copy of data in location memory
+                self.data = self.lib.asarray([], dtype=np.float32)
+
+        #Assumes all trees have the same location and (dense/sparse)ness        
+        Primitives.set_env(self.location, self.sparse)
         self.built=False
 
+    #TODO: Update set to sparse case
+    """
     def set(pointset=None, leafsize=None, levels=None):
-        """Set or redefine the key values of a RKDT
+        Set or redefine the key values of a RKDT
 
             Keyword arguments:
                 levels -- maximum number of levels in the tree
                 leafsize -- Leaves of size (2*leafsize + 1) will not be split
                 pointset -- the N x d dataset of N d dimensional points in Rn
-        """
         if self.built:
             raise ErrorType.InitializationError('You cannot call set on a tree that has already been built')
 
@@ -81,6 +134,7 @@ class RKDT:
         if (levels is not None):
             assert(levels >= 0)
             self.levels = levels
+    """
 
     @classmethod
     def set_verbose(self, v):
@@ -113,18 +167,101 @@ class RKDT:
         if self.levels < 0:
             raise ErrorType.InitializationError('Invalid max levels parameter: Cannot build a tree of '+str(self.levels)+' levels')
 
-
         #Find out the maximum number of levels required
         #TODO: Fix definition of leafsize to make this proper. Can often overestimate level by one.
         self.levels = int(min( np.ceil(np.log2(np.ceil(self.size/self.leafsize))), self.levels ))
 
-       #Create nodelist to store nodes in binary tree array order
+        #Create nodelist to store nodes in binary tree array order
+        #Nodelist is stored on the CPU
         N = 2 ** int(self.levels+1) - 1
         self.nodelist = [None] * N
 
-        if self.location == "CPU":
-           #Create nodelist to store nodes in binary tree array order
 
+        #Copy over from host data to data
+        #TODO: Move this to after first log2(nGPU) partitions to support multiGPU case        
+
+        if (self.sparse):
+            #Copy of data in location Memory
+            local_data = self.lib.asarray(self.host_data.data, dtype=np.float32)
+            local_indices = self.lib.asarray(self.host_data.indices, dtype=np.int32)
+            local_indptr = self.lib.asarray(self.host_data.indptr, dtype=np.int32)
+            self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
+
+            workspace_data = self.lib.zeros(self.size, dtype=np.float32)
+            workspace_indices = self.lib.zeros(self.size, dtype=np.int32)
+            workspace_indptr = self.lib.zeros(self.size+1, dtype=np.int32)
+            workspace = (workspace_data, workspace_indices, workspace_indptr)
+            
+
+        else:
+            temp = self.lib.asarray(self.host_data, dtype=np.float32)
+            self.data = self.lib.zeros((2*self.size, self.dim), dtype=np.float32)
+            self.data[:self.size, :] = temp
+            
+            workspace = self.lib.zeros(self.size, dtype=np.float32)
+
+        #Begin construction
+
+        #TODO: Parallelize this construction ? (Not a priority)
+        size_list = [[N]]
+        offset_list = [[0]]
+        host_offset_list = [[0]]
+
+        #Precompute the node sizes at each level
+        for level in range(1, self.levels):
+            level_size_list = []
+            for n in size_list[level]:
+                level_size_list.append(np.floor(n/2))
+                level_size_list.append(np.ceil(n/2))
+            size_list.append(level_size_list)
+
+        #Precompute the offset for each node
+        for level in range(1, self.levels):
+            offset_list.append(self.lib.cumsum(size_list[level]))
+            host_offset_list.append(np.cumsum(size_list[level]))
+
+
+        #How many batch levels to do
+        iters = self.levels/self.batch_levels        
+
+        #Compute the projections, split the data, and form the nodes
+        root = self.Node(self, idx=0, level=0, size=self.size, offset=0, gids=self.gids)
+        nodelist[0] = root
+        for batch in range(1, self.levels):
+            self.projection = np.random.rand((self.batch_levels, self.dim), dtype=np.float32)
+            self.data_offset = (level-1)%2  #which side of the self.data allocated, memory data is located on. Alternates with each iteration
+
+            current_sizes = size_list[level]
+            current_offsets = host_offset_list[level]
+
+            data, medians, vectors = Primitives.build_level(self.data_offset, self.gids, self.data, offset_list[level], offset_list[level+1], self.dim, workspace)
+            self.data = data
+
+            start = 2**level - 1
+            stop  = 2**(level+1) - 1
+            level_size = stop - start
+            for i in range(level_size):
+                idx = start+i
+                offset = current_offsets[i]
+                size = current_sizes[i]
+                node = self.Node(self, idx=idx, level=level, size=size, offset=offset, gids=self.gids[offset:offset+size])
+                node.vector = vectors[i, ...]
+                nodelist[idx] = node
+
+        #Cleanup and set children
+        for level in range(0, self.levels):
+            start = 2**level - 1
+            stop = 2**(level+1) -1
+            for idx in range(start, stop):
+                node = nodelist[idx]
+                node.parent = nodelist[idx//2]
+                node.set_children([nodelist[2*idx+1], nodelist[2*idx+2])
+                if(level == self.levels-1):
+                    node.isleaf=True
+             
+                
+        """ 
+        if self.location == "CPU":
             with Parla():
                 @spawn(placement = cpu)
                 async def build_tree():
@@ -154,12 +291,16 @@ class RKDT:
                                         self.nodelist[idx] = child
                     await T
                     self.built=True
+        
         elif self.location == "GPU":
             root = self.Node(self, idx=0, level=0, size=self.size, gids=self.gids)
             self.root = root
             root.split(cp.cuda.Stream(non_blocking=True))
             self.built=True
 
+        """
+        self.ordered = True
+        
         #Fix overestimate of tree levels (see #TODO above)
         if self.get_level(self.levels)[0] is None:
             self.levels -= 1
@@ -184,14 +325,15 @@ class RKDT:
             self.id = idx
             self.level = level
             self.size = size
+
             self.gids = gids
+            self.vector = None
+            self.offset = 0
+ 
             self.isleaf = True
             self.parent = None
             self.children = [None, None]
-            self.anchors = None
-            self.plane = None
-            self.vector = None
-            
+
             self.lib = self.tree.lib
 
         def __str__(self):
@@ -201,11 +343,8 @@ class RKDT:
                 msg = 'Node: ' + str(self.id) + ' at level '+ str(self.level) + ' of size ' + str(self.size)
                 msg += '\nLeaf:' + str(self.isleaf)
                 msg += '\nBelonging to tree with id ' + str(self.tree.id)
-                msg += '\nAnchor points are: '
-                anchors = self.anchors if self.anchors is not None else []
-                for anchor in anchors:
-                    msg += '\ngid:'+str(anchor)+' value: '+str(self.tree.data[anchor, ...])
-                msg += '\nSplitting Line: '+str(self.plane)
+                msg += '\nOffset: '+str(self.offset)
+                msg += '\nSplitting Line: '+str(self.vector)
                 msg += '\nContains gids:' +str(self.gids)
                 #msg += '\nData:'+str(self.tree.data[self.gids, ...])
                 msg += '\n--------------------------'
@@ -221,17 +360,12 @@ class RKDT:
             """Return the global indicies of the owned points"""
             return self.gids
 
-        def data(self):
-            """Return the size x d array of the owned pointset. Note this produces a copy."""
-            return self.tree.data[self.gids, ...]
-
         def get_reference(self):
             """Return the size x d array of the owned pointset. Note this produces a copy."""
-            return self.tree.data[self.gids, ...]
-
-        def cleanup(self):
-            """Delete the local projection onto the random line"""
-            self.local_ = []
+            if self.tree.ordered:
+                return self.tree.data[offset:offset+size, ...]
+            else:
+                return self.lib.asarray(self.tree.host_data[self.gids, ...], dtype=float32)
 
         def set_right_child(self, node):
             """Set the 'pointer' to the right child. (Points should be < split)"""
@@ -250,32 +384,13 @@ class RKDT:
             """Set the 'pointer' to the parent node"""
             self.parent = node
 
-        def select_hyperplane(self):
-            """Select the random line and project onto it.
-
-                Algorithm:
-                    Select 2 random points owned by this node.
-                    Compute the distance from all other points to these two 'anchor points'
-                    The projection local_ is their difference.
-
-                    This computes <x, (a_1 - a_2)>
-            """
-            #TODO: Replace with gpu kernel
-            self.anchors = self.lib.random.choice(self.gids, 2, replace=False)
-            dist = Primitives.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
-            self.local_ = dist[0] - dist[1]
-
         def average(self, idx=0):
             """Return the average of points in the node along a specified axis (0 < idx < d-1)
 
             Keyword Arguments:
                 idx -- axis to compute average along. If idx < 0 compute with the saved local projection onto anchor points
             """
-
-            if (idx >= 0):
-                return self.lib.mean(self.tree.data[self.gids, idx])
-            else:
-                return self.lib.mean(self.local_)
+            return self.lib.mean(self.tree.host_data[self.gids, idx])
 
         def median(self, idx=0):
             """Return the median of points in the node along a specified axis (0 < idx < d-1)
@@ -283,94 +398,8 @@ class RKDT:
             Keyword Arguments:
                 idx -- axis to compute median along. If idx < 0 compute with the saved local projection onto anchor points
             """
+            return self.lib.median(self.tree.host_data[self.gids, idx])
 
-            if (idx >= 0):
-                return self.lib.median(self.tree.data[self.gids, idx])
-            else:
-                return self.lib.median(self.local_)
-
-        def split(self, stream=None):
-            """Split a node and assign both children.
-
-            Return value:
-                children -- [left, right] containing the left and right child nodes respectively
-
-            Algorithm:
-                Project onto line. (un-normalized in the current implementation)
-                Split at median of projection.
-                Partition gids and assign to children. left < median, right > median
-            """
-
-            middle = int(self.size//2)
-
-            self.tree.nodelist[self.id] = self
-            #Stop the split if the leafsize is too small, or the maximum level has been reached
-            if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:
-                self.plane = None
-                self.anchors = None
-                self.vector = None
-                self.isleaf=True
-                return [None, None]
-
-            if self.tree.location == "CPU":
-
-                #project onto line (projection stored in self.local_)
-                self.select_hyperplane()
-
-                self.lids = self.lib.argpartition(self.local_, middle)  #parition the local ids
-
-                self.gids = self.gids[self.lids]                  #partition the global ids
-
-                #TODO: When replacing this with Hongru's kselect the above should be the same step in a key-value pair
-
-                self.plane = self.local_[self.lids[middle]]       #save the splitting line
-
-                self.cleanup()                                    #delete the local projection (it isn't required any more)
-
-                #Initialize left and right nodes
-                left = self.tree.Node(self.tree, level = self.level+1, idx = 2*self.id+1, size=middle, gids=self.gids[:middle])
-                right = self.tree.Node(self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle), gids=self.gids[middle:])
-
-                left.set_parent(self)
-                right.set_parent(self)
-
-                children = [left, right]
-                self.set_children(children)
-
-                return children
-
-            elif self.tree.location == "GPU":
-                #project onto line (projection is stored in self.local_)
-                with stream: 
-                    self.vector = self.lib.random.random((self.tree.data.shape[1]), dtype='float32')
-                    self.local_ = self.lib.dot(self.tree.data[self.gids, ...], self.vector)
-                    self.lids = self.lib.argpartition(self.local_, middle)
-                    self.gids = self.gids[self.lids]
-                    self.plane = self.local_[self.lids[middle]]
-                
-                left = self.tree.Node(self.tree, level=self.level+1, idx=2*self.id+1, size=middle, gids=self.gids[:middle])
-                right = self.tree.Node(self.tree, level=self.level+1, idx=2*self.id+2, size=int(self.size-middle), gids=self.gids[middle:])
-
-                left.set_parent(self)
-                right.set_parent(self)
-                children = [left, right]
-                self.set_children(children)
-
-                if self.level < 4:
-                    stream.synchronize()
-                    stream_new = cp.cuda.Stream(non_blocking=True)
-                    left.split(stream = stream)
-                    right.split(stream = stream_new)
-
-                    stream.synchronize()
-                    stream_new.synchronize()
-                else:
-                    left.split(stream)
-                    right.split(stream)
-
-                return children
-
-                    
         def knn(self, Q, k):
             """
             Perform an exact exhaustive knn query search in the node. O(size x gids x d)
@@ -379,7 +408,7 @@ class RKDT:
                 Q -- N x d matrix of query points
                 k -- number of nearest neighbors
             """
-            R = self.tree.data[self.gids, ...]
+            R = self.get_reference()
             return Primitives.single_knn(self.gids, R, Q, k)
 
         def knn_all(self, k):
@@ -389,7 +418,7 @@ class RKDT:
             Arguments:
                 k -- number of nearest neighbors (Limitation: k < leafsize)
             """
-            R = self.tree.data[self.gids, ...]
+            R = self.get_reference()
             return Primitives.single_knn(self.gids, R, R, k)
 
         def single_query(self, q):
@@ -404,16 +433,26 @@ class RKDT:
             if self.isleaf:
                 return self.id
 
-            #compute distance to anchors
-            q = q.reshape((1, len(q)))
-            if self.tree.location == "CPU":
-                dist = Primitives.distance(q, self.tree.data[self.anchors, ...])
-                dist = dist[0] - dist[1]
-            elif self.tree.location == "GPU":
-                dist = self.lib.dot(q, self.vector) 
+            #compute projection
+            if not self.tree.sparse:
+                q = q.reshape((1, len(q)))
+            dist = q @ self.vector 
 
             #compare against splitting plane
             return 2*self.id+1 if dist < self.plane else 2*self.id+2
+
+    def ordered_data(self):
+        if not self.built:
+            raise ErrorType.InitializationError('Tree has not been built.')
+        if not self.ordered:
+            result = self.lib.asarray(self.data[self.gids, ...], dtype='float32')
+            return result
+        if self.ordered:
+            return self.data
+
+    def cleanup(self):
+        self.ordered=False
+        del self.data
 
     def get_levels(self):
         """Return the maximum number of levels in this RKDT."""
@@ -447,7 +486,9 @@ class RKDT:
             idx -- length N array of node indices
         """
 
-        N, d = Q.shape
+        N = Q.shape[0]
+        d = self.dim
+        
         idx = self.lib.zeros(N)
 
         #TODO: Restructure this for a GPU kernel

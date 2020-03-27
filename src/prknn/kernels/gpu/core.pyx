@@ -189,7 +189,7 @@ def merge_neighbors(a, b, k):
     cdef int cm = D1.shape[0] #Should be N
     cdef int cn = D1.shape[1] #Should be k
 
-    print("m, n, k", (cm, cn, k))
+    print("m, n, k", (cm, cn, ck))
 
     cdef float* ptr_cD1 = <float*> cD1
     cdef float* ptr_cD2 = <float*> cD2
@@ -199,13 +199,12 @@ def merge_neighbors(a, b, k):
 
     print("I1 Type", I1.dtype)
     print("I1 Loc", <long> I1.data.ptr)
-    
+
     with nogil:
         merge_neighbors_gpu(ptr_cD1, ptr_cI1, ptr_cD2, ptr_cI2, cm, cn, ck); 
 
     print("I1 Type", I1.dtype)
     print("I1 Loc", <long> I1.data.ptr)
-    
 
     merge_t = time.time() - merge_t
     print("Merge time:", merge_t)

@@ -17,10 +17,16 @@ from ...kernels.gpu import core as gpu
 env = "CPU" #Coarse kernel context switching mechanism for debugging (this is a bad pattern, to be replace in #TODO 3)
 lib = np
 batched = 1
+sparse = 0
 
-def set_env(loc):
+def set_env(loc, sp):
     global env
     env = loc
+    
+    global sparse
+    sparse = sp
+
+    global lib
 
     if env == "CPU":
         lib = np
@@ -227,7 +233,7 @@ def merge_neighbors(a, b, k):
             a_list[i] = merged_idx
             a_dist[i] = merged_dist
 
-        return (a_list, a_dist), changes
+        return (a_list, a_dist)
 
 #This isn't really an HPC kernel, just a useful utility function I didn't know where else to put
 def neighbor_dist(a, b):

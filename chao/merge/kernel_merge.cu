@@ -86,12 +86,13 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   t.start();
 #endif
 
-
+  printf("STARTING MERGE\n");
   dvec<int> nborID(2*n*m);
   dvec<float> nborDist(2*n*m);
 
   // TODO: copy memory in parallel?
   // copy the first half
+
   auto zero  = thrust::make_counting_iterator<int>(0);
   auto iter1 = thrust::make_transform_iterator(zero, strideBlock(0, n, 2*n));
   auto permI1 = thrust::make_permutation_iterator(nborID.begin(), iter1);
@@ -104,6 +105,8 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   auto permD2 = thrust::make_permutation_iterator(nborDist.begin(), iter2);
   thrust::copy(thrust::device, nborI2, nborI2+m*n, permI2);
   thrust::copy(thrust::device, nborD2, nborD2+m*n, permD2);
+
+  printf("2\n");
 
 #ifndef PROD
   t.stop(); t_copy = t.elapsed_time();
@@ -118,6 +121,8 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   dvec<int> idx(nborID.size());
   auto IDcpy = nborID; // TODO: avoid memory copy
   sortGPU::sort_matrix_rows_mgpu(IDcpy, idx, m, 2*n);
+
+  printf("3\n");
 
 #ifndef PROD
   t.stop(); t_sort1 = t.elapsed_time();
@@ -137,7 +142,7 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   t.start();
 #endif
 
-
+  printf("4\n");
   // get (unique) distance and ID
   dvec<float> uniqueDist(idx.size());
   dvec<int> uniqueID(idx.size());
@@ -145,6 +150,8 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   auto permI = thrust::make_permutation_iterator(nborID.begin(), idx.begin());
   thrust::copy(permD, permD+idx.size(), uniqueDist.begin());
   thrust::copy(permI, permI+idx.size(), uniqueID.begin());
+
+  printf("5\n");
 
 #ifndef PROD
   t.stop(); t_copy2 = t.elapsed_time();  
@@ -155,6 +162,7 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   t.start();
 #endif
 
+  printf("6\n");
 
   // get segment length
   dvec<int> segments(m+1, 0);
@@ -168,7 +176,7 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   }
   t.start();
 #endif
-
+  printf("7\n");
   // sort distance
   auto distCpy = uniqueDist;
   sortGPU::sort_matrix_rows_mgpu(distCpy, idx, idx.size(), segments, m);
@@ -190,13 +198,15 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   auto permID = thrust::make_permutation_iterator(uniqueID.begin(), iter);
   auto permDist = thrust::make_permutation_iterator(uniqueDist.begin(), iter);
 
-
+  printf("8\n");
   //std::cout<<"Iter:"<<std::endl;
   //thrust::for_each(thrust::device, iter, iter+m*k, printf_functor());
 
 
   thrust::copy(thrust::device, permID, permID+m*k, nborI1);
   thrust::copy(thrust::device, permDist, permDist+m*k, nborD1);
+
+  printf("9\n");
 
 #ifndef PROD
   t.stop(); t_out = t.elapsed_time();

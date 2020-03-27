@@ -147,6 +147,60 @@ T quickselect(T* array, const unsigned int N, const unsigned int k){
 }
 
 
+template<typename T>
+void tree_build(int offset, int* gids, T* data ,int n, int d, int* seghead, int nNode, int maxsize, T* valX, float* median, T* y){
+
+    set_num_threads(10); //TODO Replace with Singleton Enviornment Call (Or fix/remove PARLA import )
+    
+    unsigned int nthreads = get_num_threads();
+
+    //Get randomized projections
+    //TODO: Time against MKL_BATCHED_GEMM
+    #pragma omp parallel for (if nNode > 8)
+    for(unsigned int i = 0; i < nNode; ++i){
+        unsigned int size = seghead[i+1] - seghead[i];
+        cblas_sgemv(CblasRowMajor, CblasNoTrans, size, d, 1.0, data + offset*n + seghead[i]*d, size, x+i*d, 1, 0.0, y+seghead[i], 1);
+    }
+
+    //Allocate array of local ids (These are used to permute gids and data)
+    std::vector<unsigned int> lids(n);
+    //unsigned int lids[nthreads][maxsize]; //TODO: Change this to malloc so we don't run into memory problems on root nodes
+
+    //Find median and permute gids
+    #pragma omp parallel for
+    for(unsigned int i = 0; i < nNode; ++i){
+        
+        unsigned int size = seghead[i+1] - seghead[i]; //Size of current node
+
+        //unsigned int tid = omp_get_thread_num();
+
+        //Reset array of local ids
+        for(unsigned int j = 0; j < size; ++j){
+            lids[seghead[i]+j] = j;
+        }
+
+        //Perform quickselect on each node and get median
+        std::nth_element(&lids[ seghead[i] ], &lids[ seghead[i] ]+size, [] (const unsigned int &a, const unsigned int &b) const noexcept { return *(y+seghead[i]+a) < *(y+seghead[i]+b) } );
+        median[i] = y[seghead[i]+lids[seghead[i] + size/2]];
+
+        //Copy to new data array
+        for(unsigned int j = 0; j < size; ++j){
+            for(unsigned int k = 0; k < d; ++k){
+                data[(1-offset)*n + seghead[i]*d + lids[seghead[i] + j]*d + k] = data[offset*n + seghead[i]*d + j*d + k];
+            }
+        }
+        for(unsigned int j = 0; j < size; ++j){
+            lids[seghead[i]+j] = gids[seghead[i]+lids[seghead[i]+j]];
+        }
+        for(unsigned int j = 0; j < size; ++j){
+            gids[j] = lids[j];
+        }
+
+    }
+}
+
+
+
 /*
 //Nearest Neighbor Kernel (from GOFMM Not Fused)
 //This actually wasn't parallel in GOFMM and it uses a pretty costly sort
@@ -659,7 +713,7 @@ void batchedDirectKNN(idx_type<T> **gids,
     idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
 
     #pragma omp parallel for
-    for(idx_type<T> l; i < nleaves; ++i){
+    for(idx_type<T> l; l < nleaves; ++l){
 
         const idx_type<T> localm = m[l];
         const idx_type<T> localn = n[l];
@@ -854,9 +908,10 @@ void batchedGSKNN(idx_type<T> **rgids,
              const idx_type<T>  nleaves
             ){
 
+    omp_set_num_threads(16);
     //printf("Started C++ Section \n");
     idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
-
+    //printf("MAXT %d\n", maxt);
     //Allocate neighborlist & neighbor_dist
     //neighbor_list = new idx_type<T>*[nleaves];
     //neighbor_dist = new T*[nleaves];
@@ -864,7 +919,8 @@ void batchedGSKNN(idx_type<T> **rgids,
     #pragma omp parallel for
     for(idx_type<T> l=0; l < nleaves; ++l){
         
-        printf("Starting Leaf %d \n", l);
+    //    printf("NUMT %d\n", omp_get_num_threads());
+    //    printf("Starting New Leaf %d \n", l);
         const idx_type<T> localm = m[l];
         const idx_type<T> localn = n[l];
 
@@ -919,6 +975,7 @@ void batchedGSKNN(idx_type<T> **rgids,
         dealloc_sqnormq = true;
 
        bool useSqnormrInput = false;
+
        //printf("Leaf %d : Allocated Space. Blocksize = %d\n LOCALM = %d LOCALN = %d \n Starting Loop\n", l, blocksize, localm, localn);
        //Loop over all blocks
        for(idx_type<T> i = 0; i < iters; ++i){
@@ -933,7 +990,7 @@ void batchedGSKNN(idx_type<T> **rgids,
             } //end last block
 
            const idx_type<T> offset = i*blocksize;
-           printf("Leaf %d; Block %d; offset %d \n",l, i, offset); 
+      //     printf("Leaf %d; Block %d; offset %d \n",l, i, offset); 
            if(!useSqnormrInput){
                 //printf("Calculating R2 \n");
                 sqnorm((T*) localR, (idx_type<T>) localn, (idx_type<T>) d, (T *)sqnormr);
@@ -1073,9 +1130,11 @@ void test(){
     const int n = 10;
     #pragma omp parallel for
     for(idx_type<T> l = 0; l < n; ++l){
-        std::cout << l << std::endl;
+        std::cout << "Number of Current Threads: " << omp_get_num_threads() << std::endl;
+        std::cout << "Iteration of Loop: "<< l << std::endl;
     }
 }
+
 template<typename T>
 std::vector<T> sampleWithoutReplacement(idx_type<T> l, std::vector<T> v)
 {

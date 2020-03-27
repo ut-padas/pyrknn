@@ -123,7 +123,7 @@ class RKDForest:
             if result is None:
                 result = neighbors
             else:
-                result, changes = Primitives.merge_neighbors(result, neighbors, k)
+                result = Primitives.merge_neighbors(result, neighbors, k)
 
             #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
 
@@ -152,8 +152,10 @@ class RKDForest:
             if result is None:
                 result = neighbors
             else:
-                result, changes = Primitives.merge_neighbors(result, neighbors, k)
+                result = Primitives.merge_neighbors(result, neighbors, k)
 
+            print("Result")
+            print(result)
             #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
 
         return result
