@@ -196,9 +196,16 @@ def merge_neighbors(a, b, k):
 
     cdef int* ptr_cI1 = <int*> cI1
     cdef int* ptr_cI2 = <int*> cI2
+
+    print("I1 Type", I1.dtype)
+    print("I1 Loc", <long> I1.data.ptr)
     
     with nogil:
         merge_neighbors_gpu(ptr_cD1, ptr_cI1, ptr_cD2, ptr_cI2, cm, cn, ck); 
+
+    print("I1 Type", I1.dtype)
+    print("I1 Loc", <long> I1.data.ptr)
+    
 
     merge_t = time.time() - merge_t
     print("Merge time:", merge_t)

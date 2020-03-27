@@ -507,8 +507,8 @@ class RKDT:
         leaf_keys = [*bins.keys()]
 
         #Allocate space to store results
-        neighbor_list = self.lib.full([N, k], self.lib.inf)
-        neighbor_dist = self.lib.full([N, k], self.lib.inf)
+        neighbor_list = self.lib.full([N, k], dtype=np.int32)
+        neighbor_dist = self.lib.full([N, k], dtype=np.float32)
         
         #compute batchsize
         MAXBATCH = 1024
@@ -570,8 +570,8 @@ class RKDT:
         max_level = self.levels
 
         #Allocate space to store results
-        neighbor_list = self.lib.full([N, k], np.inf)
-        neighbor_dist = self.lib.full([N, k], np.inf)
+        neighbor_list = self.lib.zeros([N, k], dtype=np.int32)
+        neighbor_dist = self.lib.zeros([N, k], dtype=np.float32)
         
         #get all leaf nodes
         leaf_nodes = self.get_level(max_level)
