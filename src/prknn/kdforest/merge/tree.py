@@ -31,6 +31,7 @@ class RKDT:
         self.levels = levels
         self.leafsize = leafsize
         self.location = location
+        self.ordered = False
 
         if(self.location == "CPU"):
             self.lib = np
@@ -424,6 +425,22 @@ class RKDT:
         start = 2**level -1
         stop  = 2**(level+1) - 1
         return self.nodelist[start:stop]
+
+
+    def ordered_data(self):
+        if not self.built:
+            raise ErrorType.InitializationError('Tree has not been built.')
+
+        if not self.ordered:
+            gidList = []
+            for node in self.get_level(self.levels):
+                gidList.append(node.gids)
+            gids = np.concatenate(gidList)
+            result = self.lib.asarray(self.data[gids, ...], dtype='float32')
+            return result
+
+        if self.ordered:
+            return self.data
 
     def single_query(self, q):
         """Find the leaf index corresponding to a single query point.
