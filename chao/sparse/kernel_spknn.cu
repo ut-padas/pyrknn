@@ -1,6 +1,7 @@
-#include "kernel_gpu.hpp"
+#include "util_gpu.hpp"
 #include "merge_gpu.hpp"
 #include "timer_gpu.hpp"
+#include "knn_handle.hpp"
 
 #include <thrust/random.h>
 #include <limits>       // std::numeric_limits
@@ -9,7 +10,14 @@
 // implemented in kernel_leaf.cu
 void find_knn(int *ID, int *rowPtrP, int *colIdxP, float *valP, 
     int n, int d, int nnzP, int *seghead, int nLeaf, int m, int maxPoint,
-    int *nborID, float *nborDist, int k, int LD, knnHandle_t *handle);
+    int *nborID, float *nborDist, int k, int LD);
+
+
+// implemented in kernel_tree.cu
+void create_tree_next_level(int *ID, int *rowPtrP, int *colIdxP, float *valP, 
+    int n, int d, int nnz, int *seghead, int *segHeadNext, int nNode,
+    float *valX, float *median,
+    float&, float&, float&);
 
 
 template <typename T>
@@ -48,199 +56,56 @@ struct prg: public thrust::unary_function<unsigned int, float> {
 };
 
 
-struct average: public thrust::binary_function<int, int, int> {
-
-  __host__ __device__
-  average() {}
-
-  __host__ __device__
-  int operator()(int a, int b) {
-    return (a+b)/2;
-  }
-};
-
-
-struct shiftColIdx: public thrust::binary_function<int, int, int> {
-  int d;
-
-  __host__ __device__
-  shiftColIdx(int d_): d(d_) {}
-
-  __host__ __device__
-  int operator()(int idx, int node) {
-    return idx%d + d*node;
-  }
-};
-
-
-void permute_sparse_matrix(int m, int n, int nnzA, 
-    int *rowPtrA, int *colIdxA, float *valA, dvec<int> &perm,
-    int* &rowPtrB, int* &colIdxB, float* &valB, int &nnzB,
-    csrgemm2Info_t &info, cusparseHandle_t &handle, cusparseMatDescr_t &descr) {
-  
-  // create sparse permutation matrix
-  dvec<float> ones(m, 1.0);
-  dvec<int> rowPtrP(m+1);
-  thrust::sequence(rowPtrP.begin(), rowPtrP.end(), 0);
-
-  int *P_rowPtr = thrust::raw_pointer_cast(rowPtrP.data());
-  int *P_colIdx = thrust::raw_pointer_cast(perm.data());
-  float *P_val  = thrust::raw_pointer_cast(ones.data());
-  GEMM_SSS(m, n, m, 1.0,
-      P_rowPtr, P_colIdx, P_val, m,
-      rowPtrA, colIdxA, valA, nnzA,
-      rowPtrB, colIdxB, valB, nnzB,
-      info, handle, descr);
-}
-
-
-// input sparse matrix is modified inplace
-// assume n = d * nSegment
-// seghead: start position of next level
-void create_matrix_next_level(int *rowPtrA, int *colIdxA, float *valA, int m, int n, int nnzA,
-    dvec<int> &perm, int *seghead, int nSegment, int d,
-    csrgemm2Info_t &info, cusparseHandle_t &handle, cusparseMatDescr_t &descr) {
-  
-  // compute B = Perm * A
-  int *rowPtrB, *colIdxB, nnzB;
-  float *valB;
-  
-  permute_sparse_matrix(m, n, nnzA, rowPtrA, colIdxA, valA,
-      perm, rowPtrB, colIdxB, valB, nnzB,
-      info, handle, descr);
-  assert(nnzA == nnzB);
-
-  // shift column indices
-  dvec<int> shift(nnzB);
-  thrust::counting_iterator<int> zero(0);
-  auto cum_nnz = thrust::make_permutation_iterator(dptr<int>(rowPtrB), dptr<int>(seghead));
-  thrust::upper_bound(cum_nnz+1, cum_nnz+nSegment+1, zero, zero+nnzB, shift.begin());
-
-  //dprint(m+1, rowPtrB, "row pointer");
-  //dprint(nSegment+1, seghead, "segment head");
-  //print(shift, "node");
-
-  dptr<int> dColIdx(colIdxB);
-  thrust::transform(dColIdx, dColIdx+nnzB, shift.begin(), dColIdx, shiftColIdx(d));
-
-
-  // overwrite results to input
-  thrust::copy_n(thrust::device, dptr<int>(rowPtrB), m+1, dptr<int>(rowPtrA));
-  thrust::copy_n(thrust::device, dptr<int>(colIdxB), nnzB, dptr<int>(colIdxA));
-  thrust::copy_n(thrust::device, dptr<float>(valB), nnzB, dptr<float>(valA));
-
-  // free allocation from calling GEMM_SSS
-  CHECK_CUDA( cudaFree(rowPtrB) )
-  CHECK_CUDA( cudaFree(colIdxB) )
-  CHECK_CUDA( cudaFree(valB) )
-}
-
-
-// *** Input ***
-// n = sum(N, nNode): total number of points
-// N: number of points in every node
-// valX[d*nNode]: assume random projections/vectors are given
-// seghead[nNode+1]: start position of all segments/clusters
-// segHeadNext: start position at next level
-// *** Output ***
-// median
-// CSR format of the block sparse diagonal matrix
-// permuted ID
-void create_tree_next_level(int *ID, int *rowPtrP, int *colIdxP, float *valP, 
-    int n, int d, int nnz, int *seghead, int *segHeadNext, int nNode,
-    float *valX, float *median, knnHandle_t *handle) {
-
-
-  csrgemm2Info_t info = handle->info;
-  cusparseHandle_t hCusparse = handle->hCusparse;
-  cusparseMatDescr_t descr = handle->descr;
-  mgpu::standard_context_t &ctx = *(handle->ctx);
-
-  // block diagonal for X
-  dvec<int> rowPtrX(d*nNode+1);
-  dvec<int> colIdxX(d*nNode);
-  
-  thrust::sequence(rowPtrX.begin(), rowPtrX.end(), 0); // one nonzero per row
-  thrust::counting_iterator<int> zero(0);
-  thrust::constant_iterator<int> DIM(d);
-  thrust::transform(zero, zero+d*nNode, DIM, colIdxX.begin(), thrust::divides<int>());
-
-  // block diagonal for Y = P * X
-  dvec<int> rowPtrY(n+1);
-  dvec<int> colIdxY(n);
-  dvec<float> valY(n);
-  thrust::sequence(rowPtrY.begin(), rowPtrY.end(), 0); // one nonzero per row
-
-  // compute projections
-  int *X_rowPtr = thrust::raw_pointer_cast(rowPtrX.data());
-  int *X_colIdx = thrust::raw_pointer_cast(colIdxX.data());
-  int *Y_rowPtr = thrust::raw_pointer_cast(rowPtrY.data());
-  int *Y_colIdx = thrust::raw_pointer_cast(colIdxY.data());
-  float *Y_val  = thrust::raw_pointer_cast(valY.data());
-
-  //dprint(n, d*nNode, nnz, rowPtrP, colIdxP, valP, "P");
-  //dprint(d*nNode, nNode, d*nNode, X_rowPtr, X_colIdx, valX, "X");
-
-  GEMM_SSD(n, nNode, d*nNode, 1.0,
-      rowPtrP, colIdxP, valP, nnz,
-      X_rowPtr, X_colIdx, valX, d*nNode,
-      Y_rowPtr, Y_colIdx, Y_val, n,
-      info, hCusparse, descr);
-  
-  //print(valY, "projection");
-
-
-  // sort 
-  dvec<int> idx(n); //thrust::sequence(idx.begin(), idx.end(), 0);
-  int *idxPtr = thrust::raw_pointer_cast(idx.data());
-  mgpu::segmented_sort_indices(Y_val, idxPtr, n, seghead, nNode, mgpu::less_t<float>(), ctx);
-
-  //print(idx, "index");
-
-  // permute ID
-  dvec<int> IDcpy(dptr<int>(ID), dptr<int>(ID)+n);
-  auto permID = thrust::make_permutation_iterator(IDcpy.begin(), idx.begin());
-  thrust::copy(thrust::device, permID, permID+n, ID);
-  
-  //dprint(n, ID, "permuted ID");
-  
-  // get median
-  dvec<int> medpos(nNode); // index of median position
-  dptr<int> segPtr(seghead);
-  thrust::transform(segPtr, segPtr+nNode, segPtr+1, medpos.begin(), average());
-  auto perm = thrust::make_permutation_iterator(valY.begin(), medpos.begin());
-  thrust::copy(thrust::device, perm, perm+nNode, median);
-  
-  //dprint(nNode, median, "median");
-
-  // create block diagonal matrix for next level
-  create_matrix_next_level(rowPtrP, colIdxP, valP, n, d*nNode, nnz, 
-      idx, segHeadNext, 2*nNode, d, 
-      info, hCusparse, descr);
-  
-  //dprint(n, 2*d*nNode, nnz, rowPtrP, colIdxP, valP, "P next");
-}
-
-
 // m: blocking size in distance calculation
 void spknn(int *hRowPtr, int *hColIdx, float *hVal, int n, int d, int nnz, int level,
-    int *hNborID, float *hNborDist, int k, int m) {
-  
+    int *hNborID, float *hNborDist, int k, int m=64) {
+ 
   //print(n, d, nnz, hRowPtr, hColIdx, hVal, "host P");
   
-  // copy data to GPU
-  dvec<int> dRowPtr(hRowPtr, hRowPtr+n+1);
-  dvec<int> dColIdx(hColIdx, hColIdx+nnz);
-  dvec<float> dVal(hVal, hVal+nnz);
+  const int nLeaf = 1<<(level-1);
+  const int maxPoint = (n+nLeaf-1)/nLeaf;
+  const int nExtra = maxPoint*nLeaf - n;
   
+  // copy data to GPU
+  dvec<int> dRowPtr(n+1+nExtra);
+  dvec<int> dColIdx(nnz+nExtra);
+  dvec<float> dVal(nnz+nExtra);
+
+  thrust::copy(hRowPtr, hRowPtr+n+1, dRowPtr.begin());
+  thrust::copy(hColIdx, hColIdx+nnz, dColIdx.begin());
+  thrust::copy(hVal, hVal+nnz, dVal.begin());
+  
+  // insert artificial points at infinity
+  thrust::sequence(dRowPtr.begin()+n, dRowPtr.end(), hRowPtr[n]);
+  thrust::fill(dColIdx.begin()+nnz, dColIdx.end(), 0); // the first coordinate is infinity
+  thrust::fill(dVal.begin()+nnz, dVal.end(), std::numeric_limits<float>::max()); 
+
+  // update # points and # nonzeros
+  n += nExtra;
+  nnz += nExtra;
 
   //dprint(n, d, nnz, dRowPtr, dColIdx, dVal, "device P");
+  
+  
+  std::cout<<"\n========================"
+           <<"\nPoints"
+           <<"\n------------------------"
+           <<"\n# points: "<<n
+           <<"\n# dimensions: "<<d
+           <<"\n# artificial points: "<<nExtra
+           <<"\n# points/leaf: "<<maxPoint
+           <<"\n# leaf nodes: "<<nLeaf
+           <<"\n------------------------"
+           <<"\nsparsity: "<<100.*nnz/n/d<<" %"
+           <<"\nmemory: "<<(n+1)/1.e9*4+nnz/1.e9*4*2<<" GB"
+           <<"\nmem projection: "<<d/1.e9*4*2*nLeaf<<" GB"
+           <<"\n========================\n"
+           <<std::endl;
+
 
   // -----------------------
   //    Setup for SPKNN
   // -----------------------
-  knnHandle_t *handle = new knnHandle_t();
-
   // compute number of points in every node
   dvec<int> nPoints[level];
   nPoints[0].resize(1, n); // root
@@ -298,9 +163,11 @@ void spknn(int *hRowPtr, int *hColIdx, float *hVal, int n, int d, int nnz, int l
   // Start SPKNN
   // -----------------------
   // build tree
+  float t_gemm = 0., t_sort = 0., t_mat = 0.;
   int nTree = 1;
   for (int tree=0; tree<nTree; tree++) {
 
+    /*
     // create a copy of the input
     dvec<int> dRowPtrCpy = dRowPtr;
     dvec<int> dColIdxCpy = dColIdx;
@@ -308,6 +175,11 @@ void spknn(int *hRowPtr, int *hColIdx, float *hVal, int n, int d, int nnz, int l
     int *d_rowPtr = thrust::raw_pointer_cast(dRowPtrCpy.data());
     int *d_colIdx = thrust::raw_pointer_cast(dColIdxCpy.data());
     float *d_val  = thrust::raw_pointer_cast(dValCpy.data());
+    */
+    //std::cout<<"Created a copy of points."<<std::endl;
+    int *d_rowPtr = thrust::raw_pointer_cast(dRowPtr.data());
+    int *d_colIdx = thrust::raw_pointer_cast(dColIdx.data());
+    float *d_val  = thrust::raw_pointer_cast(dVal.data());
     
     // create tree
     dvec<int> ID(n); // global ID of all points
@@ -326,10 +198,14 @@ void spknn(int *hRowPtr, int *hColIdx, float *hVal, int n, int d, int nnz, int l
           1<<i, // # tree nodes
           thrust::raw_pointer_cast(dX[i].data()), // random projection
           thrust::raw_pointer_cast(median[i].data()), // output
-          handle);
+          t_gemm, t_sort, t_mat);
     }
     t.stop();
     t_build += t.elapsed_time();
+    std::cout<<"Finished tree construction"<<std::endl;
+
+    //tprint(ID, "ID");
+    //dprint(n, d*(1<<(level-1)), nnz, d_rowPtr, d_colIdx, d_val, "reordered P");
 
 #if 0
     // check ID
@@ -359,16 +235,14 @@ void spknn(int *hRowPtr, int *hColIdx, float *hVal, int n, int d, int nnz, int l
     
 
     // compute neighbors at leaf level
-   
     dvec<int> curNborID(n*k, -1);
     dvec<float> curNborDist(n*k, -1.);
     int *curID = thrust::raw_pointer_cast(curNborID.data());
     float *curDist = thrust::raw_pointer_cast(curNborDist.data());
     
 
-    int nLeaf = 1<<(level-1);
-    int *leafPoints = thrust::raw_pointer_cast(nPoints[level-1].data());
-    int maxPoint = thrust::reduce(thrust::device, leafPoints, leafPoints+nLeaf, 0, thrust::maximum<int>());
+    int *pts  = thrust::raw_pointer_cast(nPoints[level-1].data());
+    int maxPoint = thrust::reduce(thrust::device, pts, pts+nLeaf, 0, thrust::maximum<int>());
     int *segPtr = thrust::raw_pointer_cast(seghead[level-1].data());
     int offset = 0;
     int LD = k; // leading dimension
@@ -382,13 +256,12 @@ void spknn(int *hRowPtr, int *hColIdx, float *hVal, int n, int d, int nnz, int l
     find_knn(thrust::raw_pointer_cast(ID.data()), 
         d_rowPtr, d_colIdx, d_val,
         n, d, nnz, segPtr, nLeaf, m, maxPoint,
-        curID, curDist, k, LD, 
-        handle);
+        curID, curDist, k, LD);
     t.stop();
     t_knn += t.elapsed_time();
 
-    //dprint(n, k, curDist, "curDist");
-    //dprint(n, k, curID, "curID");
+    //dprint(3, k, curDist, "curDist");
+    //dprint(3, k, curID, "curID");
 
 
     // update previous results
@@ -399,18 +272,22 @@ void spknn(int *hRowPtr, int *hColIdx, float *hVal, int n, int d, int nnz, int l
   }
   
 
-  std::cout<<"build tree: "<<t_build<<" s"
-           <<"\nKNN: "<<t_knn<<" s"
-           <<"\nmerge: "<<t_merge<<" s"
+  std::cout<<"\n==========================="
+           <<"\n    Sparse KNN Timing"
+           <<"\n---------------------------"
+           <<"\n* build tree: "<<t_build<<" s"
+           <<"\n\t- gemm: "<<t_gemm<<" s"
+           <<"\n\t- sort: "<<t_sort<<" s"
+           <<"\n\t- matrix: "<<t_mat<<" s"
+           <<"\n* KNN: "<<t_knn<<" s"
+           <<"\n* merge: "<<t_merge<<" s"
+           <<"\n===========================\n"
            <<std::endl;
 
   // -----------------------
   // Copy to CPU
   // -----------------------
-  thrust::copy(dNborID.begin(), dNborID.end(), hNborID);
-  thrust::copy(dNborDist.begin(), dNborDist.end(), hNborDist);
-  
-  // clean resource
-  delete handle;
+  thrust::copy(dNborID.begin(), dNborID.end()-nExtra*k, hNborID);
+  thrust::copy(dNborDist.begin(), dNborDist.end()-nExtra*k, hNborDist);
 }
 

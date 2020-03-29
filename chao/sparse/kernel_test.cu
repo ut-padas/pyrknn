@@ -1,4 +1,4 @@
-#include "kernel_gpu.hpp"
+#include "util_gpu.hpp"
 
 struct column_idx: public thrust::unary_function<int, int> {
   int nCol;
