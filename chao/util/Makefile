@@ -17,7 +17,7 @@ timer.o: timer.cpp timer.hpp
 	g++ -c $< -Wall -O3 -fPIC
 
 $(LIB): $(OBJS)
-	g++ -shared $^ -o $@ -fPIC
+	g++ -shared $^ -o $@
 
 clean:
 	rm -rf *.o *.so

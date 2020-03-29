@@ -22,7 +22,7 @@ else
 	vFLAG+=-O3
 endif
 
-KERNEL=kernel_gemm.o kernel_dist.o kernel_leaf.o kernel_tree.o kernel_spknn.o kernel_test.o
+KERNEL=kernel_gemm.o kernel_dist.o kernel_leaf.o kernel_tree.o kernel_spknn.o
 OBJS=spknn.o print.o copy.o
 
 default: $(EXE)
@@ -54,8 +54,8 @@ kernel_leaf.o: kernel_leaf.cu
 kernel_test.o: kernel_test.cu
 	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I ../merge
 
-kernel_dist.o: kernel_dist.cu
-	nvcc -c $< $(VFLAG) -I ../util
+#kernel_dist.o: kernel_dist.cu
+#	nvcc -c $< $(VFLAG) -I ../util
 
 kernel_gemm.o: kernel_gemm.cu
 	nvcc -c $< $(VFLAG)
