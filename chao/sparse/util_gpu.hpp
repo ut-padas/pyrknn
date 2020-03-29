@@ -1,7 +1,5 @@
 #include "util.hpp"
 
-#include <moderngpu/kernel_segsort.hxx>
-
 #include <cuda_runtime.h>  // cudaMalloc, cudaMemcpy, etc.
 #include <cusparse.h>      // cusparse
 #include "cublas_v2.h"
@@ -85,7 +83,7 @@ inline void cublasAssert(cublasStatus_t code, const char *file, int line, bool a
 
 
 template <typename T>
-void print(const thrust::device_vector<T>& vec, const std::string &name) {
+void tprint(const thrust::device_vector<T>& vec, const std::string &name) {
   std::cout<<name<<":"<<std::endl;
   for (int i=0; i<vec.size(); i++)
     std::cout<<vec[i]<<" ";
@@ -95,57 +93,6 @@ void print(const thrust::device_vector<T>& vec, const std::string &name) {
 
 void dprint(int m, int n, int nnz, dvec<int> &rowPtr, dvec<int> &colIdx, dvec<float> &val,
     const std::string &name);
-
-
-void GEMM_SSD(int m, int n, int k, float alpha,
-    int *csrRowPtrA, int *csrColIndA, float *csrValA, int nnzA,
-    int *csrRowPtrB, int *csrColIndB, float *csrValB, int nnzB,
-    int *csrRowPtrC, int *csrColIndC, float *csrValC, int nnzC,
-    csrgemm2Info_t &info, cusparseHandle_t &handle, cusparseMatDescr_t &descr);
-
-
-void GEMM_SSS(int m, int n, int k, float alpha,
-    int *csrRowPtrA, int *csrColIndA, float *csrValA, int nnzA,
-    int *csrRowPtrB, int *csrColIndB, float *csrValB, int nnzB,
-    int* &csrRowPtrC, int* &csrColIndC, float* &csrValC, int &nnzC,
-    csrgemm2Info_t &info, cusparseHandle_t &handle, cusparseMatDescr_t &descr);
-
-
-class knnHandle_t {
-  
-public:
-  knnHandle_t() {
-    // sparse info
-    CHECK_CUSPARSE( cusparseCreateCsrgemm2Info(&info) )
-    // sparse handle
-    CHECK_CUSPARSE( cusparseCreate(&hCusparse) )
-    // matrix descriptor
-    CHECK_CUSPARSE( cusparseCreateMatDescr(&descr) )
-    CHECK_CUSPARSE( cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL) )
-    CHECK_CUSPARSE( cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO) )
-    // cublas handle
-    CHECK_CUBLAS( cublasCreate(&hCublas) )
-    // mgpu context
-    ctx = new mgpu::standard_context_t(false);
-  }
-
-  mgpu::standard_context_t& mgpu_ctx() {return *ctx;}
-  
-  ~knnHandle_t() {
-    CHECK_CUSPARSE( cusparseDestroyCsrgemm2Info(info) )
-    CHECK_CUSPARSE( cusparseDestroy(hCusparse) )
-    CHECK_CUSPARSE( cusparseDestroyMatDescr(descr) )
-    CHECK_CUBLAS( cublasDestroy(hCublas) )
-    delete ctx;
-  }
-
-  csrgemm2Info_t info;
-  cusparseHandle_t hCusparse;
-  cusparseMatDescr_t descr;
-  cublasHandle_t hCublas; 
-  mgpu::standard_context_t *ctx;
-};
-
 
 
 

@@ -1,4 +1,5 @@
-#include "kernel_gpu.hpp"
+#include "util_gpu.hpp"
+#include "kernel_gemm.hpp"
 
 // (sparse) A * (sparse) B = (dense) C
 // customized sparse GEMM for the case where the csrRowPtrC and nnzC are known
@@ -22,6 +23,7 @@ void GEMM_SSD(int m, int n, int k, float alpha,
         info,
         &bufferSize) )
 
+  std::cout<<"[GEMM_SSD] buffersize: "<<bufferSize/1.e9<<" GB"<<std::endl;
   void *buffer = NULL;
   CHECK_CUDA( cudaMalloc(&buffer, bufferSize) )
 
@@ -80,11 +82,14 @@ void GEMM_SSS(int m, int n, int k, float alpha,
       cudaMemcpy(&baseC, csrRowPtrC, sizeof(int), cudaMemcpyDeviceToHost);
       nnzC -= baseC;
   }  
+  
+  //std::cout<<"[GEMM_SSS] buffersize: "<<bufferSize/1.e9<<" GB"
+    //<<", C: "<<(m+1)/1.e9*4+nnzC/1.e9*4*2<<" GB"<<std::endl;
 
   // step 4: finish sparsity pattern and value of C
   // Remark: set csrValC to null if only sparsity pattern is required 
   CHECK_CUDA( cudaMalloc((void**)&csrColIndC, sizeof(int)*nnzC) )
-  CHECK_CUDA( cudaMalloc((void**)&csrValC, sizeof(double)*nnzC) )
+  CHECK_CUDA( cudaMalloc((void**)&csrValC, sizeof(float)*nnzC) )
   CHECK_CUSPARSE( cusparseScsrgemm2(handle, m, n, k, &alpha,
           descr, nnzA, csrValA, csrRowPtrA, csrColIndA,
           descr, nnzB, csrValB, csrRowPtrB, csrColIndB,
