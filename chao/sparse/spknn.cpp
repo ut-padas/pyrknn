@@ -48,6 +48,7 @@ void compute_distance(const SpMat &A, Mat &D) {
 }
 
 
+//int test_dataset(int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
   
   int nDays = 1;
@@ -110,6 +111,7 @@ int main(int argc, char* argv[]) {
 
 
 int test_random_data(int argc, char *argv[]) {
+//int main(int argc, char *argv[]) {
 
   int n = 1024; // points per leaf node
   int d = 64;
@@ -194,6 +196,7 @@ int test_random_data(int argc, char *argv[]) {
   return 0;
 }
 
+/*
 int test_kernel(int argc, char* argv[]) {
 
   int n = 1024;
@@ -327,4 +330,4 @@ int test_kernel(int argc, char* argv[]) {
 
   return 0;
 }
-
+*/
