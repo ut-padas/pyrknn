@@ -17,7 +17,6 @@ csr_data is a cpyx.csr datatype (float32, int32, int32)
 current_offset is a cp array(int32)
 new_offset is a cp array(int32)
 dim is an int
-"""
 cpdef sparse_build_level(gids, csr_data, current_offset, new_offset, dim):
 
     built_t = time.time()
@@ -62,6 +61,7 @@ cpdef sparse_build_level(gids, csr_data, current_offset, new_offset, dim):
 
     return (csr_data, median)
 
+"""
 """
 Assume:
 gidsList is a list of cp arrays (int32)
