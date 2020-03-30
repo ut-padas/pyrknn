@@ -14,7 +14,7 @@ timer_gpu.o: timer_gpu.cu timer_gpu.hpp
 	nvcc -c $< $(CFLAG)
 
 timer.o: timer.cpp timer.hpp
-	g++ -c $< -Wall -O3
+	g++ -c $< -Wall -O3 -fPIC
 
 $(LIB): $(OBJS)
 	g++ -shared $^ -o $@
