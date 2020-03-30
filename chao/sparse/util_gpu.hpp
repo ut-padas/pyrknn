@@ -34,15 +34,27 @@ using dptr = thrust::device_ptr<T>;
     }                                                                          \
 }
 
+
+#ifndef FRONTERA
 #define CHECK_CUSPARSE(func)                                                   \
 {                                                                              \
     cusparseStatus_t status = (func);                                          \
     if (status != CUSPARSE_STATUS_SUCCESS) {                                   \
-        printf("CUSPARSE API failed at line %d with error: %s (%d)\n",         \
+	printf("CUSPARSE API failed at line %d with error: %s (%d)\n",         \
                __LINE__, cusparseGetErrorString(status), status);              \
         assert(false);                                                         \
     }                                                                          \
 }
+#else
+#define CHECK_CUSPARSE(func)                                                   \
+{                                                                              \
+    cusparseStatus_t status = (func);                                          \
+    if (status != CUSPARSE_STATUS_SUCCESS) {                                   \
+        assert(false);                                                         \
+    }                                                                          \
+}
+#endif
+
 
 static const char *cudaGetErrorEnum(cublasStatus_t error) {
     switch (error) {
