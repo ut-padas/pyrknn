@@ -1,15 +1,19 @@
 
-EXE=spknn
+EXE=driver
 LIB=libspknngpu.so
+
+DEP=../util/libutil.so ../readSVM/libreadSVM.so ../transpose/libtranspose.so ../gemm/libgemm.so \
+		../reorder/libreorder.so ../orthogonal/liborthogonal.so ../merge/libmerge.so
 
 DEBUG?=0
 
 CC=g++
 CFLAG=-Wall -I $(EIGEN_ROOT)
 VFLAG=-gencode arch=compute_70,code=sm_70 -shared -Xcompiler -fPIC
-LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcudart \
-		-L./ -lspknngpu -L../merge/ -lmergegpu -L../sort/ -lsortgpu -L../util/ -lutil \
-		-L../readSVM/ -lreadSVM -L../transpose -ltransposegpu
+LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcusolver -lcudart \
+		-L./ -lspknngpu -L../merge -lmerge -L../util/ -lutil \
+		-L../readSVM/ -lreadSVM -L../transpose -ltranspose -L../gemm -lgemm \
+		-L../reorder -lreorder -L../orthogonal -lorthogonal
 
 ifeq ($(DEBUG), 1)
   $(info ----------------------)
@@ -26,52 +30,62 @@ ifeq ($(findstring frontera,$(shell uname -n)),frontera)
 	VFLAG+=-DFRONTERA
 endif
 
-KERNEL=kernel_gemm.o kernel_dist.o kernel_leaf.o kernel_tree.o kernel_spknn.o
-OBJS=spknn.o print.o copy.o
+KERNEL=spknn.o build_tree.o leaf_knn.o find_nbor.o
+OBJS=driver.o
 
 default: $(EXE)
 
-$(EXE): $(OBJS) $(LIB)
-	nvcc $^ -o $@ $(LFLAG)
+$(EXE): $(OBJS) $(LIB) $(DEP) 
+	nvcc $(OBJS) $(LIB) -o $@ $(LFLAG)
 	
 $(LIB): $(KERNEL)
 	g++ -shared $^ -o $@
 		
-spknn.o: spknn.cpp spknn.hpp
+driver.o: driver.cpp
 	$(CC) -c $< $(CFLAG) -I ../util -I ../readSVM
 
-print.o: print.cpp util.hpp
-	$(CC) -c $< $(CFLAG)
+spknn.o: spknn.cu
+	nvcc -c $< $(VFLAG) -I ../merge -I ../util -I ../reorder -I ../gemm -I ../orthogonal
 
-copy.o: copy.cu util.hpp
-	nvcc -c $< $(VFLAG)
+build_tree.o: build_tree.cu
+	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I ../util -I ../reorder
 
-kernel_spknn.o: kernel_spknn.cu
-	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I ../merge -I ../util
+leaf_knn.o: leaf_knn.cu
+	nvcc -c $< $(VFLAG) -I ../util -I ../gemm -I ../transpose
 
-kernel_tree.o: kernel_tree.cu
-	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I ../util
+find_nbor.o: find_nbor.cu
+	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I../util
 
-kernel_leaf.o: kernel_leaf.cu
-	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I ../util
+../util/libutil.so:
+	cd ../util; make -j8
 
-#kernel_test.o: kernel_test.cu
-#	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I ../merge
+../readSVM/libreadSVM.so:
+	cd ../readSVM; make -j8
 
-kernel_dist.o: kernel_dist.cu
-	nvcc -c $< $(VFLAG) -I ../util
+../transpose/libtranspose.so:
+	cd ../transpose; make -j8
 
-kernel_gemm.o: kernel_gemm.cu
-	nvcc -c $< $(VFLAG)
+../gemm/libgemm.so:
+	cd ../gemm; make -j8
+
+../reorder/libreorder.so:
+	cd ../reorder; make -j8
+
+../orthogonal/liborthogonal.so:
+	cd ../orthogonal; make -j8
+
+../merge/libmerge.so:
+	cd ../merge; make -j8
 
 run: $(EXE)
-	$(EXE) -l 8
+	$(EXE) 
 
 debug: $(EXE)
-	$(EXE) -days 121 -l 9
+	$(EXE) -n 10 -d 5 -l 2 -k 3 -bt 1 -t 10 -bl 1
 
 benchmark: $(EXE)
-	$(EXE) -l 11 -sparse 0.1
+	$(EXE) -dataset avazu -l 13 -k 5 -t 20 -bl 512 -bp 64 -bt 1
+	#$(EXE) -dataset url -l 9 -k 10 -t 50 -bl 512 -bp 64 -bt 1
 
 clean:
 	rm -f *.o $(EXE) $(LIB)

@@ -1,5 +1,3 @@
-#include "util.hpp"
-
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include <iostream>
@@ -8,6 +6,14 @@ using namespace Eigen;
 typedef Matrix<float, Dynamic, Dynamic, RowMajor> Mat;
 typedef Matrix<int, Dynamic, Dynamic, RowMajor> MatInt;
 typedef VectorXf Vec;
+
+
+void copy_spmat_d2h(int, int, int, int*, int*, float*, int*, int*, float*);
+
+void copy(int, float*, float*);
+
+void copy(int, int*, int*);
+
 
 void print(int m, int n, int nnz, int *rowPtr, int *colIdx, float *val, const std::string &name) {
   auto A = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>

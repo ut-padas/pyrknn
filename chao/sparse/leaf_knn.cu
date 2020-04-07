@@ -1,42 +1,25 @@
 #include "util_gpu.hpp"
-#include "kernel_gemm.hpp"
+#include "gemm.hpp"
+#include "transpose.hpp"
+#include "knn_handle.hpp"
 #include "timer_gpu.hpp"
 
+#include <string>
+  
 
-// The following cusparse routine is too memory costly.
-void get_transpose(int m, int n, int nnz, int *dP_rowPtr, int *dP_colIdx, float *dP_val,
-    int *dR_colPtr, int *dR_rowIdx, float *dR_val, cusparseHandle_t &handle) {
+void find_neighbor(fvec&, int*, float*, int*, int, int, int, int, int, int, ivec&, float&, float&);
 
-  size_t bufferSize;
-  CHECK_CUSPARSE( cusparseCsr2cscEx2_bufferSize(
-        handle, m, n, nnz, dP_val, dP_rowPtr, dP_colIdx, 
-        dR_val, dR_colPtr, dR_rowIdx, 
-        CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
-        CUSPARSE_CSR2CSC_ALG1, &bufferSize) )
-
-  void *buffer = NULL;
-  CHECK_CUDA( cudaMalloc(&buffer, bufferSize) )
-
-  CHECK_CUSPARSE( cusparseCsr2cscEx2(
-        handle, m, n, nnz, dP_val, dP_rowPtr, dP_colIdx, 
-        dR_val, dR_colPtr, dR_rowIdx, 
-        CUDA_R_32F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
-        CUSPARSE_CSR2CSC_ALG1, buffer) )
-
-  //if (debug) dprint(n, m, nnz, dR_colPtr, dR_rowIdx, dR_val, "Transpose");
-  CHECK_CUDA( cudaFree(buffer) );
-}
-
+//void compute_row_norms(int n, int nnz, const ivec &rowPtrP, const fvec &valP, dvec<float> &P2);
 
 void compute_row_norms(int n, int nnz, int *rowPtrP, float *valP, dvec<float> &P2) {
    
+  iptr rowPtr(rowPtrP);
   dvec<int> rowIdx(nnz);
   thrust::counting_iterator<int> zero(0);
-  thrust::upper_bound(dptr<int>(rowPtrP)+1, dptr<int>(rowPtrP)+n, zero, zero+nnz, rowIdx.begin());
+  thrust::upper_bound(rowPtr+1, rowPtr+n, zero, zero+nnz, rowIdx.begin());
 
   dvec<int> Prow(n);
-  dptr<float> ptrP(valP);
-  auto iterP2 = thrust::make_transform_iterator(ptrP, thrust::square<float>());
+  auto iterP2 = thrust::make_transform_iterator(fptr(valP), thrust::square<float>());
   auto end = thrust::reduce_by_key(rowIdx.begin(), rowIdx.end(), iterP2, Prow.begin(), P2.begin());
 
   //dprint(n, thrust::raw_pointer_cast(Prow.data()), "P2 row indices");
@@ -215,68 +198,171 @@ void form_dense_matrix(int *dD_rowPtr, int *dD_colIdx, float *dD_val, int nnzD,
 }
 
 
-void compute_distance(
-    dvec<int> &Q_rowPtr, dvec<int> &Q_colIdx, dvec<float> &Q_val, int nnzQ,
+void compute_distance(dvec<int> &Q_rowPtr, dvec<int> &Q_colIdx, dvec<float> &Q_val, int nnzQ,
     int *rowPtrR, int *colIdxR, float *valR, int nnzR, dvec<float> &P2, dvec<float> &ones,
     int m, int nLeaf, int n, int d, int *seghead, int maxPoint, int offset,
-    dvec<float> &D,  // output
-    csrgemm2Info_t &info, cusparseHandle_t &spHandle, cusparseMatDescr_t &descr,
-    cublasHandle_t &denHandle,
-    float &t_gemm, float &t_den) {
+    dvec<float> &D, float &t_gemm, float &t_den) {
 
-    // compute inner product
-    int *rowPtrD, *colIdxD, nnzD;
-    float *valD;
-    
-    int *rowPtrQ = thrust::raw_pointer_cast(Q_rowPtr.data());
-    int *colIdxQ = thrust::raw_pointer_cast(Q_colIdx.data());
-    float *valQ  = thrust::raw_pointer_cast(Q_val.data());
+  auto& handle = knnHandle_t::instance();
 
-    TimerGPU t; t.start();
-    GEMM_SSS(m*nLeaf, n, d*nLeaf, -2, 
-        rowPtrQ, colIdxQ, valQ, nnzQ,
-        rowPtrR, colIdxR, valR, nnzR,
-        rowPtrD, colIdxD, valD, nnzD,
-        info, spHandle, descr);
-    t.stop(); t_gemm += t.elapsed_time();
+  // compute inner product
+  int *rowPtrD, *colIdxD, nnzD;
+  float *valD;
+  
+  int *rowPtrQ = thrust::raw_pointer_cast(Q_rowPtr.data());
+  int *colIdxQ = thrust::raw_pointer_cast(Q_colIdx.data());
+  float *valQ = thrust::raw_pointer_cast(Q_val.data());
 
-    //dprint(m*nLeaf, n, nnzD, rowPtrD, colIdxD, valD, "GEMM");
+  TimerGPU t; t.start();
+  GEMM_SSS(m*nLeaf, n, d*nLeaf, -2, 
+      rowPtrQ, colIdxQ, valQ, nnzQ,
+      rowPtrR, colIdxR, valR, nnzR,
+      rowPtrD, colIdxD, valD, nnzD,
+      handle.info, handle.sparse, handle.mat);
+  t.stop(); t_gemm += t.elapsed_time();
 
-    // dense format
-    t.start();
-    float *Dist = thrust::raw_pointer_cast(D.data());
-    form_dense_matrix(rowPtrD, colIdxD, valD, nnzD, 
-        seghead, nLeaf, m, maxPoint, Dist, 
-        spHandle, descr);
-    t.stop(); t_den += t.elapsed_time();
-    
-    //dprint(m*nLeaf, maxPoint, Dist, "dense");
+  //dprint(m*nLeaf, n, nnzD, rowPtrD, colIdxD, valD, "GEMM");
 
-    // rank-1 updates
-    int N = maxPoint;
-    int oneInt = 1; float oneFloat = 1.;
-    float *ptrOne = thrust::raw_pointer_cast(ones.data());
-    float *ptrP2 = thrust::raw_pointer_cast(P2.data());
+  // dense format
+  t.start();
+  float *Dist = thrust::raw_pointer_cast(D.data());
+  form_dense_matrix(rowPtrD, colIdxD, valD, nnzD, 
+      seghead, nLeaf, m, maxPoint, Dist, 
+      handle.sparse, handle.mat);
+  t.stop(); t_den += t.elapsed_time();
+  
+  //dprint(m*nLeaf, maxPoint, Dist, "dense");
 
-    //t.start();
-    CHECK_CUBLAS( cublasSgemmStridedBatched(
-          denHandle, CUBLAS_OP_N, CUBLAS_OP_T, 
-          N, m, oneInt, &oneFloat, 
-          ptrP2, N, N,
-          ptrOne, m, m,
-          &oneFloat, Dist, N, m*N, nLeaf) );
+  // rank-1 updates
+  int N = maxPoint;
+  int oneInt = 1; float oneFloat = 1.;
+  float *ptrOne = thrust::raw_pointer_cast(ones.data());
+  float *ptrP2 = thrust::raw_pointer_cast(P2.data());
 
-    CHECK_CUBLAS( cublasSgemmStridedBatched(
-          denHandle, CUBLAS_OP_N, CUBLAS_OP_T, 
-          N, m, oneInt, &oneFloat, 
-          ptrOne, N, N,
-          ptrP2+offset, m, N,
-          &oneFloat, Dist, N, m*N, nLeaf) );
-    //t.stop(); t_rank += t.elapsed_time();
-    
-    // free memory from GEMM_SSS
-    CHECK_CUDA( cudaFree(rowPtrD) )
-    CHECK_CUDA( cudaFree(colIdxD) )
-    CHECK_CUDA( cudaFree(valD) )
+  //t.start();
+  CHECK_CUBLAS( cublasSgemmStridedBatched(
+        handle.blas, CUBLAS_OP_N, CUBLAS_OP_T, 
+        N, m, oneInt, &oneFloat, 
+        ptrP2, N, N,
+        ptrOne, m, m,
+        &oneFloat, Dist, N, m*N, nLeaf) );
+
+  CHECK_CUBLAS( cublasSgemmStridedBatched(
+        handle.blas, CUBLAS_OP_N, CUBLAS_OP_T, 
+        N, m, oneInt, &oneFloat, 
+        ptrOne, N, N,
+        ptrP2+offset, m, N,
+        &oneFloat, Dist, N, m*N, nLeaf) );
+  //t.stop(); t_rank += t.elapsed_time();
+  
+  // free memory from GEMM_SSS
+  CHECK_CUDA( cudaFree(rowPtrD) )
+  CHECK_CUDA( cudaFree(colIdxD) )
+  CHECK_CUDA( cudaFree(valD) )
 }
+
+
+// ID[n]: gid of all points
+// n: total number of points in all leaves
+// m: blocking size
+//void leaf_knn(ivec &ID, ivec &rowPtrP, ivec &colIdxP, fvec &valP, 
+  //  int n, int d, int nnzP, int nLeaf, int maxPoint,
+    //ivec &nborID, fvec &nborDist, int k, int m) {
+
+void leaf_knn(int *ID, int *rowPtrP, int *colIdxP, float *valP, 
+    int n, int d, int nnzP, int nLeaf, int maxPoint,
+    int *nborID, float *nborDist, int LD, int k, int m) {
+
+  TimerGPU t;
+  float t_mat = 0., t_dist = 0., t_nbor = 0., t_trans = 0.;
+  float t_sort = 0., t_kcol = 0.;
+  float t_gemm = 0., t_den = 0.;
+
+
+  //dprint(n, d*nLeaf, nnzP, rowPtrP, colIdxP, valP, "Points");
+  //dprint(n, ID, "ID");
+  
+  // R = P^T
+  std::cout<<"[Transpose] R: "<<d/1.e9*nLeaf*4+nnzP/1.e9*4*2<<" GB"<<std::endl;
+  dvec<int> R_rowPtr(d*nLeaf+1);
+  dvec<int> R_colIdx(nnzP);
+  dvec<float> R_val(nnzP);
+
+  t.start();
+  transpose(n, d*nLeaf, nnzP, rowPtrP, colIdxP, valP, R_rowPtr, R_colIdx, R_val);
+  t.stop(); t_trans = t.elapsed_time();
+  std::cout<<"Finished transpose"<<std::endl;
+
+  // point norm
+  dvec<float> P2(n, 0.);
+  compute_row_norms(n, nnzP, rowPtrP, valP, P2);
+
+  // temporary array for distance calculation
+  dvec<float> Dist(maxPoint*m*nLeaf);
+  
+  // for rank-1 updates 
+  dvec<float> ones(maxPoint*nLeaf, 1.);
+  
+  // temporary array for sorting
+  dvec<int> tmp(m*nLeaf*maxPoint); // no need to initialize for mgpu
+  std::cout<<"Allocate distance and index array: "<<Dist.size()/1.e9*4*2<<" GB\n";
+
+  ivec segments(nLeaf+1);
+  thrust::sequence(segments.begin(), segments.end(), 0, maxPoint);
+  int *seghead = thrust::raw_pointer_cast(segments.data());
+
+  // loop over blocks
+  int nBlock = (maxPoint + m-1)/m;
+  for (int b=0; b<nBlock; b++) {
+    // query points
+    int nnzQ, nRowQ;
+    dvec<int> Q_rowPtr, Q_colIdx;
+    dvec<float> Q_val;
+    t.start();
+    get_strided_block(rowPtrP, colIdxP, valP,
+        thrust::raw_pointer_cast(segments.data()), 
+        nLeaf, b, m,
+        Q_rowPtr, Q_colIdx, Q_val, nRowQ, nnzQ);
+    t.stop(); t_mat += t.elapsed_time();
+    //dprint(nRowQ, d*nLeaf, nnzQ, Q_rowPtr, Q_colIdx, Q_val, "Query");
+
+
+    // distance is a dense matrix
+    t.start();
+    int blockSize = std::min(m, maxPoint-b*m);
+    assert(nRowQ == blockSize*nLeaf);
+    int *rowPtrR = thrust::raw_pointer_cast(R_rowPtr.data());
+    int *colIdxR = thrust::raw_pointer_cast(R_colIdx.data());
+    float *valR  = thrust::raw_pointer_cast(R_val.data());
+
+    compute_distance(Q_rowPtr, Q_colIdx, Q_val, nnzQ,
+        rowPtrR, colIdxR, valR, nnzP, P2, ones, 
+        blockSize, nLeaf, n, d, seghead, maxPoint, b*m, Dist, 
+        t_gemm, t_den);
+    t.stop(); t_dist += t.elapsed_time();
+
+    t.start();
+    find_neighbor(Dist, ID, nborDist, nborID, nLeaf, blockSize, LD, k, maxPoint, b*m*LD, 
+        tmp, t_sort, t_kcol);
+    t.stop(); t_nbor += t.elapsed_time();
+  }
+
+  std::cout<<"\n========================================"
+           <<"\n\tLeaf KNN Timing"
+           <<"\n----------------------------------------"
+           <<"\n* Transpose: "<<t_trans<<" s"
+           //<<"\n* Get submatrix: "<<t_mat<<" s"
+           <<"\n* Compute distance: "<<t_dist<<" s"
+           <<"\n\t- gemm: "<<t_gemm<<" s"
+           //<<"\n\t- densify: "<<t_den<<" s"
+           //<<"\n\t- rank-1: "<<t_rank<<" s"
+           <<"\n* Find neighbors: "<<t_nbor<<" s"
+           <<"\n\t- sort distance: "<<t_sort<<" s"
+           //<<"\n\t- get k-column: "<<t_kcol<<" s"
+           <<"\n========================================"
+           <<"\n"<<std::endl;
+}
+
+
+
 

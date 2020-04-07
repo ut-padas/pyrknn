@@ -1,178 +1,222 @@
-#include <iostream>
-#include <vector>
+#include "util_gpu.hpp"
+#include "knn_handle.hpp"
 
-#include <thrust/random.h>
-#include <thrust/device_vector.h>
-#include <thrust/functional.h>
-#include <thrust/iterator/counting_iterator.h>
 
-#include "cublas_v2.h"
-#include <cuda_runtime.h>
-
-#include "timer.hpp"
-
-#define cudaCheck(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
-   if (code != cudaSuccess) {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
-}
-
-static const char *cudaGetErrorEnum(cublasStatus_t error) {
-    switch (error) {
-        case CUBLAS_STATUS_SUCCESS:
-            return "CUBLAS_STATUS_SUCCESS";
-
-        case CUBLAS_STATUS_NOT_INITIALIZED:
-            return "CUBLAS_STATUS_NOT_INITIALIZED";
-
-        case CUBLAS_STATUS_ALLOC_FAILED:
-            return "CUBLAS_STATUS_ALLOC_FAILED";
-
-        case CUBLAS_STATUS_INVALID_VALUE:
-            return "CUBLAS_STATUS_INVALID_VALUE";
-
-        case CUBLAS_STATUS_ARCH_MISMATCH:
-            return "CUBLAS_STATUS_ARCH_MISMATCH";
-
-        case CUBLAS_STATUS_MAPPING_ERROR:
-            return "CUBLAS_STATUS_MAPPING_ERROR";
-
-        case CUBLAS_STATUS_EXECUTION_FAILED:
-            return "CUBLAS_STATUS_EXECUTION_FAILED";
-
-        case CUBLAS_STATUS_INTERNAL_ERROR:
-            return "CUBLAS_STATUS_INTERNAL_ERROR";
-    }
-    return "<unknown>";
-}
-
-#define cublasCheck(ans) { cublasAssert((ans), __FILE__, __LINE__); }
-inline void cublasAssert(cublasStatus_t code, const char *file, int line, bool abort=true) {
-   if (code != CUBLAS_STATUS_SUCCESS) {
-      fprintf(stderr,"CUBLAS assert: %s %s %d\n", cudaGetErrorEnum(code), file, line);
-      if (abort) exit(code);
-   }
-}
-
-struct prg : public thrust::unary_function<unsigned int, float>
-{
-    float a, b;
-
-    __host__ __device__
-    prg(float _a=0.f, float _b=1.f) : a(_a), b(_b) {};
-
-    __host__ __device__
-        float operator()(const unsigned int n) const
-        {
-            thrust::default_random_engine rng;
-            thrust::uniform_real_distribution<float> dist(a, b);
-            rng.discard(n);
-
-            return dist(rng);
-        }
-};
-
-template <typename T>
-using dvec = thrust::device_vector<T>;
-
-int main(int argc, char *argv[]) {
-
-  int S = 2;
-  int N = 1024;
-  int d = 64;
-
-  // parse command line
-  for (int i=1; i<argc; i++) {
-    if (!strcmp(argv[i],"-s"))
-      S = atoi(argv[i+1]);
-    if (!strcmp(argv[i],"-n"))
-      N = atoi(argv[i+1]);
-    if (!strcmp(argv[i],"-d"))
-      d = atoi(argv[i+1]);
-  }
-  assert(S>0);
-  assert(N>0);
-  assert(d>0);
-
-  std::vector<dvec<float>> vecA(S), vecB(S), vecC(S);
-  cudaStream_t str[S];
-  // initialization  
-  thrust::counting_iterator<unsigned int> index(0);
-  for (int i=0; i<S; i++) {
-    vecA[i].resize(N*d);
-    vecB[i].resize(d*N);
-    vecC[i].resize(N*N);
-    thrust::transform(index, index + N*d, vecA[i].begin(), prg());
-    thrust::transform(index, index + N*d, vecB[i].begin(), prg());
-    cudaCheck( cudaStreamCreate(&str[i]) );
-  }
-
-  cublasHandle_t handle;
-  cublasCheck( cublasCreate(&handle) );
-  const float alpha = -2;
-  const float beta = 0;
-
-  // warming up
-  cublasCheck( cublasSgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, N, N, d, &alpha,
-	      thrust::raw_pointer_cast(vecA[0].data()), d,
-	      thrust::raw_pointer_cast(vecB[0].data()), d, &beta,
-	      thrust::raw_pointer_cast(vecC[0].data()), N) );
-
-  // baseline
-  const int repeat = 10;
-  cudaDeviceSynchronize();
-  Timer t; t.start();
-  for (int r=0; r<repeat; r++) {
-    for (int i=0; i<S; i++) {
-      cublasCheck( cublasSgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, N, N, d, &alpha,
-	      thrust::raw_pointer_cast(vecA[i].data()), d,
-	      thrust::raw_pointer_cast(vecB[i].data()), d, &beta,
-	      thrust::raw_pointer_cast(vecC[i].data()), N) );
-    }
-  }
-
-  cudaDeviceSynchronize();
-  t.stop();
-  std::cout<<"GEMM baseline: "<<t.elapsed_time()/repeat<<" s"<<std::endl;
-
-  // stream
-  cudaDeviceSynchronize();
-  t.start(); 
-  for (int r=0; r<repeat; r++) {
-  for (int i=0; i<S; i++) {
-    cublasCheck( cublasSetStream(handle, str[i]) );
-    cublasCheck( cublasSgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, N, N, d, &alpha,
-	      thrust::raw_pointer_cast(vecA[i].data()), d,
-	      thrust::raw_pointer_cast(vecB[i].data()), d, &beta,
-	      thrust::raw_pointer_cast(vecC[i].data()), N) );
-  }
-  }
-
-  cudaDeviceSynchronize();
-  t.stop();
-  std::cout<<"GEMM stream: "<<t.elapsed_time()/repeat<<" s"<<std::endl;
-
-  // batched
-  float *ptrA[S], *ptrB[S], *ptrC[S];
-  for (int i=0; i<S; i++) {
-    ptrA[i] = thrust::raw_pointer_cast(vecA[i].data());
-    ptrB[i] = thrust::raw_pointer_cast(vecB[i].data());
-    ptrC[i] = thrust::raw_pointer_cast(vecC[i].data());
-  }
+// (sparse) A * (dense) B = (dense) C
+void GEMM_SDD(int m, int n, int k,
+    dvec<int> &rowPtrA, dvec<int> &colIdxA, dvec<float> &valA, int nnzA,
+    dvec<float> &B, dvec<float> &C) {
   
-  cudaDeviceSynchronize();
-  t.start();
-  for(int r=0; r<repeat; r++) {
-    cublasCheck( cublasSgemmBatched(handle, CUBLAS_OP_T, CUBLAS_OP_N, N, N, d, &alpha,
-			    ptrA, d, ptrB, d, &beta, ptrC, N, S) );
-  }
-  cudaDeviceSynchronize();
-  t.stop();
-  std::cout<<"GEMM batched: "<<t.elapsed_time()/repeat<<" s"<<std::endl;
+  const float alpha = 1.0;
+  const float beta = 0.0;
+  auto const& handle = knnHandle_t::instance();
+  
+  int *rowPtr = thrust::raw_pointer_cast(rowPtrA.data());
+  int *colIdx = thrust::raw_pointer_cast(colIdxA.data());
+  float *val  = thrust::raw_pointer_cast(valA.data());
+  float *valB = thrust::raw_pointer_cast(B.data());
+  float *valC = thrust::raw_pointer_cast(C.data());
 
-
-  return 0;
+  CHECK_CUSPARSE( cusparseScsrmm(
+        handle.sparse,
+        CUSPARSE_OPERATION_NON_TRANSPOSE,
+        m, n, k, nnzA,
+        &alpha, handle.mat,
+        val, rowPtr, colIdx, 
+        valB, k,
+        &beta, valC, m) )
 }
+
+/*
+   // For some reason LDB seems to be 1 in SpMM routine
+void GEMM_SDD(int m, int n, int k,
+    dvec<int> &rowPtrA, dvec<int> &colIdxA, dvec<float> &valA, int nnzA,
+    dvec<float> &B, dvec<float> &C) {
+
+  const float alpha = 1.0;
+  const float beta = 0.0;
+  auto const& handle = knnHandle_t::instance();
+                       
+  int *rowPtr = thrust::raw_pointer_cast(rowPtrA.data());
+  int *colIdx = thrust::raw_pointer_cast(colIdxA.data());
+  float *val = thrust::raw_pointer_cast(valA.data());
+  
+  cusparseSpMatDescr_t matA;
+  CHECK_CUSPARSE( cusparseCreateCsr(&matA, m, k, nnzA,
+                                    rowPtr, colIdx, val,
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                                    CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F) )
+
+  float *valB = thrust::raw_pointer_cast(B.data());
+  float *valC = thrust::raw_pointer_cast(C.data());
+ 
+
+  std::cout<<"k: "<<k<<", n: "<<n<<std::endl;
+  tprint(n,k,B,"dB");
+
+  dprint(m, k, nnzA, rowPtr, colIdx, val, "dA");
+
+  cusparseDnMatDescr_t matB, matC;
+  CHECK_CUSPARSE( cusparseCreateDnMat(&matB, k, n, k, valB, CUDA_R_32F, CUSPARSE_ORDER_COL) )
+  CHECK_CUSPARSE( cusparseCreateDnMat(&matC, m, n, m, valC, CUDA_R_32F, CUSPARSE_ORDER_COL) )
+
+int64_t rowB, colB, ldB;
+void *vB;
+cudaDataType dt;
+cusparseOrder_t od;
+CHECK_CUSPARSE( cusparseDnMatGet(matB, &rowB, &colB, &ldB, &vB, &dt, &od) )
+
+std::cout<<"row: "<<rowB<<", col: "<<colB<<", ldB: "<<ldB<<std::endl;
+
+  size_t bufferSize;
+  CHECK_CUSPARSE( cusparseSpMM_bufferSize(
+                        handle.sparse,
+                        CUSPARSE_OPERATION_NON_TRANSPOSE,
+                        CUSPARSE_OPERATION_NON_TRANSPOSE,
+                        &alpha,
+                        matA,
+                        matB,
+                        &beta,
+                        matC,
+                        CUDA_R_32F,
+                        CUSPARSE_CSRMM_ALG1,
+                        &bufferSize) )
+
+std::cout<<"bufferSize: "<<bufferSize<<std::endl;
+
+  void *buffer = NULL;
+  CHECK_CUDA( cudaMalloc(&buffer, bufferSize) )
+  CHECK_CUSPARSE( cusparseSpMM(
+                        handle.sparse,
+                        CUSPARSE_OPERATION_NON_TRANSPOSE,
+                        CUSPARSE_OPERATION_NON_TRANSPOSE,
+                        &alpha,
+                        matA,
+                        matB,
+                        &beta,
+                        matC,
+                        CUDA_R_32F,
+                        CUSPARSE_CSRMM_ALG1,
+                        buffer) )
+
+  CHECK_CUSPARSE( cusparseDestroySpMat(matA) )
+  CHECK_CUSPARSE( cusparseDestroyDnMat(matB) )
+  CHECK_CUSPARSE( cusparseDestroyDnMat(matC) )
+}
+*/
+
+
+void gemm_ssd_gpu(int m, int n, int k,
+    int *hRowPtr, int *hColIdx, float *hVal, int nnz, float *hB, float *hC) {
+  dvec<int> dRowPtr(hRowPtr, hRowPtr+m+1);
+  dvec<int> dColIdx(hColIdx, hColIdx+nnz);
+  dvec<float> dVal(hVal, hVal+nnz);
+  dvec<float> dB(hB, hB+k*n);
+  dvec<float> dC(m*n);
+  GEMM_SDD(m, n, k, dRowPtr, dColIdx, dVal, nnz, dB, dC);
+  thrust::copy(dC.begin(), dC.end(), hC);
+}
+
+
+// (sparse) A * (sparse) B = (dense) C
+// customized sparse GEMM for the case where the csrRowPtrC and nnzC are known
+void GEMM_SSD(int m, int n, int k, float alpha,
+    int *csrRowPtrA, int *csrColIndA, float *csrValA, int nnzA,
+    int *csrRowPtrB, int *csrColIndB, float *csrValB, int nnzB,
+    int *csrRowPtrC, int *csrColIndC, float *csrValC, int nnzC,
+    csrgemm2Info_t &info, cusparseHandle_t &handle, cusparseMatDescr_t &descr) {
+  
+  // dummy matrix D
+  int nnzD = 0, *csrRowPtrD = 0, *csrColIndD = 0;
+  float *csrValD = 0;
+  
+  size_t bufferSize;
+  CHECK_CUSPARSE( cusparseScsrgemm2_bufferSizeExt(
+        handle, m, n, k, &alpha,
+        descr, nnzA, csrRowPtrA, csrColIndA,
+        descr, nnzB, csrRowPtrB, csrColIndB,
+        NULL,
+        descr, nnzD, csrRowPtrD, csrColIndD,
+        info,
+        &bufferSize) )
+
+  std::cout<<"[GEMM_SSD] buffersize: "<<bufferSize/1.e9<<" GB"<<std::endl;
+  void *buffer = NULL;
+  CHECK_CUDA( cudaMalloc(&buffer, bufferSize) )
+
+  CHECK_CUSPARSE( cusparseScsrgemm2(handle, m, n, k, &alpha,
+          descr, nnzA, csrValA, csrRowPtrA, csrColIndA,
+          descr, nnzB, csrValB, csrRowPtrB, csrColIndB,
+          NULL,
+          descr, nnzD, csrValD, csrRowPtrD, csrColIndD,
+          descr,       csrValC, csrRowPtrC, csrColIndC,
+          info, buffer) )
+
+  if (buffer != NULL) CHECK_CUDA( cudaFree(buffer) )
+}
+
+
+// (sparse) A * (sparse) B = (sparse) C
+// csrRowPtrC, csrColIndC, csrValC and nnzC are allocated or computed 
+void GEMM_SSS(int m, int n, int k, float alpha,
+    int *csrRowPtrA, int *csrColIndA, float *csrValA, int nnzA,
+    int *csrRowPtrB, int *csrColIndB, float *csrValB, int nnzB,
+    int* &csrRowPtrC, int* &csrColIndC, float* &csrValC, int &nnzC,
+    csrgemm2Info_t &info, cusparseHandle_t &handle, cusparseMatDescr_t &descr) {
+  
+  // dummy matrix D
+  int nnzD = 0, *csrRowPtrD = 0, *csrColIndD = 0;
+  float *csrValD = 0;
+  
+  size_t bufferSize;
+  CHECK_CUSPARSE( cusparseScsrgemm2_bufferSizeExt(
+        handle, m, n, k, &alpha,
+        descr, nnzA, csrRowPtrA, csrColIndA,
+        descr, nnzB, csrRowPtrB, csrColIndB,
+        NULL,
+        descr, nnzD, csrRowPtrD, csrColIndD,
+        info,
+        &bufferSize) )
+
+  void *buffer = NULL;
+  CHECK_CUDA( cudaMalloc(&buffer, bufferSize) )
+
+  // step 3: compute csrRowPtrC
+  CHECK_CUDA( cudaMalloc((void**)&csrRowPtrC, sizeof(int)*(m+1)) )
+  int *nnzTotalDevHostPtr = &nnzC;
+  cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST);
+  CHECK_CUSPARSE( cusparseXcsrgemm2Nnz(handle, m, n, k,
+          descr, nnzA, csrRowPtrA, csrColIndA,
+          descr, nnzB, csrRowPtrB, csrColIndB,
+          descr, nnzD, csrRowPtrD, csrColIndD,
+          descr, csrRowPtrC, nnzTotalDevHostPtr,
+          info, buffer) )
+  if (NULL != nnzTotalDevHostPtr){
+      nnzC = *nnzTotalDevHostPtr;
+  }else{
+      int baseC;
+      cudaMemcpy(&nnzC, csrRowPtrC+m, sizeof(int), cudaMemcpyDeviceToHost);
+      cudaMemcpy(&baseC, csrRowPtrC, sizeof(int), cudaMemcpyDeviceToHost);
+      nnzC -= baseC;
+  }  
+  
+  std::cout<<"[GEMM_SSS] buffersize: "<<bufferSize/1.e9<<" GB"
+           <<", C: "<<(m+1)/1.e9*4+nnzC/1.e9*4*2<<" GB"<<std::endl;
+
+  // step 4: finish sparsity pattern and value of C
+  // Remark: set csrValC to null if only sparsity pattern is required 
+  CHECK_CUDA( cudaMalloc((void**)&csrColIndC, sizeof(int)*nnzC) )
+  CHECK_CUDA( cudaMalloc((void**)&csrValC, sizeof(float)*nnzC) )
+  CHECK_CUSPARSE( cusparseScsrgemm2(handle, m, n, k, &alpha,
+          descr, nnzA, csrValA, csrRowPtrA, csrColIndA,
+          descr, nnzB, csrValB, csrRowPtrB, csrColIndB,
+          NULL,
+          descr, nnzD, csrValD, csrRowPtrD, csrColIndD,
+          descr,       csrValC, csrRowPtrC, csrColIndC,
+          info, buffer) )
+
+  // step 5: clean up
+  if (buffer != NULL) CHECK_CUDA( cudaFree(buffer) )
+}
+
 

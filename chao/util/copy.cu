@@ -1,4 +1,4 @@
-#include "util.hpp"
+#include "util_gpu.hpp"
 
 #include <cassert>
 #include <cuda_runtime.h>

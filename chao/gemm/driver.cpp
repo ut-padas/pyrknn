@@ -2,9 +2,11 @@
 #include <random>
 
 #include <Eigen/Sparse>
-typedef Eigen::SparseMatrix<float,Eigen::RowMajor> SpMat; // row-major sparse matrix
+typedef Eigen::SparseMatrix<float, Eigen::RowMajor> SpMat; // row-major sparse matrix
 typedef Eigen::Triplet<float> T;
 
+#include <Eigen/Dense>
+typedef Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic> Mat; // column-major
 
 std::default_random_engine gen;
 void init_random(SpMat &A, int M, int N, float sparsity) {
@@ -22,19 +24,22 @@ void init_random(SpMat &A, int M, int N, float sparsity) {
   A.makeCompressed();
 }
 
-void transpose(const int, const int, const int, const int*, const int*, const float*,
-        int*, int*, float*);
+
+void gemm_ssd_gpu(int, int, int, int*, int*, float*, int, float*, float*);
 
 int main(int argc, char *argv[]) {
   
   int m = 5;
-  int n = 3;
+  int n = 4;
+  int k = 3;
   float sparsity = 0.6;
   for (int i=1; i<argc; i++) {
     if (!strcmp(argv[i],"-m"))
       m = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-n"))
       n = atoi(argv[i+1]);
+    if (!strcmp(argv[i],"-k"))
+      k = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-s"))
       sparsity = atof(argv[i+1]);
   }  
@@ -44,29 +49,29 @@ int main(int argc, char *argv[]) {
            <<"----------------------\n"
            <<"m: "<<m<<std::endl
            <<"n: "<<n<<std::endl
+           <<"k: "<<k<<std::endl
            <<"sparsity: "<<sparsity<<std::endl
            <<"======================\n\n";
 
-  SpMat A(m, n);
-  init_random(A, m, n, sparsity);
+  SpMat A(m, k);
+  init_random(A, m, k, sparsity);
+  //A.setIdentity();
 
-  int nnz = A.nonZeros();
-  int rowPtr[n+1], colIdx[nnz];
-  float val[nnz];
-  transpose(m, n, nnz, A.outerIndexPtr(), A.innerIndexPtr(), A.valuePtr(),
-      rowPtr, colIdx, val);
-  auto T = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>
-                (n, m, nnz, rowPtr, colIdx, val);
+  Mat B = Mat::Random(k, n);
+  //Mat B = Mat::Identity(k, n);
+  Mat C = A * B;
 
-  SpMat At = A.transpose();
- 
-  if (m<10 && n<10) { 
-    std::cout<<"A:\n"<<A<<"\n";
-             //<<"Transpose:\n"<<At<<"\n";
+  Mat C_gpu(m, n);
+  gemm_ssd_gpu(m, n, k, A.outerIndexPtr(), A.innerIndexPtr(), A.valuePtr(), A.nonZeros(),
+      B.data(), C_gpu.data());
 
-    std::cout<<"T:\n"<<T<<"\n";
-  }
-  std::cout<<"Error: "<<(T-At).norm()<<"\n";
+  
+  /*std::cout<<"A:\n"<<A<<"\n"
+    <<"B:\n"<<B<<"\n"
+    <<"C:\n"<<C<<"\n"
+    <<"C_gpu:\n"<<C_gpu<<"\n";
+    */
+  std::cout<<"Error: "<<(C-C_gpu).norm()<<"\n";
 
   return 0;
 }

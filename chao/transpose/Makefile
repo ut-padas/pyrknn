@@ -1,12 +1,12 @@
 
 EXE=driver
-LIB=libtransposegpu.so
+LIB=libtranspose.so
 
 default: $(EXE)
 
 CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart \
-			-L./ -ltransposegpu
+			-L./ -ltranspose
 
 KERNEL=transpose.o
 OBJS=driver.o 
@@ -21,7 +21,7 @@ $(LIB): $(KERNEL)
 	g++ -shared $^ -o $@
 
 transpose.o: transpose.cu
-	nvcc -c $< $(CFLAG) 
+	nvcc -c $< $(CFLAG) -I../util 
 
 run: $(EXE)
 	./$(EXE)

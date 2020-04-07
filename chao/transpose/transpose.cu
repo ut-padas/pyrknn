@@ -5,12 +5,6 @@
 #include <thrust/gather.h>
 #include <thrust/binary_search.h>
 
-template <typename T>
-using dvec = thrust::device_vector<T>;
-  
-template <typename T>
-using dptr = thrust::device_ptr<T>; 
-
 
 void dprint(const dvec<int> &x) {
   for (int i=0; i<x.size(); i++)
@@ -56,9 +50,10 @@ void offsets_to_indices(const dptr<int> &offsets, int size,  dvec<int> &idx) {
 
 
 // the algorithm is inspired by the implementation in CUSP
-void transpose_gpu(const int m, const int n, const int nnz, 
+void transpose(const int m, const int n, const int nnz, 
     const dvec<int> &rowPtrA, const dvec<int> &colIdxA, const dvec<float> &valA,
     dvec<int> &rowPtrT, dvec<int> &colIdxT, dvec<float> &valT) {
+  std::cout<<"[transpose] buffer: "<<nnz/1.e9*4*2<<" GB"<<std::endl;
   dvec<int> permutation(nnz);
   thrust::sequence(permutation.begin(), permutation.end(), 0);
   dvec<int> idx = colIdxA;
@@ -73,7 +68,7 @@ void transpose_gpu(const int m, const int n, const int nnz,
 }
 
 
-void transpose_gpu(int m, int n, int nnz, int *rowPtrA, int *colIdxA, float *valA,
+void transpose(int m, int n, int nnz, int *rowPtrA, int *colIdxA, float *valA,
     dvec<int> &rowPtrT, dvec<int> &colIdxT, dvec<float> &valT) {
   std::cout<<"[transpose] buffer: "<<nnz/1.e9*4*2<<" GB"<<std::endl;
   dvec<int> permutation(nnz);
@@ -112,7 +107,7 @@ void transpose(const int m, const int n, const int nnz,
       thrust::raw_pointer_cast(dValT.data()));
   */
 
-  transpose_gpu(m, n, nnz, dRowPtrA, dColIdxA, dValA, dRowPtrT, dColIdxT, dValT);
+  transpose(m, n, nnz, dRowPtrA, dColIdxA, dValA, dRowPtrT, dColIdxT, dValT);
 
   // copy data to host
   thrust::copy(dRowPtrT.begin(), dRowPtrT.end(), rowPtrT);

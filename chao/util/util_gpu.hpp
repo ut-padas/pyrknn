@@ -1,4 +1,5 @@
-#include "util.hpp"
+#ifndef UTIL_GPU_HPP
+#define UTIL_GPU_HPP
 
 #include <cuda_runtime.h>  // cudaMalloc, cudaMemcpy, etc.
 #include <cusparse.h>      // cusparse
@@ -21,8 +22,16 @@
 template <typename T>
 using dvec = thrust::device_vector<T>;
   
+typedef dvec<int> ivec;
+typedef dvec<float> fvec;
+
+
 template <typename T>
 using dptr = thrust::device_ptr<T>; 
+
+typedef dptr<int> iptr;
+typedef dptr<float> fptr;
+
 
 #define CHECK_CUDA(func)                                                       \
 {                                                                              \
@@ -94,17 +103,4 @@ inline void cublasAssert(cublasStatus_t code, const char *file, int line, bool a
 }
 
 
-template <typename T>
-void tprint(const thrust::device_vector<T>& vec, const std::string &name) {
-  std::cout<<name<<":"<<std::endl;
-  for (int i=0; i<vec.size(); i++)
-    std::cout<<vec[i]<<" ";
-  std::cout<<std::endl<<std::endl;
-}
-
-
-void dprint(int m, int n, int nnz, dvec<int> &rowPtr, dvec<int> &colIdx, dvec<float> &val,
-    const std::string &name);
-
-
-
+#endif

@@ -5,6 +5,8 @@
 typedef Eigen::SparseMatrix<float,Eigen::RowMajor> SpMat; // row-major sparse matrix
 typedef Eigen::Triplet<float> T;
 
+#include <Eigen/Dense>
+typedef Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> Mat;
 
 std::default_random_engine gen;
 void init_random(SpMat &A, int M, int N, float sparsity) {
@@ -22,8 +24,10 @@ void init_random(SpMat &A, int M, int N, float sparsity) {
   A.makeCompressed();
 }
 
-void transpose(const int, const int, const int, const int*, const int*, const float*,
-        int*, int*, float*);
+
+void gather_gpu(int*, int*, float*, int, int, int, int*);
+
+void scatter_gpu(float*, int, int, int*);
 
 int main(int argc, char *argv[]) {
   
@@ -50,23 +54,35 @@ int main(int argc, char *argv[]) {
   SpMat A(m, n);
   init_random(A, m, n, sparsity);
 
-  int nnz = A.nonZeros();
-  int rowPtr[n+1], colIdx[nnz];
-  float val[nnz];
-  transpose(m, n, nnz, A.outerIndexPtr(), A.innerIndexPtr(), A.valuePtr(),
-      rowPtr, colIdx, val);
-  auto T = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>
-                (n, m, nnz, rowPtr, colIdx, val);
+  Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> perm(m);
+  perm.setIdentity();
+  std::random_shuffle(perm.indices().data(), perm.indices().data()+m);
+  
+  //std::cout<<"A:\n"<<A<<"\n"
+    //<<"P:\n"<<perm.indices()<<std::endl;
 
-  SpMat At = A.transpose();
- 
-  if (m<10 && n<10) { 
-    std::cout<<"A:\n"<<A<<"\n";
-             //<<"Transpose:\n"<<At<<"\n";
+  Mat B = perm.transpose() * A;
 
-    std::cout<<"T:\n"<<T<<"\n";
-  }
-  std::cout<<"Error: "<<(T-At).norm()<<"\n";
+  gather_gpu(A.outerIndexPtr(), A.innerIndexPtr(), A.valuePtr(), m, n, A.nonZeros(), 
+      perm.indices().data());
+
+  /*
+  std::cout<<"B cpu:\n"<<B<<"\n"
+    <<"B gpu:\n"<<A
+    <<std::endl;
+  */
+
+  std::cout<<"Error of gather: "<<(B-A).norm()<<"\n";
+
+  //std::cout<<"B:\n"<<B<<std::endl;
+  Mat C = perm.transpose() * B;
+
+  scatter_gpu(B.data(), m, n, perm.indices().data());
+
+  //std::cout<<"C cpu:\n"<<C<<"\n"
+    //<<"C gpu:\n"<<B
+    //<<std::endl;
+  std::cout<<"Error of scatter: "<<(C-B).norm()<<"\n";
 
   return 0;
 }
