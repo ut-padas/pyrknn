@@ -7,6 +7,15 @@ from primitives cimport *
 from libcpp.vector cimport vector
 from cython.operator cimport dereference as deref
 from cython.parallel import prange, parallel
+from cython.view cimport array as cvarray
+import cython
+
+cimport mpi4py.MPI as MPI
+cimport mpi4py.libmpi as libmpi
+from mpi4py import MPI
+#import time as MPI
+
+import time
 
 cpdef KNNLowMem(gids, R, Q, k):
     cdef int cn = R.shape[0];
@@ -228,6 +237,127 @@ cpdef kselect(arr, k):
     print("Entered Select")
     with nogil:
         quickselect[float](&c_arr[0], N, c_k)
+
+
+
+cpdef merge_neighbors(a, b, k):
+    merge_t = time.time()
+
+    I1 = a[0]
+    D1 = a[1]
+
+    I2 = b[0]
+    D2 = b[1]
+
+    cdef float[:, :] cD1 = D1;
+    cdef float[:, :] cD2 = D2;
+
+    cdef int[:, :] cI1 = I1;
+    cdef int[:, :] cI2 = I2;
+
+    cdef int cn = I1.shape[0]
+    cdef int ck = k
+
+    with nogil:
+        merge_neighbor_cpu[float](&cD1[0, 0], &cI1[0, 0], &cD2[0, 0], &cI2[0, 0], cn, ck)
+
+    merge_t = time.time() - merge_t
+    print("Merge time:", merge_t)
+
+    return (I1, D1)
+
+
+
+cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
+
+    
+
+    rank = comm.Get_rank()
+    cdef int nlocal = len(X)
+    nlocal_a = np.array(nlocal, dtype=np.float32)
+    N_a = np.array(0.0, dtype=np.float32)
+    comm.Allreduce(nlocal_a, N_a, op=MPI.SUM)
+   
+    cdef float N = N_a
+
+    if prev[2] == 0:
+        globalN = N
+    else:
+        globalN = prev[2]
+
+    if(k > globalN):
+        raise Exception("Distributed Select: k cannot be greater than the total number of points.")
+    
+    #TODO: Combine this with previous MPI Call
+    #Compute Mean and use as approximate Split
+    local_mean_a = np.array(np.sum(X), dtype=np.float32)
+    global_mean_a = np.array(0.0, dtype=np.float32)
+    comm.Allreduce(local_mean_a, global_mean_a, op=MPI.SUM)
+    #print(global_mean_a)
+    cdef float mean = global_mean_a/N
+    #print(rank, "Mean", mean)
+
+    #TODO: Replace with parallel scan and copy
+    cdef float[:] temp_X = np.zeros(nlocal, dtype=np.float32)
+    cdef int[:] temp_ID = np.zeros(nlocal, dtype=np.int32)
+    cdef int[:] perm = np.zeros(nlocal, dtype=np.int32)
+
+    cdef int nleft = 0;
+    cdef int nright = 0;
+    cdef float current_value
+
+    cdef int i = 0
+    for i in range(nlocal):
+        current_value = X[i]
+        if( current_value <= mean):
+            #print(rank, current_value)
+            perm[i] = nleft
+            nleft = nleft + 1
+        else:
+            perm[i] = nlocal - 1 - nright
+            nright = nright + 1
+    i = 0
+    for i in prange(nlocal, nogil=True):
+        temp_X[perm[i]] = X[i]
+        temp_ID[perm[i]] = ID[i]
+
+    i = 0
+    for i in prange(nlocal, nogil=True):
+        X[i] = temp_X[i]
+        ID[i] = temp_ID[i] 
+
+    cdef int nL = prev[0] + nleft;
+    cdef int nR = prev[1] + nright;
+
+    cdef int[:] local_split_info = np.array([nL, nR], dtype=np.int32)
+    cdef int[:] global_split_info = np.array([0, 0], dtype=np.int32)
+    comm.Allreduce(local_split_info, global_split_info, op=MPI.SUM)
+    print(rank, "prev", prev)
+    print(rank, "local_n, global_n", (nlocal, N))
+    print(rank, "local_local_splits", [nleft, nright])
+    print(rank, "local_splits", np.asarray(local_split_info))
+    print(rank, "local total", np.sum(local_split_info))
+    print(rank, "Global split", np.asarray(global_split_info))
+    print(rank, "global total", np.sum(global_split_info))
+    print(rank, "k", k)
+    print(rank, "mean", mean)
+    cdef int global_nleft = global_split_info[0]
+    cdef int global_nright = global_split_info[1]
+
+    if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
+        print(rank, "Mean", mean)
+        print(rank, "NLEFT", nL)
+        return (mean, nL)
+
+    elif (global_nleft > k):
+        print(rank, "left")
+        return dist_select(k, X[:nleft], ID[:nleft], comm, prev=(prev[0], prev[1] + nright, globalN))
+
+    elif (global_nright > k):
+        print(rank, "right")
+        return dist_select(k, X[nleft:], ID[nleft:], comm, prev=(prev[0]+nleft, prev[1], globalN))
+
+    
 
 def scan(l):
     if type(l) is not np.ndarray:

@@ -1059,7 +1059,7 @@ void sort_select(const float *value, const int *ID, int n, float *kval, int *kID
       }
 }
 
-
+/**
 template<typename T>
 void merge_neighbor(const T *D2PtrL, const int *IDl, int kl, 
                     const T *D2PtrR, const int *IDr, int kr, 
@@ -1091,7 +1091,7 @@ void merge_neighbor(const T *D2PtrL, const int *IDl, int kl,
       // call k-select
       sort_select(value.data(), ID.data(), ID.size(), nborDistPtr, nborIDPtr, k);
 }
-
+**/
 /**
 template<typename T>
 void merge_neighbor_gofmm(const T *D2PtrL, const int *IDl, 
@@ -1124,6 +1124,61 @@ void merge_neighbor_gofmm(const T *D2PtrL, const int *IDl,
 }; // end MergeNeighbors()
 **/
 
+template<typename key_t, typename value_t>
+inline bool less_key(const pair<key_t, value_t> &a, const pair<key_t, value_t> &b ){
+    return (a.first < b.first);
+}
+
+template<typename key_t, typename value_t>
+inline bool less_value(const pair<key_t, value_t> &a, const pair<key_t, value_t> &b){
+    return (a.second < b.second);
+}
+
+template<typename key_t, typename value_t>
+inline bool equal_key(const pair<key_t, value_t> &a, const pair<key_t, value_t> &b ){
+    return (a.first == b.first);
+}
+
+template<typename key_t, typename value_t>
+inline bool equal_value(const pair<key_t, value_t> &a, const pair<key_t, value_t> &b){
+    return (a.second == b.second);
+}
+
+
+template<typename T>
+void merge_neighbor_cpu(T* D1, int* I1, T* D2, int* I2, const int n, const int k){
+    omp_set_num_threads(16);
+
+    #pragma omp parallel
+    {
+
+        std::vector<std::pair<int, T>> aux(2*k);
+
+        #pragma omp for
+        for(size_t i = 0; i < n; ++i){
+            size_t offset = i * k;
+            //Merge twolists
+            for(size_t j = 0; j < k; ++j){
+                aux[ j]   = std::make_pair(I1[offset + j], D1[offset + j]);
+                aux[ k+j] = std::make_pair(I2[offset + j], D2[offset + j]);
+            }
+
+            //Sort according to index
+            std::sort(aux.begin(), aux.end(), less_key<int, T>);
+            auto last = std::unique(aux.begin(), aux.end(), equal_key<int, T> );
+            std::sort(aux.begin(), last, less_value<int, T>);
+
+            //Copy Results back to output
+            for(size_t j = 0; j < k; ++j){
+                auto current = aux[j];
+                I1[offset+j] = current.first;
+                D1[offset+j] = current.second;
+            }
+        }
+        
+    }
+    
+}
 
 template<typename T>
 void test(){

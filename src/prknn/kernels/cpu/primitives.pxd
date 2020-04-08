@@ -20,5 +20,4 @@ cdef extern from "impl/primitives_shared.hpp" nogil:
     cdef void test[T]() except +
     cdef void choose2(int *out, int N) except +
     cdef void quickselect[T](T *array, int N, int k) except +
-
-    #cdef void merge_neighbors[T](T *D2PtrL, int *IDl, int kl, T *D2PtrR, int *IDr, int kr, T *nborDistPtr, int *nborIDPtr, int k) except +
+    cdef void merge_neighbor_cpu[T](T* D1, int* I1, T* D2, int* I2, int n, int k) except +
