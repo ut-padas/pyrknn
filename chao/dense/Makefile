@@ -82,7 +82,7 @@ debug: $(EXE)
 	$(EXE) -n 10 -d 5 -l 1 -k 3 -bt 1 -t 20
 
 benchmark: $(EXE)
-	echo "nothing"
+	$(EXE) -dataset mnist -l 5 -k 64 -bt 1 -t 50
 	
 clean:
 	rm -f *.o $(EXE) $(LIB)

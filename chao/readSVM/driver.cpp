@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include "readSVM.hpp"
 #include "timer.hpp"
@@ -42,6 +43,9 @@ int main(int argc, char *argv[]) {
 
   std::cout<<"Error: "<<(A-B).norm()
     <<"\ntime: "<<t.elapsed_time()<<" s"<<std::endl;
+
+  Mat C = read_mnist();
+  std::cout<<"C(10,10):\n"<<C.topLeftCorner(10,10)<<std::endl;
 
   return 0;
 }

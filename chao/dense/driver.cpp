@@ -12,7 +12,7 @@ typedef Eigen::VectorXi VecInt;
 
 #include "denknn.hpp"
 #include "timer.hpp"
-
+#include "readSVM.hpp"
 
 void exact_knn(const Mat &Q, const Mat &R, const VecInt &ID, Mat &nborDist, MatInt &nborID);
 
@@ -30,34 +30,16 @@ void write_matrix(const MatInt &nborID, const Mat &nborDist, const std::string &
 }
 
 
-template <typename T>
-struct almost_equal {
-  T x;
-  almost_equal(T x_): x(x_) {}
-  bool operator()(T y) {
-    return std::fabs(x-y) <= std::numeric_limits<T>::epsilon() * (10+std::fabs(x+y))
-      || std::fabs(x-y) < std::numeric_limits<T>::min();
-  }
-};
-
-int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &dist_cpu, 
+int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const Mat &dist_cpu, 
     int n, int k) {
   
   int miss = 0;
   for (int i=0; i<n; i++) {
-    std::cout<<"\n[row "<<i<<"]"<<std::endl;
-    float *start = dist_cpu.data()+i*k;
-    float *end = dist_cpu.data()+(i+1)*k;
+    auto *start = id_cpu.data()+i*k;
+    auto *end = id_cpu.data()+(i+1)*k;
     for (int j=0; j<k; j++) {
-      start = std::find_if(start, end, almost_equal<float>(dist(i,j)));
-      if ( start != end ) {
-        //std::cout<<"Found "<<j<<": "<<dist(i,j)<<" at "<<*start<<std::endl;
-        start++;  
-      } else { // not found
-        std::cout<<"Gave up at "<<j<<", missed "<<k-j<<std::endl;
-        miss += k-j;
-        break; // no need to search for the rest
-      }
+      if ( std::find(start, end, id(i,j)) == end )
+        miss++;
     }
   }
   return miss;
@@ -66,10 +48,9 @@ int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &
 
 Mat read_dataset(const std::string &dataset) {
 
-  Mat P;
-  /*
+  assert(!dataset.compare("mnist"));
   Timer t; t.start();
-  
+  Mat P = read_mnist();
   t.stop();
 
   std::cout<<"\n======================\n"
@@ -80,7 +61,6 @@ Mat read_dataset(const std::string &dataset) {
            <<"# columns: "<<P.cols()<<"\n"
            <<"time: "<<t.elapsed_time()<<" s\n";
   std::cout<<"======================\n";
-  */
   return P;
 }
 
@@ -183,7 +163,7 @@ int main(int argc, char *argv[]) {
   MatInt nborID = MatInt::Constant(N, K, std::numeric_limits<int>::max());
 
   int niter = (T+blkTree-1) / blkTree;
-  int miss[niter];
+  std::vector<int> miss;
   for (int i=0; i<niter; i++) {
     t.start();
     int ntree = std::min(blkTree, T-i*blkTree);
@@ -191,8 +171,10 @@ int main(int argc, char *argv[]) {
     t.stop(); t_knn += t.elapsed_time();
     
     // compute error
-    miss[i] = compute_error(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
-    std::cout<<"iter "<<i<<":\tmissed: "<<miss[i]<<"\t"<<"accuracy: "<<100.-1.*miss[i]/n/K*100<<" %\n";
+    int err = compute_error(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
+    std::cout<<"iter "<<i<<":\tmissed: "<<err<<"\t"<<"accuracy: "<<100.-1.*err/n/K*100<<" %\n";
+    miss.push_back(err);
+    if (1.*err/n/K < 0.05) break;
   }
   
   // output some results
@@ -212,7 +194,7 @@ int main(int argc, char *argv[]) {
   } 
   
   std::cout<<"\nError: \n";
-  for (int i=0; i<niter; i++)
+  for (int i=0; i<(int)miss.size(); i++)
     printf("Trees %d, missed %d, accuracy: %.0f %%\n", i*blkTree, miss[i], 100.-1.*miss[i]/n/K*100);
   std::cout<<std::endl;
 
