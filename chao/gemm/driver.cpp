@@ -27,6 +27,16 @@ void init_random(SpMat &A, int M, int N, float sparsity) {
 
 void gemm_ssd_gpu(int, int, int, int*, int*, float*, int, float*, float*);
 
+void gemm_gpu(int, int, int, const float*, const float*, float*);
+
+void test_gemm() {
+  int m = 7, n = 5, k = 9;
+  Mat A = Mat::Random(m, k), B = Mat::Random(k, n);
+  Mat C(m, n);
+  gemm_gpu(m, n, k, A.data(), B.data(), C.data());
+  std::cout<<"Error of gemm(): "<<(C-A*B).norm()<<std::endl;
+}
+
 int main(int argc, char *argv[]) {
   
   int m = 5;
@@ -72,6 +82,8 @@ int main(int argc, char *argv[]) {
     <<"C_gpu:\n"<<C_gpu<<"\n";
     */
   std::cout<<"Error: "<<(C-C_gpu).norm()<<"\n";
+
+  test_gemm();
 
   return 0;
 }

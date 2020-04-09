@@ -5,6 +5,7 @@
 
 #include <thrust/gather.h>
 
+
 void gather(dvec<int> &x, const dvec<int>& perm) {
   assert(x.size() == perm.size());
   auto copy = x;
@@ -21,6 +22,25 @@ void gather(float *x, int n, const dvec<int>& perm) {
   fvec copy(xptr, xptr+n);
   thrust::gather(perm.begin(), perm.end(), copy.begin(), xptr);
 }
+
+
+void gather(fvec &A, int m, int n, const ivec &order) {
+  const int  *p = thrust::raw_pointer_cast(order.data());
+  auto copy = A;
+  auto zero = thrust::make_counting_iterator<int>(0);
+  auto iter = thrust::make_transform_iterator(zero, permMatRow(p, n, n));
+  auto perm = thrust::make_permutation_iterator(copy.begin(), iter);
+  thrust::copy(perm, perm+m*n, A.begin());
+}
+
+
+void gather_gpu(float *hA, int m, int n, const int *hP) {
+  fvec dA(hA, hA+m*n);
+  ivec dP(hP, hP+m);
+  gather(dA, m, n, dP);
+  thrust::copy_n(dA.begin(), m*n, hA);
+}
+
 
 void gather(dvec<int> &A_rowPtr, dvec<int> &A_colIdx, dvec<float> &A_val, 
     int m, int n, int nnz, dvec<int> &perm) {

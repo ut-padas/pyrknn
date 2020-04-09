@@ -2,6 +2,28 @@
 #include "knn_handle.hpp"
 
 
+// (dense) A * (dense) B = (dense) C
+void GEMM(int m, int n, int k, const fvec &A, const fvec &B, fvec &C) {
+  auto const& handle = knnHandle_t::instance();
+  float alpha = 1.0;
+  float beta = 0.;
+  CHECK_CUBLAS( cublasSgemm(handle.blas, CUBLAS_OP_T, CUBLAS_OP_N, 
+        m, n, k, &alpha,
+        thrust::raw_pointer_cast(A.data()), k,
+        thrust::raw_pointer_cast(B.data()), k, &beta,
+        thrust::raw_pointer_cast(C.data()), m) );
+}
+
+
+void gemm_gpu(int m, int n, int k, const float *hA, const float *hB, float *hC) {
+  fvec dA(hA, hA+m*k);
+  fvec dB(hB, hB+k*n);
+  fvec dC(m*n);
+  GEMM(m, n, k, dA, dB, dC);
+  thrust::copy_n(dC.begin(), m*n, hC);
+}
+
+
 // (sparse) A * (dense) B = (dense) C
 void GEMM_SDD(int m, int n, int k,
     dvec<int> &rowPtrA, dvec<int> &colIdxA, dvec<float> &valA, int nnzA,

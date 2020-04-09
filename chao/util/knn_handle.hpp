@@ -33,7 +33,7 @@ public:
   csrgemm2Info_t info;
   cusparseHandle_t sparse;
   cusparseMatDescr_t mat;
-  cublasHandle_t blas; 
+  cublasHandle_t blas;
 };
 
 #endif

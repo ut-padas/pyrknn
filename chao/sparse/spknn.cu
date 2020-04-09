@@ -12,15 +12,7 @@
 #include <limits>       // std::numeric_limits
 
 
-void build_tree(dvec<float> &P, int n, int level, dvec<int> &perm);
-
-/*
-void leaf_knn(dvec<int> &dID, dvec<int> &dRowPtr, dvec<int> &dColIdx, dvec<float> &dVal, 
-    int n, int d, int nnz, int nLeaf, int maxPoint,
-    dvec<int> &curID, dvec<float> &curDist, int k, int m);
-
-void create_BDSpMat(const dvec<int>& rowPtr, dvec<int>& colIdx, int n, int d, int nnz, int nLeaf);
-*/
+void build_tree(dvec<float> &P, int n, int level, dvec<int> &perm, float&);
 
 void leaf_knn(int *dID, int *dRowPtr, int *dColIdx, float *dVal, 
     int n, int d, int nnz, int nLeaf, int maxPoint, 
@@ -183,7 +175,8 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
   // timing
   // -----------------------
   float t_tree = 0., t_knn = 0., t_merge = 0.;
-  TimerGPU t;
+  float t_orth = 0., t_sdd = 0., t_sort = 0.;
+  TimerGPU t, t1;
   
   // -----------------------
   // random seed
@@ -208,17 +201,22 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
         // generate random bases
         thrust::counting_iterator<int> start(tree*d*level);
         thrust::transform(start, start+d*level, R.begin(), prg(seed));
+
         //thrust::counting_iterator<int> zero(0);
         //thrust::transform(zero, zero+d*level, R.begin(), prg(current_time_nanoseconds()));
+        t1.start();
         orthogonal(R, d, level);
+        t1.stop(); t_orth += t1.elapsed_time();
         //tprint(level, d, R, "random projection");
 
         // gemm
+        t1.start();
         GEMM_SDD(n, level, d, dRowPtr, dColIdx, dVal, nnz, R, P);
+        t1.stop(); t_sdd += t1.elapsed_time();
         std::cout<<"Finished GEMM.\n"<<std::endl;
 
         // compute permutation
-        build_tree(P, n, level, perm);
+        build_tree(P, n, level, perm, t_sort);
       }
       t.stop(); t_tree += t.elapsed_time();
       //std::cout<<"Finished tree construction.\n"<<std::endl;
@@ -300,6 +298,10 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
            <<"\n    Sparse KNN Timing"
            <<"\n---------------------------"
            <<"\n* Build tree: "<<t_tree<<" s"
+           //<<"\n\t- rand: "<<t_rand<<" s"
+           <<"\n\t- orthogonal: "<<t_orth<<" s"
+           <<"\n\t- gemm_sdd: "<<t_sdd<<" s"
+           <<"\n\t- sort: "<<t_sort<<" s"
            <<"\n* Leaf KNN: "<<t_knn<<" s"
            <<"\n* Merge: "<<t_merge<<" s"
            <<"\n===========================\n"

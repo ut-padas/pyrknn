@@ -27,9 +27,9 @@ int main(int argc, char *argv[]) {
   Mat A = Mat::Random(m, n);
   orthogonal_gpu(A.data(), m, n);
 
-  Mat E = Mat::Identity(n, n) - A.transpose() * A;
+  //Mat E = Mat::Identity(n, n) - A.transpose() * A;
 
-  std::cout<<"Error: "<<E.norm()<<"\n";
+  //std::cout<<"Error: "<<E.norm()<<"\n";
 
   return 0;
 }

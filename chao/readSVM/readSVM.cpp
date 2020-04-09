@@ -61,10 +61,10 @@ SpMat read_avazu_dataset() {
   std::vector<std::string> files;
   //std::string file1("/scratch/06108/chaochen/avazu-app.t");
   std::string file2("/scratch/06108/chaochen/avazu-app");
-  std::string file3("/scratch/06108/chaochen/avazu-site");
+  //std::string file3("/scratch/06108/chaochen/avazu-site");
   //files.push_back(file1);
   files.push_back(file2);
-  files.push_back(file3);
+  //files.push_back(file3);
   return read_svm(files, 1000000);
 }
 

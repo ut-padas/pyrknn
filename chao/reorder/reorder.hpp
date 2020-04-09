@@ -8,6 +8,8 @@ void gather(dvec<int>&, const dvec<int>&);
 
 void gather(float*, int, const dvec<int>&);
 
+void gather(fvec&, int, int, const ivec&);
+
 void gather(dvec<int>&, dvec<int>&, dvec<float>&, int, int, int, dvec<int>&);
 
 template <typename T>

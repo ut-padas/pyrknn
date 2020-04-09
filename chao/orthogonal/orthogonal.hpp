@@ -1,6 +1,8 @@
 #ifndef ORTHOGONAL_HPP
 #define ORTHOGONAL_HPP
 
-void orthogonal(fvec&, int, int);
+#include <thrust/device_vector.h>
+
+void orthogonal(thrust::device_vector<float>&, int, int);
 
 #endif

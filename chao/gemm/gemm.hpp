@@ -4,6 +4,8 @@
 #include <cusparse.h> 
 #include "util_gpu.hpp"
 
+void GEMM(int, int, int, const fvec&, const fvec&, fvec&);
+
 void GEMM_SDD(int, int, int, ivec&, ivec&, fvec&, int, fvec&, fvec&);
 
 void GEMM_SSD(int m, int n, int k, float alpha,

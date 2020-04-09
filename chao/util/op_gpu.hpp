@@ -2,6 +2,7 @@
 #define OP_GPU_HPP
 
 #include <thrust/random.h>
+#include <thrust/functional.h>
 
 struct prg: public thrust::unary_function<unsigned int, float> {
   int seed;
@@ -17,6 +18,18 @@ struct prg: public thrust::unary_function<unsigned int, float> {
     rng.discard(n);
     return dist(rng);
   }
+};
+
+struct rowIdx : public thrust::unary_function<int, int> {
+  int nCol;
+
+  __host__ __device__
+    rowIdx(int c): nCol(c)  {}
+
+  __host__ __device__
+    int operator()(int i) {
+      return i/nCol;
+    }
 };
 
 struct firstKCols : public thrust::unary_function<int, int> {

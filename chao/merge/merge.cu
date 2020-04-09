@@ -67,19 +67,6 @@ struct firstKIdx: public thrust::unary_function<int, int> {
 };
 
 
-struct rowIdx: public thrust::unary_function<int, int> {
-  const int nCols;
-  
-  __host__ __device__
-    rowIdx(int n): nCols(n) {}
-
-  __host__ __device__
-    int operator()(const int i) const {
-      return i/nCols;
-    }
-};
-
-
 template <typename T>
 void free(dvec<T> &x) {
   x.clear();

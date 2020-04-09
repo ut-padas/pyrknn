@@ -49,6 +49,16 @@ void init_random(SpMat &A, int M, int N, float sparsity) {
 }
 
 
+void write_matrix(const MatInt &nborID, const Mat &nborDist, const std::string &filename) {
+  std::ofstream fout(filename.c_str());
+  assert(fout.good());
+  fout << nborID.rows() << " " << nborID.cols() << std::endl;
+  fout << nborID << std::endl;
+  fout << nborDist << std::endl;
+  fout.close();
+}
+
+
 SpMat read_dataset(std::string dataset) {
 
   SpMat P;
@@ -59,6 +69,10 @@ SpMat read_dataset(std::string dataset) {
     P = read_csr_binary("/scratch/06108/chaochen/url_csr.bin");
   else if (dataset.compare("avazu")==0)
     P = read_csr_binary("/scratch/06108/chaochen/avazu_csr.bin");
+  else if (dataset.compare("avazu_app")==0)
+    P = read_csr_binary("/scratch/06108/chaochen/avazu_app_csr.bin");
+  else if (dataset.compare("avazu_app_t")==0)
+    P = read_csr_binary("/scratch/06108/chaochen/avazu_app_t_csr.bin");
   else
     assert(false && "unknown dataset");
   t.stop();
@@ -109,29 +123,56 @@ SpMat create_random_points(int argc, char *argv[]) {
 }
 
 
-int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const Mat &dist_cpu, int n, int k) {
+int compute_error_bak(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const Mat &dist_cpu, 
+    int n, int k) {
+
   int miss = 0;
-  /*
-  for (int i=0; i<n; i++) {
-    for (int j=0; j<k; j++) {
-      if (X(i,j) != ref(i,j)) {
-        miss ++;
-      }
-    }
-  }*/
-  
   for (int i=0; i<n; i++) {
     const int *start = id_cpu.data()+i*k;
-    //const float farthest = dist_cpu(i,k-1);
+    const float farthest = dist_cpu(i,k-1);
     for (int j=0; j<k; j++) {
-      if (std::find(start, start+k, id(i,j)) == start+k) // ID not found
-          //&&dist(i,j) > farthest) 
+      if (std::find(start, start+k, id(i,j)) == start+k // ID not found
+          && dist(i,j) > farthest*(1+std::numeric_limits<float>::epsilon())
+          ) 
       {
         miss++;
       }
     }
+  }  
+  return miss;
+}
+
+
+template <typename T>
+struct almost_equal {
+  T x;
+  almost_equal(T x_): x(x_) {}
+  bool operator()(T y) {
+    return std::fabs(x-y) <= std::numeric_limits<T>::epsilon() * (10+std::fabs(x+y))
+      || std::fabs(x-y) < std::numeric_limits<T>::min();
   }
+};
+
+int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &dist_cpu, 
+    int n, int k) {
   
+  int miss = 0;
+  for (int i=0; i<n; i++) {
+    std::cout<<"\n[row "<<i<<"]"<<std::endl;
+    float *start = dist_cpu.data()+i*k;
+    float *end = dist_cpu.data()+(i+1)*k;
+    for (int j=0; j<k; j++) {
+      start = std::find_if(start, end, almost_equal<float>(dist(i,j)));
+      if ( start != end ) {
+        //std::cout<<"Found "<<j<<": "<<dist(i,j)<<" at "<<*start<<std::endl;
+        start++;  
+      } else { // not found
+        std::cout<<"Gave up at "<<j<<", missed "<<k-j<<std::endl;
+        miss += k-j;
+        break; // no need to search for the rest
+      }
+    }
+  }
   return miss;
 }
 
@@ -200,10 +241,11 @@ int main(int argc, char *argv[]) {
   Mat nborDistCPU(n, K);
   MatInt nborIDCPU(n, K);
   
+  std::string filename;
   if (dataset.empty())
     exact_knn(P.topRows(n), P, ID, nborDistCPU, nborIDCPU);
   else {
-    std::string filename = "ref_"+dataset+".txt";
+    filename = "ref_"+dataset+".txt";
     exact_knn(P.topRows(n), P, ID, nborDistCPU, nborIDCPU, filename);
   }
   t.stop(); t_exact = t.elapsed_time();
@@ -213,7 +255,7 @@ int main(int argc, char *argv[]) {
   MatInt nborID = MatInt::Constant(N, K, std::numeric_limits<int>::max());
 
   int niter = (T+blkTree-1) / blkTree;
-  int miss[niter];
+  std::vector<int> miss;
   for (int i=0; i<niter; i++) {
     t.start();
     int ntree = std::min(blkTree, T-i*blkTree);
@@ -222,8 +264,11 @@ int main(int argc, char *argv[]) {
     t.stop(); t_spknn += t.elapsed_time();
     
     // compute error
-    miss[i] = compute_error(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
-    std::cout<<"iter "<<i<<":\tmissed: "<<miss[i]<<"\t"<<"ratio: "<<1.*miss[i]/n/K*100<<" %\n";
+    int err = compute_error(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
+    double acc = 100. - 1.*err/n/K*100;
+    std::cout<<"iter "<<i<<":\tmissed: "<<err<<"\t"<<"accuracy: "<<acc<<" %\n";
+    miss.push_back(err);
+    if (acc > 95.) break;
   }
   
   // output some results
@@ -243,11 +288,17 @@ int main(int argc, char *argv[]) {
   } 
   
   std::cout<<"\nError: \n";
-  for (int i=0; i<niter; i++)
-    printf("Trees %d, missed %d, ratio: %.0f %%\n", i*blkTree, miss[i], 1.*miss[i]/n/K*100);
-    //std::cout<<"iter "<<i<<":\tmissed: "<<miss[i]<<"\t"<<"ratio: "<<1.*miss[i]/n/K*100<<" %\n";
+  for (int i=0; i<(int)miss.size(); i++)
+    printf("Trees %d, missed %d, accuracy: %.1f %%\n", i*blkTree, miss[i], 100.-1.*miss[i]/n/K*100);
   std::cout<<std::endl;
 
+  if (!dataset.empty()) {
+    filename[0]='g';
+    filename[1]='p';
+    filename[2]='u';
+    write_matrix(nborID.topRows(n), nborDist.topRows(n), filename);
+    std::cout<<"Finished computing results on GPU and writing them to "<<filename<<std::endl;
+  }
 
   return 0;
 }
@@ -353,12 +404,7 @@ void exact_knn(const SpMat &Q, const SpMat &R, const VecInt &ID, Mat &nborDist, 
   
   exact_knn(Q, R, ID, nborDist, nborID);
 
-  std::ofstream fout(filename.c_str());
-  assert(fout.good());
-  fout << Q.rows() << " " << nborID.cols() << std::endl;
-  fout << nborID << std::endl;
-  fout << nborDist << std::endl;
-  fout.close();
+  write_matrix(nborID, nborDist, filename);
   std::cout<<"Finished computing results on CPU and writing them to "<<filename<<std::endl;
 }
 
