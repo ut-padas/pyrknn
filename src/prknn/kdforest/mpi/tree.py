@@ -42,9 +42,9 @@ class RKDT:
         if comm is not None:
             self.comm = comm
         else:
-            comm = MPI.COMM_WORLD
+            self.comm = MPI.COMM_WORLD
 
-        rank = comm.Get_rank()
+        rank = self.comm.Get_rank()
         #self.loaded_data = False   #Does self.data exist?
         #self.loaded_query = False  #Does self.projection exist?
 
@@ -227,27 +227,27 @@ class RKDT:
         #TODO: Send stream of random integers for levels > dim case
 
 
-        #self.size_list = [[N]]
-        #self.offset_list = [[0]]
-        #self.host_offset_list = [[0]]
+        self.size_list = [[self.local_size]]
+        self.offset_list = [[0]]
+        self.host_offset_list = [[0]]
 
         #Precompute the node sizes at each level
-        #for level in range(0, self.levels):
-        #    level_size_list = []
-        #    for n in self.size_list[level]:
-        #        level_size_list.append(np.floor(n/2))
-        #        level_size_list.append(np.ceil(n/2))
-        #    self.size_list.append(level_size_list)
+        for level in range(0, self.levels-self.dist_levels+1):
+            level_size_list = []
+            for n in self.size_list[level]:
+                level_size_list.append(np.floor(n/2))
+                level_size_list.append(np.ceil(n/2))
+            self.size_list.append(level_size_list)
 
-        #for level in range(0, self.levels):
-        #    self.size_list[level].insert(0, 0)
+        for level in range(0, self.levels):
+            self.size_list[level].insert(0, 0)
 
         #Precompute the offset for each node
-        #for level in range(0, self.levels):
-        #    self.offset_list.append(self.lib.cumsum(self.size_list[level]))
-        #    self.host_offset_list.append(np.cumsum(self.size_list[level]))
+        for level in range(0, self.levels-self.dist_levels+1):
+            self.offset_list.append(self.lib.cumsum(self.size_list[level]))
+            self.host_offset_list.append(np.cumsum(self.size_list[level]))
 
-        #print(self.offset_list)
+        print(self.offset_list)
         
         #Copy over from host data to data
         """
@@ -811,6 +811,10 @@ class RKDT:
             #print("idx", idx - 2**self.level +1)
             #self.offset = self.tree.offset_list[self.level][0]
 
+            #print(idx, "Node Creation")
+            #print(idx, "offset_list", self.tree.offset_list[self.level+1])
+            #print(idx, "id", idx - 2**self.level + 1)
+            self.offset = int(self.tree.offset_list[self.level+1][idx - 2**self.level + 1])
             self.lib = self.tree.lib
 
 
@@ -896,8 +900,8 @@ class RKDT:
             """
             #TODO: Replace with gpu kernel
             #print("shape", self.tree.vectors.shape)
-            #print("size", self.size)
-            #print("off", self.offset)
+            #print(self.id, "size", self.size)
+            #print(self.id, "off", self.offset)
             a = self.level
             if self.level >= self.tree.dim:
                 a = random.randint(0, self.tree.dim-1)
@@ -906,7 +910,8 @@ class RKDT:
             #self.vector = self.vector/self.lib.linalg.norm(self.vector, 2)
             #print("DAT", self.tree.data[self.gids, ...].shape, flush=True)
             #print("vec", self.vector.shape, flush=True)
-            self.local_ = self.tree.data[self.gids, ...] @ self.vector
+            self.local_ = self.tree.data[self.offset:self.offset+self.size, ...] @ self.vector
+            del a
             #print("out", self.local_.shape, flush=True)
             #self.local_ = self.local_[:, 0]
             #self.anchors = self.lib.random.choice(self.gids, 2, replace=False)
@@ -944,14 +949,25 @@ class RKDT:
                 self.isleaf=True
                 return [None, None]
 
+            #self.offset = self.tree.offset_list[self.level][idx - 2**self.level + 1]
+            self.ordered = True            
             if self.tree.location == "CPU":
 
                 #project onto line (projection stored in self.local_)
                 self.select_hyperplane()
+              
                 self.lids = self.lib.argpartition(self.local_, middle)  #parition the local ids
 
-                self.gids = self.gids[self.lids]                  #partition the global ids
-
+                
+                self.tree.gids[self.offset:self.offset+self.size] = self.gids[self.lids]                  #partition the global ids
+                
+                #gids_view = self.gids[self.offset:self.offset+self.size]
+                #print(self.id, "data", self.tree.data.shape, flush=True)
+                #print(self.id, "offset", self.offset, flush=True)
+                #print(self.id, "size", self.size, flush=True)
+                #print(self.id, "local_", self.local_.shape, flush=True)
+                #print(self.id, "mid", middle, flush=True)
+                #print(self.id, "lid", self.lids.shape, flush=True)
                 self.plane = self.local_[self.lids[middle]]       #save the splitting line
 
                 self.cleanup()                                    #delete the local projection (it isn't required any more)
@@ -966,22 +982,34 @@ class RKDT:
 
                 children = [left, right]
                 self.set_children(children)
+                
+                local_data = self.tree.data[self.offset:self.offset+self.size]
+                self.tree.data[self.offset:self.offset+self.size] = local_data[self.lids]
 
+                del local_data
+                del self.lids
                 return children
 
             elif self.tree.location == "GPU":
 
                 #project onto line (projection is stored in self.local_)
-
                 with stream:
                     a = self.level
                     if self.level >= self.tree.dim:
                         a = random.randint(0, self.tree.dim-1)
+
                     self.vector = self.tree.vectors[a, :]
-                    self.local_ = self.tree.data[self.gids, ...] @ self.vector
+                    self.local_ = self.tree.data[self.offset:self.offset+self.size, ...] @ self.vector
                     self.lids = self.lib.argpartition(self.local_, middle)
-                    self.gids = self.gids[self.lids]
+
+                    self.tree.gids[self.offset:self.offset+self.size] = self.gids[self.lids]
                     self.plane = self.local_[self.lids[middle]]
+                    local_data = self.tree.data[self.offset:self.offset+self.size]
+                    self.tree.data[self.offset:self.offset+self.size] = local_data[self.lids]
+
+                    del local_data
+                    del self.lids
+                    del self.local_
 
                 left = self.tree.Node(self.tree, level=self.level+1, idx=2*self.id+1, size=middle, gids=self.gids[:middle])
                 right = self.tree.Node(self.tree, level=self.level+1, idx=2*self.id+2, size=int(self.size-middle), gids=self.gids[middle:])
@@ -1227,10 +1255,11 @@ class RKDT:
         leaf_nodes = self.get_level(max_level)
         n_leaves = len(leaf_nodes)
 
-        rgL = []
-        for leaf in leaf_nodes:
-            rgL.append(self.real_gids[leaf.gids])
-        real_gids = self.lib.concatenate(rgL)
+        #rgL = []
+        #for leaf in leaf_nodes:
+        #    rgL.append(self.real_gids[leaf.gids])
+        #real_gids = self.lib.concatenate(rgL)
+        real_gids = self.real_gids[self.gids]
 
         #compute batchsize
         MAXBATCH = 2048
