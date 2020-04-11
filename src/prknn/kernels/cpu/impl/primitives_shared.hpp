@@ -150,7 +150,7 @@ T quickselect(T* array, const unsigned int N, const unsigned int k){
 template<typename T>
 void tree_build(int offset, int* gids, T* data ,int n, int d, int* seghead, int nNode, int maxsize, T* valX, float* median, T* y){
 
-    set_num_threads(10); //TODO Replace with Singleton Enviornment Call (Or fix/remove PARLA import )
+    set_num_threads(4); //TODO Replace with Singleton Enviornment Call (Or fix/remove PARLA import )
     
     unsigned int nthreads = get_num_threads();
 
@@ -908,7 +908,7 @@ void batchedGSKNN(idx_type<T> **rgids,
              const idx_type<T>  nleaves
             ){
 
-    omp_set_num_threads(16);
+    omp_set_num_threads(4);
     //printf("Started C++ Section \n");
     idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
     //printf("MAXT %d\n", maxt);
@@ -1147,7 +1147,7 @@ inline bool equal_value(const pair<key_t, value_t> &a, const pair<key_t, value_t
 
 template<typename T>
 void merge_neighbor_cpu(T* D1, int* I1, T* D2, int* I2, const int n, const int k){
-    omp_set_num_threads(16);
+    omp_set_num_threads(4);
 
     #pragma omp parallel
     {

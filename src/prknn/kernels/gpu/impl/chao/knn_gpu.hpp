@@ -7,7 +7,7 @@ void gemm_kselect_opt(int, float*[], float*[], int*[], int, int, float*[], int*[
 
 void knn_gpu(float* ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], int *ptrNborID[], int nLeaf, int N, int d, int k, int m
 #ifdef PROD
-    );
+    , int device);
 #else
     , float &t_dist, float &t_sort, float &t_kernel);
 #endif

@@ -2,6 +2,7 @@ import numpy as np
 import cupy as cp
 from ...kernels.cpu import core as cpu
 from ...kernels.gpu import core as gpu
+import time
 
 """File that contains key kernels to be replaced with high performance implementations"""
 
@@ -97,9 +98,8 @@ def single_knn(gids, R, Q, k):
             neighbor_dist[q_idx, ...] = neighbor_dist[q_idx, shuffle_idx]       #This performs a copy of dist
             neighbor_gids = neighbor_gids[shuffle_idx]                          #This performs a copy of gids
 
-            neighbor_list[q_idx, ...] = neighbor_gids                           #This performs a copy of gids
-
-            return neighbor_list, neighbor_dist
+            neighbor_list[q_idx, ...] = neighbor_gids                           #This performs a copy of gi
+        return neighbor_list, neighbor_dist
 
     if env == "CPU":
         return cpu.single_knn(gids, R, Q, k)
@@ -183,12 +183,13 @@ def merge_neighbors(a, b, k):
         changes -- number of updates made to the nearest neihgbor list a
     """
     global env
+    merge_t = time.time()
 
     if env == "CPU":
         return cpu.merge_neighbors(a, b, k)
 
     if env == "GPU":
-        return gpu.merge_neighbors(a, b, k)
+        out = gpu.merge_neighbors(a, b, k)
 
     if env == "PYTHON":
         # This is currently very wasteful/suboptimal
@@ -233,7 +234,11 @@ def merge_neighbors(a, b, k):
             a_list[i] = merged_idx
             a_dist[i] = merged_dist
 
-        return (a_list, a_dist)
+        out = (a_list, a_dist)
+
+    merge_t = time.time() - merge_t
+
+    return out
 
 #This isn't really an HPC kernel, just a useful utility function I didn't know where else to put
 def neighbor_dist(a, b):

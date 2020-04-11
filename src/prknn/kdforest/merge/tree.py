@@ -12,8 +12,10 @@ import os
 import numpy as np
 import cupy as cp
 import scipy.sparse as sp
+import random
  
 from collections import defaultdict
+import gc
 
 class RKDT:
     """Class for Randomized KD Tree Nearest Neighbor Searches"""
@@ -36,12 +38,17 @@ class RKDT:
         self.sparse = sparse 
 
         self.ordered = False  #Is self.data stored in a tree order in memory
-        self.loaded_data = False   #Does self.data exist?
-        self.loaded_query = False  #Does self.projection exist?
-        self.lowmem = False   #Is self.projection 
-        self.batch_levels = self.levels
 
-        self.data_offset = 0
+
+        #self.loaded_data = False   #Does self.data exist?
+        #self.loaded_query = False  #Does self.projection exist?
+
+        #self.lowmem = False   #Is self.projection 
+        #self.batch_levels = self.levels
+
+        #self.data_offset = 0
+
+        self.host_data = None
         
         if(self.location == "CPU"):
             self.lib = np
@@ -54,24 +61,32 @@ class RKDT:
 
             if( self.sparse ):
                 #(data, indices, indptr)
-                #Copy of data in CPU Memory
 
-                local_data = np.asarray(pointset.data, dtype=np.float32)
-                local_indices = np.asarray(pointset.indices, dtype=np.int32)
-                local_indptr = np.asarray(pointset.indptr, dtype=np.int32)
+                if(self.location == "GPU"):
+                    #Copy of data in CPU Memory
 
-                self.host_data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
+                    local_data = self.lib.asnumpy(pointset.data)
+                    local_indices = self.lib.asnumpy(pointset.indices)
+                    local_indptr = self.lib.asnumpy(pointset.indptr)
+
+                    self.host_data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
 
                 #Copy of data in location Memory
                 local_data = self.lib.asarray(pointset.data, dtype=np.float32)
                 local_indices = self.lib.asarray(pointset.indices, dtype=np.int32)
                 local_indptr = self.lib.asarray(pointset.indptr, dtype=np.int32)
                 self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
+
             else:
-                #Copy of data in CPU Memory
-                self.host_data = np.asarray(pointset, dtype=np.float32)
+                if(self.location == "GPU"):
+                    #Copy of data in CPU Memory
+                    self.host_data = self.lib.asnumpy(pointset)
                 #Copy of data in location memory
                 self.data = self.lib.asarray(pointset, dtype=np.float32)
+
+
+            if(self.location == "CPU"): 
+                self.host_data = self.data
 
             self.dim = self.host_data.shape[1]
 
@@ -86,12 +101,14 @@ class RKDT:
             self.gids = self.lib.asarray([])
 
             if(self.sparse):
-                #Copy of CPU Memory
-                local_data = np.asarray([], dtype=np.float32)
-                local_indices = np.asarray([], dtype=np.int32)
-                local_indptr = np.asarray([], dtype=np.float32)
-                
-                self.data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
+
+                if(self.location == "GPU"):
+                    #Copy of CPU Memory
+                    local_data = np.asarray([], dtype=np.float32)
+                    local_indices = np.asarray([], dtype=np.int32)
+                    local_indptr = np.asarray([], dtype=np.float32)
+                    
+                    self.host_data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
 
                 #Copy of location memory
                 local_data = self.lib.asarray([], dtype=np.float32)
@@ -100,8 +117,9 @@ class RKDT:
                 
                 self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
             else:
-                #Copy of data in CPU Memory
-                self.host_data = np.asarray([], dtype=np.float32)
+                if(self.location == "GPU"):
+                    #Copy of data in CPU Memory
+                    self.host_data = np.asarray([], dtype=np.float32)
                 #Copy of data in location memory
                 self.data = self.lib.asarray([], dtype=np.float32)
 
@@ -109,32 +127,13 @@ class RKDT:
         Primitives.set_env(self.location, self.sparse)
         self.built=False
 
-    #TODO: Update set to sparse case
-    """
-    def set(pointset=None, leafsize=None, levels=None):
-        Set or redefine the key values of a RKDT
-
-            Keyword arguments:
-                levels -- maximum number of levels in the tree
-                leafsize -- Leaves of size (2*leafsize + 1) will not be split
-                pointset -- the N x d dataset of N d dimensional points in Rn
-        if self.built:
-            raise ErrorType.InitializationError('You cannot call set on a tree that has already been built')
-
-        if (pointset is not None):
-            self.data = self.lib.asarray(pointset)
-            self.size = len(pointset)
-            if (self.size > 0):
-                self.empty= False
-            else:
-                self.empty=True
-        if (leafsize is not None):
-            assert(leafsize >= 0)
-            self.leafsize = leafsize
-        if (levels is not None):
-            assert(levels >= 0)
-            self.levels = levels
-    """
+    def __del__(self):
+        for node in self.nodelist:
+            del node
+        del self.vectors
+        del self.gids
+        del self.data
+        del self.host_data
 
     @classmethod
     def set_verbose(self, v):
@@ -177,11 +176,40 @@ class RKDT:
         self.nodelist = [None] * N
 
 
+        self.vectors = self.lib.random.rand(self.dim, self.levels+2)
+        qr_t = time.time()
+        self.vectors = self.lib.linalg.qr(self.vectors)[0].T
+        qr_t = time.time() - qr_t
+        print("QR Time", qr_t)
+
+
+        #self.size_list = [[N]]
+        #self.offset_list = [[0]]
+        #self.host_offset_list = [[0]]
+
+        #Precompute the node sizes at each level
+        #for level in range(0, self.levels):
+        #    level_size_list = []
+        #    for n in self.size_list[level]:
+        #        level_size_list.append(np.floor(n/2))
+        #        level_size_list.append(np.ceil(n/2))
+        #    self.size_list.append(level_size_list)
+
+        #for level in range(0, self.levels):
+        #    self.size_list[level].insert(0, 0)
+
+        #Precompute the offset for each node
+        #for level in range(0, self.levels):
+        #    self.offset_list.append(self.lib.cumsum(self.size_list[level]))
+        #    self.host_offset_list.append(np.cumsum(self.size_list[level]))
+
+        #print(self.offset_list)
+        
         #Copy over from host data to data
         #TODO: Move this to after first log2(nGPU) partitions to support multiGPU case        
-
+        """
         if (self.sparse):
-            #Copy of data in location Memory
+           # #Copy of data in location Memory
             local_data = self.lib.asarray(self.host_data.data, dtype=np.float32)
             local_indices = self.lib.asarray(self.host_data.indices, dtype=np.int32)
             local_indptr = self.lib.asarray(self.host_data.indptr, dtype=np.int32)
@@ -258,52 +286,58 @@ class RKDT:
                 node.set_children([nodelist[2*idx+1], nodelist[2*idx+2])
                 if(level == self.levels-1):
                     node.isleaf=True
-             
-                
+                  
         """ 
-        if self.location == "CPU":
-            with Parla():
-                @spawn(placement = cpu)
-                async def build_tree():
-                    T = TaskSpace()
-                    #Create the root node
-                    @spawn(T[0], placement = cpu)
-                    def create_root():
-                        root = self.Node(self, idx=0, level=0, size=self.size, gids=self.gids)
-                        self.nodelist[0] = root
-                    
-                    #Build tree in in-order traversal
-                    #TODO: Key area for PARLA Tasks
-                    for level in range(self.levels):
-                        start = 2**level -1
-                        stop  = 2**(level+1) - 1
-                        level_size = stop - start
-                        data_size = self.size/2**level * 4
-                        for i in range(level_size):
-                            @spawn(T[start+i+1], [T[0], T[int((start+i+1)/2)]], placement = cpu, memory=data_size)
-                            def create_children_task():
-                                current_node = self.nodelist[start+i]
-                                if current_node is not None:
-                                    children = current_node.split()
-                                    children = list(filter(None, children))
-                                    for child in children:
-                                        idx = child.get_id()
-                                        self.nodelist[idx] = child
-                    await T
-                    self.built=True
-        
-        elif self.location == "GPU":
-            root = self.Node(self, idx=0, level=0, size=self.size, gids=self.gids)
-            self.root = root
-            root.split(cp.cuda.Stream(non_blocking=True))
-            self.built=True
-
-        """
-        self.ordered = True
+        if self.sparse:
+            print("Removed as it will need changes soon")
+            self.built = False
+            #self.ordered=True
+        else:
+            if self.location == "CPU":
+                with Parla():
+                    @spawn(placement = cpu)
+                    async def build_tree():
+                        T = TaskSpace()
+                        #Create the root node
+                        @spawn(T[0], placement = cpu)
+                        def create_root():
+                            root = self.Node(self, idx=0, level=0, size=self.size, gids=self.gids)
+                            self.nodelist[0] = root
+                        
+                        #Build tree in in-order traversal
+                        #TODO: Key area for PARLA Tasks
+                        for level in range(self.levels):
+                            start = 2**level -1
+                            stop  = 2**(level+1) - 1
+                            level_size = stop - start
+                            data_size = self.size/2**level * 4
+                            for i in range(level_size):
+                                @spawn(T[start+i+1], [T[0], T[int((start+i+1)/2)]], placement = cpu, memory=data_size)
+                                def create_children_task():
+                                    split_t = time.time()
+                                    current_node = self.nodelist[start+i]
+                                    if current_node is not None:
+                                        children = current_node.split()
+                                        children = list(filter(None, children))
+                                        for child in children:
+                                            idx = child.get_id()
+                                            self.nodelist[idx] = child
+                                    split_t = time.time() - split_t
+                                    #print("A node in level", np.log(start+1), "took ", split_t) 
+                        await T
+                        self.built=True
+            
+            elif self.location == "GPU":
+                root = self.Node(self, idx=0, level=0, size=self.size, gids=self.gids)
+                self.root = root
+                root.split(cp.cuda.Stream(non_blocking=True))
+                self.built=True
+            self.ordered = False
         
         #Fix overestimate of tree levels (see #TODO above)
         if self.get_level(self.levels)[0] is None:
             self.levels -= 1
+
 
     class Node:
 
@@ -328,13 +362,22 @@ class RKDT:
 
             self.gids = gids
             self.vector = None
-            self.offset = 0
  
+            self.anchors = None
+
             self.isleaf = True
             self.parent = None
             self.children = [None, None]
+            #print(self.tree.offset_list[self.level])
+            #print("idx", idx - 2**self.level +1)
+            #self.offset = self.tree.offset_list[self.level][0]
 
             self.lib = self.tree.lib
+
+
+        def __del__(self):
+            del self.gids
+            del self.vector
 
         def __str__(self):
             """Overloading the print function for a RKDT.Node class"""
@@ -352,6 +395,7 @@ class RKDT:
                 msg = 'Node: ' + str(self.id) + ' at level '+ str(self.level) + ' of size ' + str(self.size)
             return msg
 
+
         def get_id(self):
             """Return the binary tree array order index of a RKDT.Node """
             return self.id
@@ -365,7 +409,7 @@ class RKDT:
             if self.tree.ordered:
                 return self.tree.data[offset:offset+size, ...]
             else:
-                return self.lib.asarray(self.tree.host_data[self.gids, ...], dtype=float32)
+                return self.tree.data[self.gids, ...]
 
         def set_right_child(self, node):
             """Set the 'pointer' to the right child. (Points should be < split)"""
@@ -399,6 +443,129 @@ class RKDT:
                 idx -- axis to compute median along. If idx < 0 compute with the saved local projection onto anchor points
             """
             return self.lib.median(self.tree.host_data[self.gids, idx])
+
+        def select_hyperplane(self):
+
+            """Select the random line and project onto it.
+                Algorithm:
+                    Select 2 random points owned by this node.
+                    Compute the distance from all other points to these two 'anchor points'
+                    The projection local_ is their difference.
+
+                    This computes <x, (a_1 - a_2)>
+
+            """
+            #TODO: Replace with gpu kernel
+            #print("shape", self.tree.vectors.shape)
+            #print("size", self.size)
+            #print("off", self.offset)
+            a = self.level
+            if self.level >= self.tree.dim:
+                a = random.randint(0, self.tree.dim-1)
+            self.vector = self.tree.vectors[a, :]
+            #self.vector = self.lib.random.rand(self.tree.dim, 1).astype(np.float32)
+            #self.vector = self.vector/self.lib.linalg.norm(self.vector, 2)
+            #print("DAT", self.tree.data[self.gids, ...].shape, flush=True)
+            #print("vec", self.vector.shape, flush=True)
+            self.local_ = self.tree.data[self.gids, ...] @ self.vector
+            #print("out", self.local_.shape, flush=True)
+            #self.local_ = self.local_[:, 0]
+            #self.anchors = self.lib.random.choice(self.gids, 2, replace=False)
+            #dist = Primitives.distance(self.tree.data[self.gids, ...], self.tree.data[self.anchors, ...])
+            #self.local_ = dist[0] - dist[1]
+
+
+        def cleanup(self):
+            del self.local_
+
+        def split(self, stream=None):
+
+            """Split a node and assign both children.
+
+            Return value:
+                children -- [left, right] containing the left and right child nodes respectively
+
+            Algorithm:
+                Project onto line. (un-normalized in the current implementation)
+                Split at median of projection.
+                Partition gids and assign to children. left < median, right > median
+
+            """
+
+            middle = int(self.size//2)
+
+            self.tree.nodelist[self.id] = self
+
+            #Stop the split if the leafsize is too small, or the maximum level has been reached
+
+            if (middle < self.tree.leafsize) or (self.level+1) > self.tree.levels:
+                self.plane = None
+                self.anchors = None
+                self.vector = None
+                self.isleaf=True
+                return [None, None]
+
+            if self.tree.location == "CPU":
+
+                #project onto line (projection stored in self.local_)
+                self.select_hyperplane()
+                self.lids = self.lib.argpartition(self.local_, middle)  #parition the local ids
+
+                self.gids = self.gids[self.lids]                  #partition the global ids
+
+                #TODO: When replacing this with Hongru's kselect the above should be the same step in a key-value pair
+
+                self.plane = self.local_[self.lids[middle]]       #save the splitting line
+
+                self.cleanup()                                    #delete the local projection (it isn't required any more)
+
+                #Initialize left and right nodes
+                
+                left = self.tree.Node(self.tree, level = self.level+1, idx = 2*self.id+1, size=middle, gids=self.gids[:middle])
+                right = self.tree.Node(self.tree, level = self.level+1, idx = 2*self.id+2, size=int(self.size - middle), gids=self.gids[middle:])
+
+                left.set_parent(self)
+                right.set_parent(self)
+
+                children = [left, right]
+                self.set_children(children)
+
+                return children
+
+            elif self.tree.location == "GPU":
+
+                #project onto line (projection is stored in self.local_)
+
+                with stream:
+                    a = self.level
+                    if self.level >= self.tree.dim:
+                        a = random.randint(0, self.tree.dim-1)
+                    self.vector = self.tree.vectors[a, :]
+                    self.local_ = self.tree.data[self.gids, ...] @ self.vector
+                    self.lids = self.lib.argpartition(self.local_, middle)
+                    self.gids = self.gids[self.lids]
+                    self.plane = self.local_[self.lids[middle]]
+
+                left = self.tree.Node(self.tree, level=self.level+1, idx=2*self.id+1, size=middle, gids=self.gids[:middle])
+                right = self.tree.Node(self.tree, level=self.level+1, idx=2*self.id+2, size=int(self.size-middle), gids=self.gids[middle:])
+
+                left.set_parent(self)
+                right.set_parent(self)
+                children = [left, right]
+                self.set_children(children)
+
+                if self.level < 4:
+                    stream.synchronize()
+                    stream_new = cp.cuda.Stream(non_blocking=True)
+                    left.split(stream = stream)
+                    right.split(stream = stream_new)
+                    stream.synchronize()
+                    stream_new.synchronize()
+                else:
+                    left.split(stream)
+                    right.split(stream)
+
+                return children
 
         def knn(self, Q, k):
             """
@@ -436,6 +603,11 @@ class RKDT:
             #compute projection
             if not self.tree.sparse:
                 q = q.reshape((1, len(q)))
+
+            #if self.tree.location == "CPU":
+            #    dist = Primitives.distance(q, self.tree.data[self.anchors, ...])
+            #    dist = dist[0] - dist[1]
+            #else:
             dist = q @ self.vector 
 
             #compare against splitting plane
@@ -658,6 +830,7 @@ class RKDT:
             comp_t = time.time() - comp_t
             print("Computation took ", comp_t)
 
+
             #print("Finished kernel call")
 
             copy_t = time.time()
@@ -666,14 +839,27 @@ class RKDT:
             for leaf in leaf_nodes[start:stop]:
                 idx = leaf.get_gids()
                 lk = min(k, leaf.size-1)
-                #print(NLL)
                 NL =  NLL[j]
                 ND =  NDL[j]
                 neighbor_list[idx, :] = NL[:, :]
                 neighbor_dist[idx, :] = ND[:, :]
+                del NL
+                del ND
                 j += 1
             copy_t = time.time() - copy_t
             print("Copy took ", copy_t)
+
+            #for gid in gidsList:
+            #    del gid
+            #for R in RList:
+            #    del R
+
+            #del gidsList
+            #del RList
+            #del NLL
+            #del NDL
+            #gc.collect()
+
 
             #print("Finished copy")
             batch_t = time.time() - batch_t

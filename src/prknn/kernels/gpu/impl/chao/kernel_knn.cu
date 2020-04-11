@@ -208,10 +208,12 @@ void find_knn(dvec<float> &Dist, const int *ID,
 void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], int *ptrNborID[],
     int nLeaf, int N, int d, int k, int m
 #ifdef PROD
-    ) {
+    , int device) {
 #else
     , float &t_dist, float &t_sort, float &t_kernel) {
 #endif
+
+  cudaSetDevice(device);
 
   // copy data to contiguous memory
   dvec<float> dR(N*d*nLeaf), dQ(N*d*nLeaf);
@@ -238,6 +240,7 @@ void knn_gpu(float *ptrR[], float *ptrQ[], int *ptrID[], float *ptrNborDist[], i
   cudaCheck( cudaDeviceSynchronize() ); t1.start();
 #endif
 
+  cudaCheck( cudaDeviceSynchronize() );
   // compute row norms  
   dvec<float> R2(N*nLeaf), Q2(N*nLeaf);
 #ifndef PROD
@@ -292,6 +295,9 @@ void gemm_kselect_opt(int nLeaf, float *ptrR[], float *ptrQ[], int *ptrID[], int
 		     float *ptrNborDist[], int *ptrNborID[], int k, int m,
          float &t_dist, float &t_sort, float &t_kernel) {
 
+  int device = 0;
+  cudaSetDevice(0);
+
   // copy data to device
   float *dR[nLeaf], *dQ[nLeaf];
   int *dID[nLeaf];
@@ -322,12 +328,11 @@ void gemm_kselect_opt(int nLeaf, float *ptrR[], float *ptrQ[], int *ptrID[], int
 
   // initialize MGPU for sorting
   sortGPU::init_mgpu();
- 
 
   // run kernel
   knn_gpu(dR, dQ, dID, nborDistPtr, nborIDPtr, nLeaf, N, d, k, m
 #ifdef PROD
-      );
+      , device);
 #else
       , t_dist, t_sort, t_kernel);
 #endif

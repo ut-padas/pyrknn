@@ -6,10 +6,10 @@ cdef extern from "impl/primitives.hpp" nogil:
     cdef float device_kelley_cutting(float *arr, const size_t n)
 
 cdef extern from "impl/chao/merge/merge_gpu.hpp" nogil:
-    cdef void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const int *nborI2, int m, int n, int k)
+    cdef void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const int *nborI2, int m, int n, int k, int device)
 
 cdef extern from "impl/chao/knn_gpu.hpp" nogil:
-    cdef void knn_gpu(float **, float**, int**, float **, int **, int, int, int, int, int)
+    cdef void knn_gpu(float **, float**, int**, float **, int **, int, int, int, int, int, int)
 
 #cdef extern from "impl/chao/sparse/knn_sparse_gpu.hpp" nogil:
 #    cdef void find_knn(int *, int*, int*, float*, int, int, int, int*, int, int, int, int*, float*, int, int)

@@ -5,6 +5,7 @@ from .tree import *
 import numpy as np
 import cupy as cp
 from collections import defaultdict
+import gc
 
 class RKDForest:
     """Class for a collection of RKD Trees for Nearest Neighbor searches"""
@@ -154,11 +155,29 @@ class RKDForest:
             else:
                 result = Primitives.merge_neighbors(result, neighbors, k)
 
-            print("Result")
-            print(result)
             #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
-
         return result
+
+    def aknn_all_build(self, k, verbose=False):
+        v = (self.verbose or verbose)
+        result = None
+
+        #TODO: Key Area for PARLA Tasks
+
+        for i in range(self.ntrees):
+            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location)
+            tree.build()
+            neighbors = tree.aknn_all(k)
+
+            if result is None:
+                result = neighbors
+            else:
+                result = Primitives.merge_neighbors(result, neighbors, k)
+            del tree
+            gc.collect()
+            #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
+        return result
+
 
     def grow(l):
         """Add l more trees to the forest"""

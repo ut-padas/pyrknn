@@ -6,6 +6,7 @@ import numpy as np
 import cupy as cp
 from collections import defaultdict
 import gc
+import time
 
 from mpi4py import MPI
 
@@ -14,7 +15,7 @@ class RKDForest:
 
     verbose = False #Note: This is a static variable
 
-    def __init__(self, ntrees=1, levels=0, leafsize=None, pointset=None, location="CPU", comm=MPI.COMM_WORLD):
+    def __init__(self, ntrees=1, levels=0, leafsize=None, pointset=None, location="CPU", comm=MPI.COMM_WORLD, sparse=False):
         """Initialize Randomized KD Forest.
 
         Keyword Arguments:
@@ -35,6 +36,8 @@ class RKDForest:
         self.leafsize = leafsize
         self.ntrees = ntrees
         self.location = location
+        self.sparse = sparse
+
         if self.location == "CPU":
             self.lib = np
         elif self.location == "GPU":
@@ -42,8 +45,8 @@ class RKDForest:
  
         if (pointset is not None):
             self.size = len(pointset)
-            self.gids = self.lib.arange(self.size)
-            self.data = self.lib.asarray(pointset)
+            self.gids = np.arange(self.size)
+            self.data = np.asarray(pointset, dtype=np.float32)
             if (leafsize is None):
                 self.leafsize = self.size
             if (self.ntrees == 0):
@@ -56,8 +59,7 @@ class RKDForest:
         else:
             self.empty= True
             self.ntrees = 0
-            self.data = self.lib.asarray([])
-            self.gids = self.lib.asarray([])
+            self.data = np.asarray([])
 
         self.built=False
 
@@ -164,21 +166,55 @@ class RKDForest:
     def aknn_all_build(self, k, verbose=False):
         v = (self.verbose or verbose)
         result = None
-
+        rank = self.comm.Get_rank()
         #TODO: Key Area for PARLA Tasks
 
         for i in range(self.ntrees):
             tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm)
+
+            build_t = time.time()
             tree.build()
+            build_t = time.time() - build_t
+            print(rank, "Build_t", build_t)
+
+            search_t = time.time()
             neighbors = tree.aknn_all(k)
-            #neighbors = tree.redistribute(neighbors)
+            search_t = time.time() - search_t
+            print(rank, "Search_t", search_t)
+
+            copy_t = time.time()
+            if self.location == "GPU":
+                neighbor_ids = self.lib.asnumpy(neighbors[0])
+                neighbor_dist = self.lib.asnumpy(neighbors[1])
+                neighbors_host = (neighbor_ids, neighbor_dist)
+                del neighbors
+                neighbors = neighbors_host
+            copy_t = time.time() - copy_t
+            print(rank, "copy_from_gpu_t", copy_t)
+
+            #print("Before redist", rank, neighbors, flush=True)
+            dist_t = time.time()
+            gids, neighbors = tree.redistribute(neighbors)
+            dist_t = time.time() - dist_t
+            print(rank, "redistribute_t", dist_t)
+            #print("New GIDS", rank, gids, flush=True)
+
+            print("Results after Redist:", rank, neighbors, flush=True)
+
             if result is None:
                 result = neighbors
             else:
+                merge_t = time.time()
+                Primitives.set_env("CPU", self.sparse)
                 result = Primitives.merge_neighbors(result, neighbors, k)
+                Primitives.set_env(self.location, self.sparse)
+                merge_t = time.time() - merge_t
+                print(rank, "merge_t", merge_t)
+
             del tree
+
             gc.collect()
-            #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
+
         return result
 
 

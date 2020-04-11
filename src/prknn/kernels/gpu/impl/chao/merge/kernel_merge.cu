@@ -63,7 +63,7 @@ struct firstKCols: public thrust::unary_function<int, int> {
 void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const int *nborI2,
     int m, int n, int k
 #ifdef PROD
-    ) {
+    , int device) {
 #else
     , float &t_copy, float &t_sort1, float &t_unique, float &t_copy2,
     float &t_seg, float &t_sort2, float &t_out, float &t_kernel, bool debug) {
@@ -71,6 +71,7 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
   tk.start();
   t.start();
 #endif
+  cudaSetDevice(device);
 
   dvec<int> nborID(2*n*m);
   dvec<float> nborDist(2*n*m);
@@ -187,7 +188,10 @@ void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const 
 void merge_neighbors(float *nborD1, const float *nborD2, int *nborI1, const int *nborI2,
     int m, int n, float *ptrDist, int *ptrID, int k, 
     float &t_kernel, bool debug) {
-  
+
+  int device = 0;
+  cudaSetDevice(0);  
+
   // initialize on GPU
   sortGPU::init_mgpu();
   dvec<float> d_D1(nborD1, nborD1+m*n);
@@ -205,7 +209,7 @@ void merge_neighbors(float *nborD1, const float *nborD2, int *nborI1, const int 
       thrust::raw_pointer_cast(d_I2.data()), 
       m, n, k
 #ifdef PROD
-      );
+      , device);
 #else
       , t_copy, t_sort1, t_unique, t_copy2, t_seg, t_sort2, t_out, t_kernel, debug);
 #endif

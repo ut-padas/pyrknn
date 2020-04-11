@@ -341,10 +341,24 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     print(rank, "global total", np.sum(global_split_info))
     print(rank, "k", k)
     print(rank, "mean", mean)
+    print(rank, "X", np.array(X))
+
+    if nlocal > 0:
+        minX = np.min(X)
+        maxX = np.max(X)
+    else:
+        minX = 3.4e38
+        maxX = 0
+
+    gmax = comm.allreduce(minX, op=MPI.MAX)
+    gmin = comm.allreduce(minX, op=MPI.MIN)
+    print(rank, "minX", gmin)
+    print(rank, "maxX", gmax)
+
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
 
-    if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
+    if (k-1 <= global_nleft <= k+1) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN) or (nlocal == 0) or (gmax - gmin < 0.00001):
         print(rank, "Mean", mean)
         print(rank, "NLEFT", nL)
         return (mean, nL)

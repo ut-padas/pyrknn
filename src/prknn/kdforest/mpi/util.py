@@ -1,5 +1,8 @@
 import numpy as np
 import cupy as cp
+import numba 
+from numba import cuda
+
 from ...kernels.cpu import core as cpu
 from ...kernels.gpu import core as gpu
 import time
@@ -284,5 +287,7 @@ def dist_select(k, data, ids, comm):
     return cpu.dist_select(k, data, ids, comm)
 
 
+def neighbor_order(neighbor_list, neighbor_dist, NLL, NDL, size, k):
+    print("NOT COMPLETE")
 
 

@@ -43,6 +43,8 @@ class RKDT:
             self.comm = comm
         else:
             comm = MPI.COMM_WORLD
+
+        rank = comm.Get_rank()
         #self.loaded_data = False   #Does self.data exist?
         #self.loaded_query = False  #Does self.projection exist?
 
@@ -57,40 +59,42 @@ class RKDT:
             self.lib = np
         elif(self.location == "GPU"):
             self.lib = cp
+            cp.cuda.runtime.setDevice(rank%4)
 
         if (pointset is not None):
             self.local_size = len(pointset)           #the number of points in the pointset
             
-            self.gids = self.lib.arange(self.local_size, dtype=np.int32)    #the global ids of the points in the pointset (assign original ordering)
+            self.real_gids = self.lib.arange(rank*self.local_size, (rank+1)*self.local_size, dtype=np.int32)    #the global ids of the points in the pointset (assign original ordering)
+            self.gids = self.lib.arange(self.local_size, dtype=np.int32)
+
+            self.host_gids = np.arange(self.local_size, dtype=np.int32)
+            self.host_real_gids = np.arange(rank*self.local_size, (rank+1)*self.local_size, dtype=np.int32)
 
             if( self.sparse ):
                 #(data, indices, indptr)
 
-                if(self.location == "GPU"):
-                    #Copy of data in CPU Memory
+                #Copy of data in CPU Memory
 
-                    local_data = self.lib.asnumpy(pointset.data)
-                    local_indices = self.lib.asnumpy(pointset.indices)
-                    local_indptr = self.lib.asnumpy(pointset.indptr)
+                local_data = self.lib.asnumpy(pointset.data)
+                local_indices = self.lib.asnumpy(pointset.indices)
+                local_indptr = self.lib.asnumpy(pointset.indptr)
 
-                    self.host_data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
+                self.host_data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
 
                 #Copy of data in location Memory
-                local_data = self.lib.asarray(pointset.data, dtype=np.float32)
-                local_indices = self.lib.asarray(pointset.indices, dtype=np.int32)
-                local_indptr = self.lib.asarray(pointset.indptr, dtype=np.int32)
-                self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
+                #local_data = self.lib.asarray(pointset.data, dtype=np.float32)
+                #local_indices = self.lib.asarray(pointset.indices, dtype=np.int32)
+                #local_indptr = self.lib.asarray(pointset.indptr, dtype=np.int32)
+                #self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
 
             else:
-                if(self.location == "GPU"):
-                    #Copy of data in CPU Memory
-                    self.host_data = self.lib.asnumpy(pointset)
-                #Copy of data in location memory
-                self.data = self.lib.asarray(pointset, dtype=np.float32)
+                #Copy of data in CPU Memory
+                print(type(pointset))
+                self.host_data = np.array(pointset, dtype=np.float32)
+                ##Copy of data in location memory
+                #self.data = self.lib.asarray(pointset, dtype=np.float32)
 
 
-            if(self.location == "CPU"): 
-                self.host_data = self.data
 
             self.dim = self.host_data.shape[1]
 
@@ -102,30 +106,33 @@ class RKDT:
         else:
             self.empty= True
             self.local_size = 0
+            self.host_gids = np.array([])
             self.gids = self.lib.asarray([])
 
             if(self.sparse):
 
-                if(self.location == "GPU"):
-                    #Copy of CPU Memory
-                    local_data = np.asarray([], dtype=np.float32)
-                    local_indices = np.asarray([], dtype=np.int32)
-                    local_indptr = np.asarray([], dtype=np.float32)
-                    
-                    self.host_data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
+                #Copy of CPU Memory
+                local_data = np.asarray([], dtype=np.float32)
+                local_indices = np.asarray([], dtype=np.int32)
+                local_indptr = np.asarray([], dtype=np.float32)
+                
+                self.host_data = sp.csr_matrix( (local_data, local_indicies, local_indptr) )
 
                 #Copy of location memory
-                local_data = self.lib.asarray([], dtype=np.float32)
-                local_indices = self.lib.asarray([], dtype=np.int32)
-                local_indptr = self.lib.asarray([], dtype=np.float32)
+                #local_data = self.lib.asarray([], dtype=np.float32)
+                #local_indices = self.lib.asarray([], dtype=np.int32)
+                #local_indptr = self.lib.asarray([], dtype=np.float32)
                 
-                self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
+                #self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
             else:
-                if(self.location == "GPU"):
-                    #Copy of data in CPU Memory
-                    self.host_data = np.asarray([], dtype=np.float32)
+                #Copy of data in CPU Memory
+                self.host_data = np.asarray([], dtype=np.float32)
                 #Copy of data in location memory
-                self.data = self.lib.asarray([], dtype=np.float32)
+                #self.data = self.lib.asarray([], dtype=np.float32)
+
+
+        if(self.location == "CPU"): 
+            self.data = self.host_data
 
         #Assumes all trees have the same location and (dense/sparse)ness        
         Primitives.set_env(self.location, self.sparse)
@@ -136,7 +143,7 @@ class RKDT:
         self.size = temp_global_size
 
         if(self.location=="CPU"):
-            self.host_data = self.data
+            self.data = self.host_data
 
         self.built=False
 
@@ -183,13 +190,14 @@ class RKDT:
         self.dist_levels = int(np.floor(np.log2(self.comm.Get_size())))
 
         
-        
+        dist_t = time.time() 
 
         #Create nodelist to store nodes in binary tree array order
         #Nodelist is stored on the CPU
         N = 2 ** int(self.levels+1) - 1
         self.nodelist = [None] * N
 
+        #Create and share projection vectors
         rank = self.comm.Get_rank()
         if rank == 0:
             vectors = np.random.rand(self.dim, self.levels)
@@ -204,17 +212,17 @@ class RKDT:
             ld = min(self.dim, self.levels)
             vectors = np.zeros( (self.dim, ld), dtype=np.float32)
 
-        print(rank, "Before BCAST", vectors.shape) 
+        #print(rank, "Before BCAST", vectors.shape) 
         self.comm.Bcast(vectors, root=0)
-        print(rank, "After BCAST", vectors.shape)
-        print(rank, "After BCAST", vectors)
+        #print(rank, "After BCAST", vectors.shape)
+        #print(rank, "After BCAST", vectors)
 
         vectors = vectors.T
 
         self.vectors = self.lib.array(vectors, dtype=np.float32)
 
         self.dist_vectors = vectors[:self.dist_levels, :]
-        print(rank, "DIST_VECTORS", self.dist_vectors.shape)
+        #print(rank, "DIST_VECTORS", self.dist_vectors.shape)
 
         #TODO: Send stream of random integers for levels > dim case
 
@@ -242,7 +250,6 @@ class RKDT:
         #print(self.offset_list)
         
         #Copy over from host data to data
-        #TODO: Move this to after first log2(nGPU) partitions to support multiGPU case        
         """
         if (self.sparse):
            # #Copy of data in location Memory
@@ -330,10 +337,16 @@ class RKDT:
         comm = self.comm
         median_list = []
 
+        collect_t_f = 0
+        wait_t_f = 0
+        copy_t_f = 0
+
         for i in range(self.dist_levels):
             #Project and Reorder
             rank = comm.Get_rank()
             mpi_size = comm.Get_size()
+
+            collect_t = time.time()
 
             size = np.array(0, dtype=np.int32)
             local_size = np.array(self.local_size, dtype=np.int32)
@@ -343,91 +356,185 @@ class RKDT:
             if i >= self.dim:
                 a = random.randint(0, self.tree.dim-1)
             vector = self.dist_vectors[a, :]
-            print(rank, vector.shape)
+            #print(rank, vector.shape)
 
             proj_data = self.host_data @ vector
 
             lids = np.arange(self.local_size)
             lids = np.array(lids, dtype=np.int32)
             median, local_split = Primitives.dist_select(size/2, proj_data, lids, comm)
-            self.gids = self.gids[lids] 
+
+            self.host_real_gids = self.host_real_gids[lids] 
             self.host_data = self.host_data[lids, ...]
 
-            print(rank, "original_proj", proj_data)
-            print(rank, "max_o_p", np.max(proj_data))
-            print(rank, "min_o_p", np.min(proj_data))
-            print(rank, "local_median", np.median(proj_data))
+            #print(rank, "original_proj", proj_data)
+            #print(rank, "max_o_p", np.max(proj_data))
+            #print(rank, "min_o_p", np.min(proj_data))
+            #print(rank, "local_median", np.median(proj_data))
             #Redistribute 
             #Pass local split to rank//2 if rank > comm.Get_size()
             
-            if(rank >= mpi_size/2): #sending left, recv right
+            if(rank >= mpi_size//2): #sending small, recv large
+                send_size = local_split
                 send_offset = 0
-                send_end = local_split
-                recv_offset = 0
-                send_target = rank - mpi_size//2
-                send_tag = 11
-                recv_tag = 22
                 color = 1
-            else: #recv left, send right
+            else: #recv small, send large
+                send_size = self.local_size - local_split
                 send_offset = local_split
-                send_end = self.local_size
-                recv_offset = local_split
-                send_target = rank + mpi_size//2
-                send_tag = 22
-                recv_tag = 11
                 color = 0
 
 
-            #list_sizes = np.zeros(mpi_size, dtype=np.int32)
-            #list_sizes[rank] = send_size
+            list_sizes = np.zeros(mpi_size, dtype=np.int32)
+            
+            list_sizes = comm.allgather(send_size)
+            #print(rank, "list_sizes", list_sizes)
+           
+            #An unfortunatly complex load balancing computation
+            half = mpi_size//2
+            send_dict = defaultdict(list)
+            arr = list_sizes
+            #roundrobin loop
+            for j in range(half):
+                for i in range(half):
+                    #Compute max message size
+                    #print("Edge:", (i, (i+j)%4 + half))
+                    #print("State:", arr)
+                    message_size = min(arr[(i+j)%half+half], arr[i])
+                    arr[(i+j)%half+half] = arr[(i+j)%half+half] - message_size
+                    arr[i] = arr[i] - message_size
+                    tag = j*half+i
+                    if message_size > 0:
+                        send_dict[i].append( ( (i+j)%half + half, message_size, tag) )
+                    #print("Update:", arr)
 
-            print(rank, "send_offset", send_offset, flush=True)
-            print(rank, "send_end", send_end, flush=True)
+            #Compute incoming
+            recv_dict = defaultdict(list)
+            for m in send_dict.items():
+                for source in m[1]:
+                    recv_dict[source[0]].append( (m[0], source[1], source[2]) )
 
-            #Allocate memory for redistribute
-            sending_ids = self.gids[send_offset:send_end]
-            sending_data = self.host_data[send_offset:send_end]
+            if(rank >= mpi_size/2):
+                #print(rank, "swapping send/recv", flush=True)
+                temp = send_dict 
+                send_dict = recv_dict
+                #recv_dict = temp
+            else:
+                recv_dict = send_dict
 
-            print(rank, "vector", vector, flush=True)
+            print(rank, "Send Dict", send_dict, flush=True)
+            print(rank, "Recv Dict", recv_dict, flush=True)
+            collect_t_f += time.time() - collect_t
 
-            send_req_ids = comm.isend(sending_ids, dest=send_target, tag=send_tag)
-            recv_req_ids = comm.irecv(self.gids.size * self.gids.itemsize, source=send_target, tag=recv_tag)
-            send_req_ids.wait()
-            new_ids = recv_req_ids.wait()
+            #Grab memory for redistribute
+            sending_ids = self.host_real_gids[send_offset:send_offset+send_size]
+            sending_data = self.host_data[send_offset:send_offset+send_size]
 
-            send_req_data = comm.isend(sending_data, dest=send_target, tag=send_tag)
-            recv_req_data = comm.irecv(self.host_data.size * self.host_data.itemsize,source=send_target, tag=recv_tag)
-            send_req_data.wait()
-            new_data = recv_req_data.wait()
-
-
-            print(rank, "old_data", self.data, flush=True)
-            print(rank, "old_ids", self.gids, flush=True)
-
-            print(rank, "new_ids", new_ids, flush=True)
-            print(rank, "new_data", new_data, flush=True)
+            #print(rank, "median", median, flush=True)
+            #print(rank, "max_proj_before", np.max(sending_data @ vector), flush=True)
+            #print(rank, "min_pro_before", np.min(sending_data @ vector), flush=True)
 
 
-            print(rank, "median", median, flush=True)
-            print(rank, "max_proj", np.max(new_data @ vector), flush=True)
-            print(rank, "min_proj", np.min(new_data @ vector), flush=True)
+            #Loop over nonblocking sends
+            send_id_requests = []
+            send_data_requests = []
+            offset = 0
+            for message in send_dict[rank]:
+                message_size = message[1]
+                target = message[0]
+                tag = message[2]
+                print(rank, "Creating send: ", rank, " -> ", target, " tag: ", tag, "size:", self.host_data.itemsize*self.dim*message_size, "size:", self.host_gids.itemsize*message_size, flush=True)
+                #Send IDS
+                send_id = sending_ids[offset:offset+message_size]
+                temp_id_req = comm.isend(send_id, dest=target, tag=tag+1)
+                send_id_requests.append(temp_id_req)
+                
+                #Send Data
+                send_data = sending_data[offset:offset+message_size]
+                temp_data_req = comm.isend(send_data, dest=target, tag=100*mpi_size*(tag+1))
+                send_data_requests.append(temp_data_req)
 
-            print(rank, "median", median, flush=True)
-            print(rank, "max_proj_send", np.max(sending_data @ vector), flush=True)
-            print(rank, "min_proj_send", np.min(sending_data @ vector), flush=True)
+                offset += message_size
 
-            recv_size = new_data.shape[0]
-            self.host_data[recv_offset:(recv_offset)+recv_size] = new_data
-            self.gids[recv_offset:(recv_offset)+recv_size] = new_ids
- 
+            #print(rank, "Finished queueing sends")
+
+            recv_id_requests = []
+            recv_data_requests = []
+            for message in recv_dict[rank]:
+                message_size = message[1]
+                source = message[0]
+                tag = message[2]
+                
+                print(rank, "Creating recv: ", rank, " <- ", source, " tag: ", tag, "size:", self.host_data.itemsize*self.dim*message_size, "size:", self.host_gids.itemsize*message_size, flush=True)
+                #Recv IDS
+                temp_id_req = comm.irecv(10*self.host_gids.itemsize*message_size + 10, source=source, tag=tag+1)
+                recv_id_requests.append(temp_id_req)
+                                   
+                #Recv Data
+                temp_data_req = comm.irecv(10*self.host_data.itemsize*self.dim*message_size + 10, source=source, tag=100*mpi_size*(tag+1))
+                recv_data_requests.append(temp_data_req)
+
+            print("wait id")
+
+            for req in send_id_requests:
+                req.wait()
+
+            print("wait recv id")
+
+            copy_t = time.time()
+
+            offset = 0
+            for req in recv_id_requests:
+                new_id = req.wait()
+                message_size = new_id.shape[0]
+                sending_ids[offset:offset+message_size] = new_id
+                offset += message_size
+
+
+            print("wait data")
+            for req in send_data_requests:
+                req.wait()
+
+            print("wait recv data")
+            offset = 0
+            for req in recv_data_requests:
+                new_data = req.wait()
+                message_size = new_data.shape[0]
+                sending_data[offset:offset+message_size] = new_data
+
+                #print(rank, "median", median, flush=True)
+                #print(rank, "max_proj_inc", np.max(new_data @ vector), flush=True)
+                #print(rank, "min_pro_incj", np.min(new_data @ vector), flush=True)
+
+                offset += message_size
+
+            copy_t_f += time.time() - copy_t
+
+            comm.Barrier()
+
+            #print(rank, "vector", vector, flush=True)
+
+            self.host_real_gids[send_offset:send_offset+send_size] = sending_ids
+            self.host_data[send_offset:send_offset+send_size] = sending_data
+
+            #print(rank, "median", median, flush=True)
+            #print(rank, "max_proj", np.max(sending_data @ vector), flush=True)
+            #print(rank, "min_proj", np.min(sending_data @ vector), flush=True)
+            
             median_list.append(median)           
 
             #Split communicator
             comm = comm.Split(color, rank)
 
 
-        self.data = self.lib.array(self.host_data, dtype=np.float32)
- 
+        dist_t = time.time() - dist_t
+        print("Distributed Build Time:", dist_t)
+        print("build dist copy_t", copy_t_f)
+        print("build dist collect_t", collect_t_f)
+
+        self.data = self.lib.array(self.host_data)
+        self.gids = self.lib.array(self.host_gids)
+        self.real_gids = self.lib.array(self.host_real_gids)
+
         if self.sparse:
             print("Removed as it need changes soon")
             self.built = False
@@ -448,11 +555,11 @@ class RKDT:
 
                         #Build tree in n-order traversal
                         #TODO: Key area for PARLA Tasks
-                        for level in range(self.levels):
+                        for level in range(self.levels - self.dist_levels):
                             start = 2**level -1
                             stop  = 2**(level+1) - 1
                             level_size = stop - start
-                            data_size = self.size/2**level * 4
+                            data_size = self.local_size/2**level * 4
                             for i in range(level_size):
                                 @spawn(T[start+i+1], [T[0], T[int((start+i+1)/2)]], placement = cpu, memory=data_size)
                                 def create_children_task():
@@ -477,37 +584,199 @@ class RKDT:
             self.ordered = False
         
         #Fix overestimate of tree levels (see #TODO above)
-        if self.get_level(self.levels)[0] is None:
+        while self.get_level(self.levels)[0] is None:
             self.levels -= 1
             self.nodelist = self.nodelist[:2**(self.levels+1)-1]
 
 
-    def redistribute(neighbors):
+    def redistribute(self, neighbors):
+        neighbor_ids = neighbors[0]
+        neighbor_dist = neighbors[1]        
+
+        k = neighbor_ids.shape[1]
+
+        mpi_size = self.comm.Get_size()
+        rank = self.comm.Get_rank()
+
+        new_gids = np.zeros(self.local_size, dtype=np.int32)
+        result_ids  = np.zeros((self.local_size, k), dtype=np.int32)
+        result_dist = np.zeros((self.local_size, k), dtype=np.float32)
+
+        if self.location == "GPU":
+            real_gids = self.lib.asnumpy(self.real_gids)
+        else:
+            real_gids = self.real_gids
+
         #Collect gids in order (TODO: Redo parla code so this is preserved)
         gidList = []
         for node in self.get_level(self.levels):
-            gidList.append(node.gids)
+            if self.location == "GPU":
+                node_gids = self.lib.asnumpy(node.gids)
+            else:
+                node_gids = node.gids
+            gidList.append(real_gids[node_gids])
         gids = np.concatenate(gidList)
-        
+
+        collect_t = time.time()
+
+        #print(rank, "gids", gids, flush=True)
+        #print(rank, "gids_max", np.max(gids), flush=True)
+        #print(rank, "gids_dev", np.max(gids)/self.local_size, flush=True)
         bins = defaultdict(list)
         for i in range(len(gids)):
             bins[gids[i]//self.local_size].append(i)
-        print(bins)
 
-        mpi_size = comm.Get_size()
-        rank = comm.Get_rank()
- 
+        #print(rank, "bins", bins, flush=True)
+
+        #Get length of each local rank ownership
+        lengths = []
         for i in range(mpi_size):
-            if i != rank:
-                sending_data = self.data[bins[i]]
-                send_req_data = comm.isend(sending_data, dest=send_target, tag=send_tag)
-                recv_req_data = comm.irecv(self.host_data.size * self.host_data.itemsize,source=send_target, tag=recv_tag)
+            lengths.append(len(bins[i]))        
 
+        all_lengths = []
         for i in range(mpi_size):
-            send_req_data.wait()
-            new_data = recv_req_data.wait()
-             
+            if i == rank:
+                data = lengths
+            else:
+                data = None
+            data = self.comm.bcast(data, root=i)
+            all_lengths.append(data)
 
+        collect_t = time.time() - collect_t
+        print("collect_t", collect_t)
+
+        #print(rank, "all_lengths", all_lengths, flush=True)
+
+        startup_t = time.time()
+
+        comm = self.comm
+
+        send_reqs_id   = []
+        send_reqs_data_ids = []
+        send_reqs_data_dist = []
+
+        recv_reqs_id   = []
+        recv_reqs_data_ids = []
+        recv_reqs_data_dist = []
+        for i in range(mpi_size):
+            if i != rank and lengths[i] > 0:
+
+                #print(rank, "Creating send from", rank ,"->", i, "tag", i, flush=True)
+                sending_gids = np.array(bins[i], dtype=np.int32)
+                sending_data_ids = neighbor_ids[sending_gids, ...]
+                sending_data_dist = neighbor_dist[sending_gids, ...]
+                sending_gids = gids[sending_gids]
+                #print(rank, "Sending", sending_gids, flush=True)
+                send_req_id     = comm.isend(sending_gids, dest=i, tag=i)
+                send_req_data_ids   = comm.isend(sending_data_ids, dest=i, tag=10*mpi_size+i)
+                send_req_data_dist  = comm.isend(sending_data_dist, dest=i, tag=1000*mpi_size+i)
+
+                send_reqs_id.append(send_req_id)
+                send_reqs_data_ids.append(send_req_data_ids)
+                send_reqs_data_dist.append(send_req_data_dist)
+
+            incoming_size = all_lengths[i][rank]
+            if(i!=rank and incoming_size > 0):
+
+                #print(rank, "Creating recv from", rank ,"<-", i, "tag", i, flush=True)
+                #print(rank, "Incoming size should be", incoming_size, flush=True)
+                recv_req_id   = comm.irecv(10 * incoming_size * new_gids.itemsize,    source=i, tag=rank)
+                recv_req_data_ids = comm.irecv(10 * incoming_size * result_ids.itemsize * k,source=i, tag=10*mpi_size+rank)
+                recv_req_data_dist = comm.irecv(10*incoming_size * result_dist.itemsize *k, source=i, tag=1000*mpi_size+rank)
+
+                recv_reqs_id.append(recv_req_id)
+                recv_reqs_data_ids.append(recv_req_data_ids)
+                recv_reqs_data_dist.append(recv_req_data_dist)
+                
+        startup_t = time.time() - startup_t
+        #print("startup_t", startup_t)
+
+        copy_t_f = 0
+        copy_t = time.time()
+
+        offset = 0
+        #copy self
+        self_size = len(bins[rank])
+
+        l_gids = np.array(bins[rank], dtype=np.int32)
+        #print(rank, np.max(l_gids))
+        #print(rank, np.min(l_gids))
+        self_data_ids = neighbor_ids[l_gids, ...]
+        self_data_dist =neighbor_dist[l_gids, ...]
+        #print(rank, "l_gids", l_gids, flush=True)
+        self_gids = gids[l_gids]
+        #print(rank, "self_gids", self_gids, flush=True)
+        new_gids[offset:offset+self_size] = self_gids
+        result_ids[offset:offset+self_size, ...] = self_data_ids
+        result_dist[offset:offset+self_size, ...] = self_data_dist
+
+        copy_t_f += time.time() - copy_t
+
+        #print("starting waits on gids", flush=True)
+        wait_t_f = 0
+        wait_t = time.time()
+        for req in send_reqs_id:
+            req.wait()
+        wait_t_f = time.time() - wait_t
+        #print("finished sending gids", flush=True)
+
+        copy_t = time.time()
+        offset = self_size
+        #copy from distributed
+        for req in recv_reqs_id:
+            new_ids = req.wait()
+            #print(rank, "recv", new_ids, flush=True)
+            message_size = new_ids.shape[0] 
+            new_gids[offset:offset+message_size] = new_ids
+            #print(rank, "off", offset)
+            #print(rank, "ms", message_size)
+            #print(rank, "after_recv", new_gids)
+            offset += message_size
+
+        copy_t_f = time.time() - copy_t
+
+        wait_t = time.time()
+        for req in send_reqs_data_ids:
+            req.wait()
+        wait_t_f = time.time() - wait_t
+
+        copy_t = time.time()
+        offset = self_size
+        for req in recv_reqs_data_ids:
+            new_data = req.wait()
+            message_size = new_data.shape[0]
+            result_ids[offset:offset+message_size, ...] = new_data
+            offset += message_size
+        copy_t_f = time.time() - copy_t
+
+        wait_t = time.time()
+        #More time to send distances (overlap)
+        for req in send_reqs_data_dist:
+            req.wait()
+        wait_t_f = time.time() - wait_t
+
+        copy_t = time.time()
+
+        offset = self_size
+        for req in recv_reqs_data_dist:
+            new_data = req.wait()
+            message_size = new_data.shape[0]
+            result_dist[offset:offset+message_size, ...] = new_data
+            offset += message_size
+
+        copy_t_f = time.time() - copy_t
+
+        print("copy_t", copy_t_f)
+        print("wait_t", wait_t_f)
+
+        #print(rank, "new_gids", new_gids)
+        lids = np.argsort(new_gids)
+        new_gids = new_gids[lids]
+        #print(rank, "sorted_new_gids", new_gids)
+        result_ids = result_ids[lids, ...]
+        result_dist = result_dist[lids, ...]
+
+        return new_gids, (result_ids, result_dist)
 
     class Node:
 
@@ -682,8 +951,6 @@ class RKDT:
                 self.lids = self.lib.argpartition(self.local_, middle)  #parition the local ids
 
                 self.gids = self.gids[self.lids]                  #partition the global ids
-
-                #TODO: When replacing this with Hongru's kselect the above should be the same step in a key-value pair
 
                 self.plane = self.local_[self.lids[middle]]       #save the splitting line
 
@@ -949,7 +1216,7 @@ class RKDT:
             neighbor_dist -- the corresponding distances
         """
 
-        N = self.size
+        N = self.local_size
         max_level = self.levels
 
         #Allocate space to store results
@@ -959,6 +1226,11 @@ class RKDT:
         #get all leaf nodes
         leaf_nodes = self.get_level(max_level)
         n_leaves = len(leaf_nodes)
+
+        rgL = []
+        for leaf in leaf_nodes:
+            rgL.append(self.real_gids[leaf.gids])
+        real_gids = self.lib.concatenate(rgL)
 
         #compute batchsize
         MAXBATCH = 2048
@@ -985,7 +1257,7 @@ class RKDT:
             for leaf in leaf_nodes[start:stop]:
                 gidsList.append(leaf.gids)
                 RList.append(leaf.get_reference())
-                
+            
             #print("Populated RList")
             #call batch routine
 
@@ -1010,9 +1282,14 @@ class RKDT:
                 lk = min(k, leaf.size-1)
                 NL =  NLL[j]
                 ND =  NDL[j]
-                neighbor_list[idx, :] = NL[:, :]
+                neighbor_list[idx, :] = real_gids[NL[:, :]]
                 neighbor_dist[idx, :] = ND[:, :]
                 j += 1
+
+            #for i in range(self.local_size):
+            #    for j in range(k):
+            #        neighbor_list[i,j] = real_gids[neighbor_list[i, j]]
+
             copy_t = time.time() - copy_t
             print("Copy took ", copy_t)
 

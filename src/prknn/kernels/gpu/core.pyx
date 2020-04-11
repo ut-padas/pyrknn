@@ -1,6 +1,7 @@
 import numpy as np
 cimport numpy as np
 
+#import numpy as cp
 import cupy as cp
 from numba import cuda
 
@@ -85,7 +86,7 @@ cpdef batched_knn(gidsList, RList, QList, k):
     cdef int cd = RList[0].shape[1];
     cdef int ck = k;
 
-    cdef int blocksize = cd; 
+    cdef int blocksize = 128; 
 
     cdef size_t[:] cRList = np.zeros(nleaves, dtype=np.uintp);
     cdef size_t[:] cQList = np.zeros(nleaves, dtype=np.uintp);
@@ -146,16 +147,16 @@ cpdef batched_knn(gidsList, RList, QList, k):
 
     book_t = time.time() - book_t
     print("Bookkeeping to C++ took ",book_t) 
-
+    cdef int device = <int> NL.data.device.id
+    print("Running batch on gpu:", device)
     with nogil:
-        knn_gpu(<float**> &cRList[0], <float**> &cQList[0], <int**> &crgidsList[0], <float**> &cND[0], <int **> &cNL[0], <int> nleaves, <int> cns[0], <int> cd, <int> ck, <int> blocksize)
+        knn_gpu(<float**> &cRList[0], <float**> &cQList[0], <int**> &crgidsList[0], <float**> &cND[0], <int **> &cNL[0], <int> nleaves, <int> cns[0], <int> cd, <int> ck, <int> blocksize, <int> device)
     
     return (NLList, NDList)
     
         
 def merge_neighbors(a, b, k):
 
-    print("starting merge")
     merge_t = time.time()
 
     I1 = a[0]
@@ -178,33 +179,19 @@ def merge_neighbors(a, b, k):
 
     cdef int ck = k;
 
-    print("Neighbors 1")
-    print(I1)
-    print(D1)
-
-    print("Neighbors 2")
-    print(I2)
-    print(D2)
-
     cdef int cm = D1.shape[0] #Should be N
     cdef int cn = D1.shape[1] #Should be k
-
-    print("m, n, k", (cm, cn, ck))
 
     cdef float* ptr_cD1 = <float*> cD1
     cdef float* ptr_cD2 = <float*> cD2
 
     cdef int* ptr_cI1 = <int*> cI1
     cdef int* ptr_cI2 = <int*> cI2
-
-    print("I1 Type", I1.dtype)
-    print("I1 Loc", <long> I1.data.ptr)
+    
+    cdef int device = I1.data.device.id
 
     with nogil:
-        merge_neighbors_gpu(ptr_cD1, ptr_cI1, ptr_cD2, ptr_cI2, cm, cn, ck); 
-
-    print("I1 Type", I1.dtype)
-    print("I1 Loc", <long> I1.data.ptr)
+        merge_neighbors_gpu(ptr_cD1, ptr_cI1, ptr_cD2, ptr_cI2, cm, cn, ck, <int> device); 
 
     merge_t = time.time() - merge_t
     print("Merge time:", merge_t)

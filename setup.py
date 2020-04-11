@@ -18,9 +18,10 @@ except:
 #TODO(p3)[Will] Make these not TACC specific. Set these in source script from base makefile
 
 #ensure that we're using Intel compilers
-os.environ["CC"] = "icc"
-os.environ["CXX"] = "icpc"
-
+#os.environ["CC"] = "icc"
+#os.environ["CXX"] = "icpc"
+os.environ["CC"] = "mpicc"
+os.environ["CXX"] = "mpicxx"
 use_cuda = False
 try:
     use_cuda = bool(os.environ["PRKNN_USE_CUDA"])
