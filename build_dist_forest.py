@@ -23,9 +23,17 @@ def test_build():
     rank = comm.Get_rank()
     print(rank, platform.node())
     np.random.seed(rank*100)  #Fails on 10
-    local_arr = np.random.rand(N, d)
-    local_arr = np.array(local_arr, dtype=np.float32)
-    local_arr = normalize(local_arr, axis=1, norm='l2', copy=False)
+
+    if dataset="SPHERE":
+        local_arr = np.random.rand(N, d)
+        local_arr = np.array(local_arr, dtype=np.float32)
+    if dataset="UNIF"
+        local_arr = np.random.rand(N, d)
+    if dataset="GAUSS":
+        class1 = np.random.randn((int) (np.floor(n/2)), d) + 5
+        class2 = np.random.randn((int)(np.ceil(n/2)), d)
+        local_arr = np.concatenate((class1, class2), axis=1)
+
     tree = RKDForest(pointset=local_arr, levels=20, leafsize=512, comm=comm, location="GPU", ntrees=2)
     results = tree.aknn_all_build(64)
 
