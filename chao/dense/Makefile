@@ -1,9 +1,10 @@
 
 EXE=driver
-LIB=libspknngpu.so
+LIB=libdenknngpu.so
 
-DEP=../util/libutil.so ../readSVM/libreadSVM.so ../transpose/libtranspose.so ../gemm/libgemm.so \
-		../reorder/libreorder.so ../orthogonal/liborthogonal.so ../merge/libmerge.so
+DEP=../util/libutil.so ../readSVM/libreadSVM.so ../transpose/libtranspose.so \
+		../reorder/libreorder.so ../orthogonal/liborthogonal.so ../merge/libmerge.so \
+		../gemm/libgemm.so
 
 DEBUG?=0
 
@@ -11,9 +12,9 @@ CC=g++
 CFLAG=-Wall -I $(EIGEN_ROOT)
 VFLAG=-gencode arch=compute_70,code=sm_70 -shared -Xcompiler -fPIC
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcusolver -lcudart \
-		-L./ -lspknngpu -L../merge -lmerge -L../util/ -lutil \
-		-L../readSVM/ -lreadSVM -L../transpose -ltranspose -L../gemm -lgemm \
-		-L../reorder -lreorder -L../orthogonal -lorthogonal
+		-L./ -ldenknngpu -L../merge -lmerge -L../util/ -lutil -L../gemm -lgemm \
+		-L../readSVM/ -lreadSVM -L../reorder -lreorder \
+		-L../orthogonal -lorthogonal
 
 ifeq ($(DEBUG), 1)
   $(info ----------------------)
@@ -30,7 +31,7 @@ ifeq ($(findstring frontera,$(shell uname -n)),frontera)
 	VFLAG+=-DFRONTERA
 endif
 
-KERNEL=spknn.o build_tree.o leaf_knn.o find_nbor.o
+KERNEL=denknn.o build_tree.o leaf_knn.o
 OBJS=driver.o
 
 default: $(EXE)
@@ -44,17 +45,14 @@ $(LIB): $(KERNEL)
 driver.o: driver.cpp
 	$(CC) -c $< $(CFLAG) -I ../util -I ../readSVM
 
-spknn.o: spknn.cu
-	nvcc -c $< $(VFLAG) -I ../merge -I ../util -I ../reorder -I ../gemm -I ../orthogonal
+denknn.o: denknn.cu
+	nvcc -c $< $(VFLAG) -I ../merge -I ../util -I ../reorder -I ../orthogonal -I ../gemm
 
 build_tree.o: build_tree.cu
 	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I ../util -I ../reorder
 
 leaf_knn.o: leaf_knn.cu
-	nvcc -c $< $(VFLAG) -I ../util -I ../gemm -I ../transpose
-
-find_nbor.o: find_nbor.cu
-	nvcc -c $< $(VFLAG) -I $(MGPU_ROOT) --expt-extended-lambda -I../util
+	nvcc -c $< $(VFLAG) -I ../util -I ../sort -I $(MGPU_ROOT) --expt-extended-lambda
 
 ../util/libutil.so:
 	cd ../util; make -j8
@@ -65,14 +63,14 @@ find_nbor.o: find_nbor.cu
 ../transpose/libtranspose.so:
 	cd ../transpose; make -j8
 
+../orthogonal/liborthogonal.so:
+	cd ../orthogonal; make -j8
+
 ../gemm/libgemm.so:
 	cd ../gemm; make -j8
 
 ../reorder/libreorder.so:
 	cd ../reorder; make -j8
-
-../orthogonal/liborthogonal.so:
-	cd ../orthogonal; make -j8
 
 ../merge/libmerge.so:
 	cd ../merge; make -j8
@@ -81,14 +79,11 @@ run: $(EXE)
 	$(EXE) 
 
 debug: $(EXE)
-	$(EXE) -n 10 -d 5 -l 2 -k 3 -bt 1 -t 5 -bl 1
+	$(EXE) -n 10 -d 5 -l 1 -k 3 -bt 1 -t 20
 
 benchmark: $(EXE)
-	#$(EXE) -dataset avazu_app_t -l 10 -k 5 -t 3 -bl 512 -bp 256 -bt 1
-	#$(EXE) -dataset avazu_app -l 13 -k 16 -t 200 -bl 512 -bp 256 -bt 1
-	time $(EXE) -dataset avazu -l 17 -k 5 -t 200 -bl 1024 -bp 256 -bt 1
-	#$(EXE) -dataset url -l 15 -k 10 -t 2 -bl 512 -bp 64 -bt 1
-
+	$(EXE) -dataset mnist -l 5 -k 64 -bt 1 -t 50
+	
 clean:
 	rm -f *.o $(EXE) $(LIB)
 

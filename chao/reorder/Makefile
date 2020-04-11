@@ -1,33 +1,32 @@
 
 EXE=driver
-LIB=libgemm.so
+LIB=libreorder.so
 
 default: $(EXE)
 
-CFLAG=-Wall -O3 -I$(EIGEN_ROOT)
-VFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC -I../util/
+CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcuda -lcudart \
-			-L./ -lgemm
+			-L./ -lreorder -L../gemm/ -lgemm
 
 ifeq ($(findstring frontera,$(shell uname -n)),frontera)
   $(info *** on frontera machine ***)
-	VFLAG+=-DFRONTERA
+	CFLAG+=-DFRONTERA
 endif
 
-KERNEL=gemm.o
+KERNEL=reorder.o
 OBJS=driver.o 
 
 $(EXE): $(OBJS) $(LIB)
 	g++ $^ -o $@ $(LFLAG)
 
 driver.o: driver.cpp
-	g++ -c $< $(CFLAG)
+	g++ -c $< -Wall -O3 -I $(EIGEN_ROOT)
 
 $(LIB): $(KERNEL)
 	g++ -shared $^ -o $@
 
-gemm.o: gemm.cu
-	nvcc -c $< $(VFLAG) 
+reorder.o: reorder.cu reorder.hpp
+	nvcc -c $< $(CFLAG) -I../util -I../gemm 
 
 run: $(EXE)
 	./$(EXE)

@@ -1,14 +1,15 @@
 
 EXE=driver
-LIB=
+LIB=liborthogonal.so
 
 default: $(EXE)
 
 CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC
-LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart
+LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart -lcusolver \
+			-L./ -lorthogonal
 
-KERNEL=
-OBJS=driver.o sort.o
+KERNEL=orthogonal.o
+OBJS=driver.o 
 
 $(EXE): $(OBJS) $(LIB)
 	g++ $^ -o $@ $(LFLAG)
@@ -19,8 +20,8 @@ driver.o: driver.cpp
 $(LIB): $(KERNEL)
 	g++ -shared $^ -o $@
 
-sort.o: sort.cu sort.hpp
-	nvcc -c $< $(CFLAG) -I../util -I $(MGPU_ROOT) --expt-extended-lambda
+orthogonal.o: orthogonal.cu
+	nvcc -c $< $(CFLAG) -I../util 
 
 run: $(EXE)
 	./$(EXE)

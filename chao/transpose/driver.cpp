@@ -1,8 +1,6 @@
 #include <iostream>
 #include <random>
 
-#include "transpose.hpp"
-
 #include <Eigen/Sparse>
 typedef Eigen::SparseMatrix<float,Eigen::RowMajor> SpMat; // row-major sparse matrix
 typedef Eigen::Triplet<float> T;
@@ -24,6 +22,8 @@ void init_random(SpMat &A, int M, int N, float sparsity) {
   A.makeCompressed();
 }
 
+void transpose(const int, const int, const int, const int*, const int*, const float*,
+        int*, int*, float*);
 
 int main(int argc, char *argv[]) {
   

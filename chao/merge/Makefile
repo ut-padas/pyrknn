@@ -1,6 +1,6 @@
 
-EXE=merge
-LIB=libmergegpu.so
+EXE=driver
+LIB=libmerge.so
 
 PROD?=1
 DEBUG?=0
@@ -21,14 +21,14 @@ else
 	CFLAG+= -O3
 endif
 
-KERNEL=kernel_merge.o
+KERNEL=merge.o
 
-OBJS=merge.o timer.o
+OBJS=driver.o timer.o
 
 $(EXE): $(OBJS) $(LIB)
-	g++ $^ -o $@ $(LFLAG) -L./ -lmergegpu -L../sort -lsortgpu -L../util -lutil
+	g++ $^ -o $@ $(LFLAG) -L./ -lmerge
 
-merge.o: merge.cpp
+driver.o: driver.cpp
 	g++ -c $< -Wall -O3 -I $(EIGEN_ROOT)
 
 timer.o: timer.cpp timer.hpp
@@ -37,8 +37,8 @@ timer.o: timer.cpp timer.hpp
 $(LIB): $(KERNEL)
 	g++ -shared $^ -o $@
 
-kernel_merge.o: kernel_merge.cu merge_gpu.hpp
-		nvcc -c $< $(CFLAG) -I $(MGPU_ROOT) --expt-extended-lambda 
+merge.o: merge.cu merge.hpp
+		nvcc -c $< $(CFLAG) -I../util -I../sort -I $(MGPU_ROOT) --expt-extended-lambda 
 
 run: $(EXE)
 	./$(EXE)

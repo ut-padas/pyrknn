@@ -1,0 +1,12 @@
+
+*.txt
+*.o
+*.out
+*.so
+*.swp
+*.bin
+*bak
+*.slm
+driver
+
+

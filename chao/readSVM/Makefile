@@ -19,19 +19,22 @@ else
 endif
 
 KERNEL=readSVM.o
-OBJS= driver.o
+OBJS= driver.o timer.o
 
 readSVM.o: readSVM.cpp
-	g++ -c $< $(CFLAG) -shared -fPIC -I ../util
+	g++ -c $< $(CFLAG) -shared -fPIC
+
+timer.o: timer.cpp
+	g++ -c $< $(CFLAG)
 
 driver.o: driver.cpp
-	g++ -c $< $(CFLAG) -I ../util
+	g++ -c $< $(CFLAG)
 
 $(LIB): $(KERNEL)
 	g++ -shared $^ -o $@
 
 $(EXE): $(OBJS) $(LIB)
-	g++ $< ../util/timer.o -o $@ $(LFLAG)
+	g++ $(OBJS) -o $@ $(LFLAG)
 
 run: $(EXE)
 	$(EXE)

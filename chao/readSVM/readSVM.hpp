@@ -2,8 +2,12 @@
 #define READ_SVM_HPP
 
 #include <Eigen/Sparse>
-
 typedef Eigen::SparseMatrix<float,Eigen::RowMajor> SpMat; // row-major sparse matrix
+
+#include <Eigen/Dense>
+typedef Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> Mat;
+
+Mat read_mnist();
 
 SpMat read_url_dataset(int);
 SpMat read_avazu_dataset();

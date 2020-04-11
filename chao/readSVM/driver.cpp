@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include "readSVM.hpp"
 #include "timer.hpp"
@@ -18,9 +19,10 @@ int main(int argc, char *argv[]) {
   */
 
   Timer t; t.start();
-  //SpMat A = read_avazu_dataset();
+  //SpMat A = read_url_dataset(10);
+  SpMat A = read_avazu_dataset();
   //SpMat A = read_criteo_dataset();
-  SpMat A = read_kdd12_dataset();
+  //SpMat A = read_kdd12_dataset();
   t.stop();
 
   std::cout<<"\n# rows: "<<A.rows()<<"\n"
@@ -30,7 +32,9 @@ int main(int argc, char *argv[]) {
            <<"time: "<<t.elapsed_time()<<" s\n\n";
 
   //std::string filename("/scratch/06108/chaochen/criteo_csr.bin");
-  std::string filename("/scratch/06108/chaochen/kdd12_csr.bin");
+  //std::string filename("/scratch/06108/chaochen/kdd12_csr.bin");
+  //std::string filename("/scratch/06108/chaochen/url_10day_csr.bin");
+  std::string filename("/scratch/06108/chaochen/avazu_app_csr.bin");
   write_csr_binary(A, filename);
   
   t.start();
@@ -39,6 +43,9 @@ int main(int argc, char *argv[]) {
 
   std::cout<<"Error: "<<(A-B).norm()
     <<"\ntime: "<<t.elapsed_time()<<" s"<<std::endl;
+
+  Mat C = read_mnist();
+  std::cout<<"C(10,10):\n"<<C.topLeftCorner(10,10)<<std::endl;
 
   return 0;
 }

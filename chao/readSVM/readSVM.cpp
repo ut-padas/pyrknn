@@ -9,6 +9,44 @@
 #include <assert.h>
 
 
+int reverseInt (int i) 
+{
+    unsigned char c1, c2, c3, c4;
+
+    c1 = i & 255;
+    c2 = (i >> 8) & 255;
+    c3 = (i >> 16) & 255;
+    c4 = (i >> 24) & 255;
+
+    return ((int)c1 << 24) + ((int)c2 << 16) + ((int)c3 << 8) + c4;
+}
+
+Mat read_mnist() {
+  std::ifstream file("/scratch/06108/chaochen/train-images-idx3-ubyte");
+  assert(file.good());
+  int magic, nImage, nrow, ncol;
+  file.read((char*)&magic, sizeof(int));
+  file.read((char*)&nImage, sizeof(int));
+  file.read((char*)&nrow, sizeof(int));
+  file.read((char*)&ncol, sizeof(int));
+  magic = reverseInt(magic);
+  nImage = reverseInt(nImage);
+  nrow = reverseInt(nrow);
+  ncol = reverseInt(ncol);
+  std::cout<<"magic number: "<<magic<<"\n";
+  std::cout<<nImage<<" images of "<<nrow<<" rows and "<<ncol<<" columns.\n";
+  Mat A(nImage, nrow*ncol);
+  char c;
+  for (int i=0; i<nImage; i++) {
+    for (int j=0; j<nrow*ncol; j++) {
+      file.read(&c, sizeof(c));
+      A(i,j) = c;
+    }
+  }
+  return A;
+}
+
+
 SpMat read_svm(const std::vector<std::string> &files, int ncol) {
 
   int lable; // dummy variable
@@ -61,10 +99,10 @@ SpMat read_avazu_dataset() {
   std::vector<std::string> files;
   //std::string file1("/scratch/06108/chaochen/avazu-app.t");
   std::string file2("/scratch/06108/chaochen/avazu-app");
-  std::string file3("/scratch/06108/chaochen/avazu-site");
+  //std::string file3("/scratch/06108/chaochen/avazu-site");
   //files.push_back(file1);
   files.push_back(file2);
-  files.push_back(file3);
+  //files.push_back(file3);
   return read_svm(files, 1000000);
 }
 
