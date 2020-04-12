@@ -1,32 +1,32 @@
-from prknn.kdforest.merge.tree import *
-from prknn.kdforest.merge.util import *
-from prknn.kdforest.merge.forest import *
+from prknn.kdforest.mpi.tree import *
+from prknn.kdforest.mpi.util import *
+from prknn.kdforest.mpi.forest import *
 
+from mpi4py import MPI
 
 import numpy as np
 #import cupy as cp
 
 import time
 
-location = "CPU"
 
-if location == "CPU":
-    lib = np
-elif location == "GPU":
-    lib = cp
 
-built_t = time.time()
-
-N = 1000000
-d = 5
+comm = MPI.COMM_WORLD
+N = 500000000
+d = 10
 array = lib.random.rand(N, d)
 
-print("Before")
+print("Order Before")
 print("-------")
 print(array)
+
+
 #RKDT.set_verbose(True)
-tree = RKDT(pointset=array, levels=14, leafsize=512, location=location)
+tree = RKDT(pointset=array, levels=14, leafsize=512, location="GPU")
+
+build_t = time.time()
 tree.build()
+build_t = time.time() - build_t
 
 result = tree.ordered_data()
 
@@ -35,8 +35,8 @@ result = tree.ordered_data()
 #    print(node)
 
 #Print new data array
-print("After")
+print("Order After")
 print("-------")
 print(result)
-
-
+print(type(result))
+print("build_t", build_t)

@@ -643,7 +643,7 @@ class RKDT:
             all_lengths.append(data)
 
         collect_t = time.time() - collect_t
-        print("collect_t", collect_t)
+        #print("collect_t", collect_t)
 
         #print(rank, "all_lengths", all_lengths, flush=True)
 
@@ -766,8 +766,8 @@ class RKDT:
 
         copy_t_f = time.time() - copy_t
 
-        print("copy_t", copy_t_f)
-        print("wait_t", wait_t_f)
+        #print("copy_t", copy_t_f)
+        #print("wait_t", wait_t_f)
 
         #print(rank, "new_gids", new_gids)
         lids = np.argsort(new_gids)
