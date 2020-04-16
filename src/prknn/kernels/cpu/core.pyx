@@ -146,7 +146,8 @@ cpdef batched_knn(gidsList, RList, QList, k):
     
     #NLL = np.asarray(cNLList);
     #NDL = np.asarray(cNDList);
-    return (NLL, NDL)
+    out = None
+    return (NLL, NDL, out)
 
 
 cpdef RefBatched(gidsList, RList, QList, k):
@@ -332,16 +333,16 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     cdef int[:] local_split_info = np.array([nL, nR], dtype=np.int32)
     cdef int[:] global_split_info = np.array([0, 0], dtype=np.int32)
     comm.Allreduce(local_split_info, global_split_info, op=MPI.SUM)
-    #print(rank, "prev", prev)
-    #print(rank, "local_n, global_n", (nlocal, N))
-    #print(rank, "local_local_splits", [nleft, nright])
-    #print(rank, "local_splits", np.asarray(local_split_info))
-    #print(rank, "local total", np.sum(local_split_info))
-    #print(rank, "Global split", np.asarray(global_split_info))
-    #print(rank, "global total", np.sum(global_split_info))
-    #print(rank, "k", k)
-    #print(rank, "mean", mean)
-    #print(rank, "X", np.array(X))
+    print(rank, "prev", prev)
+    print(rank, "local_n, global_n", (nlocal, N))
+    print(rank, "local_local_splits", [nleft, nright])
+    print(rank, "local_splits", np.asarray(local_split_info))
+    print(rank, "local total", np.sum(local_split_info))
+    print(rank, "Global split", np.asarray(global_split_info))
+    print(rank, "global total", np.sum(global_split_info))
+    print(rank, "k", k)
+    print(rank, "mean", mean)
+    print(rank, "X", np.array(X))
 
     if nlocal > 0:
         minX = np.min(X)
@@ -352,23 +353,23 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
 
     gmax = comm.allreduce(minX, op=MPI.MAX)
     gmin = comm.allreduce(minX, op=MPI.MIN)
-    #print(rank, "minX", gmin)
-    #print(rank, "maxX", gmax)
+    print(rank, "minX", gmin)
+    print(rank, "maxX", gmax)
 
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
 
     if (k-1 <= global_nleft <= k+1) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN) or (nlocal == 0) or (gmax - gmin < 0.00001):
-        #print(rank, "Mean", mean)
-        #print(rank, "NLEFT", nL)
+        print(rank, "Mean", mean)
+        print(rank, "NLEFT", nL)
         return (mean, nL)
 
     elif (global_nleft > k):
-        #print(rank, "left")
+        print(rank, "left")
         return dist_select(k, X[:nleft], ID[:nleft], comm, prev=(prev[0], prev[1] + nright, globalN))
 
     elif (global_nright > k):
-        #print(rank, "right")
+        print(rank, "right")
         return dist_select(k, X[nleft:], ID[nleft:], comm, prev=(prev[0]+nleft, prev[1], globalN))
 
     
