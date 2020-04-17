@@ -7,7 +7,7 @@ default: $(EXE)
 CFLAG=-Wall -O3 -I$(EIGEN_ROOT)
 VFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC -I../util/
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcuda -lcudart \
-			-L./ -lgemm_new
+			-L./ -lgemm_new -L../util -lutil
 
 ifeq ($(findstring frontera,$(shell uname -n)),frontera)
   $(info *** on frontera machine ***)

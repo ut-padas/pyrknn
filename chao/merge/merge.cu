@@ -2,6 +2,7 @@
 #include "sort.hpp"
 #include "op_gpu.hpp"
 #include "print.hpp"
+#include "timer_gpu.hpp"
 
 #include <iomanip>
 #include <thrust/gather.h>
@@ -77,53 +78,72 @@ void free(dvec<T> &x) {
 void merge_neighbors_gpu(float *hDist, int *hID, int m, int n, int k) {
   fvec dDist(hDist, hDist+m*n);
   ivec dID(hID, hID+m*n);
-  merge_neighbors(dDist, dID, m, n, k);
+  
+  float t_kernel = 0., t_sort = 0., t_copy = 0., t_unique = 0.;
+  TimerGPU t; t.start();
+  merge_neighbors(dDist, dID, m, n, k, t_sort, t_copy, t_unique);
+  t.stop(); t_kernel = t.elapsed_time();
+
   thrust::copy(dDist.begin(), dDist.end(), hDist);
   thrust::copy(dID.begin(), dID.end(), hID);
+
+  printf("\nsort: %.2e (%.1f %%)", t_sort, 100.*t_sort/t_kernel);
+  printf("\ncopy: %.2e (%.1f %%)", t_copy, 100.*t_copy/t_kernel);
+  printf("\nunique: %.2e (%.1f %%)", t_unique, 100.*t_unique/t_kernel);
+  printf("\n\n");
 }
 
 
 // m x n matrix -> m x k matrix
-// Notice the two matrices may have more than 'm' rows
-void merge_neighbors(dvec<float> &nborDist, dvec<int> &nborID, int m, int n, int k) {
+// Notice the two matrices may have more than 'm' rows in memory
+void merge_neighbors(dvec<float> &nborDist, dvec<int> &nborID, int m, int n, int k, 
+    float &t_sort, float &t_copy, float &t_unique) {
   
+  TimerGPU t;
+
   // sort and unique IDs
+  t.start();
   dvec<int> idx(m*n);
   sort_matrix_rows_mgpu(nborID, idx, m, n);
+  t.stop(); t_sort += t.elapsed_time();
   //std::cout<<"Finished sort"<<std::endl;
 
 
+  t.start();
   int *ID = thrust::raw_pointer_cast(nborID.data());
   dvec<int> count(m*n);
   thrust::sequence(count.begin(), count.end(), 0);
   auto end = thrust::unique_by_key(count.begin(), count.end(), idx.begin(), sameNborID(n, ID));
   idx.erase(end.second, idx.end());
   count.erase(end.first, count.end());
+  t.stop(); t_unique += t.elapsed_time();
   //std::cout<<"Finished unique, unique size: "<<idx.size()<<std::endl;
 
 
   // get (unique) distance and ID
+  t.start();
   dvec<float> uniqueDist(idx.size());
   dvec<int> uniqueID(idx.size());
   thrust::gather(idx.begin(), idx.end(), nborDist.begin(), uniqueDist.begin());
   thrust::gather(count.begin(), count.end(), nborID.begin(), uniqueID.begin());
   free(count);
+  t.stop(); t_copy += t.elapsed_time();
   //std::cout<<"Finished copying unique"<<std::endl;
 
     
   // get segment length
+  t.start();
   dvec<int> segments(m+1, 0);
   auto rowIter = thrust::make_transform_iterator(idx.begin(), rowIdx(n));
   auto zero = thrust::make_counting_iterator<int>(0);
   thrust::upper_bound(rowIter, rowIter+idx.size(), zero, zero+m, segments.begin()+1);
-  //std::cout<<"Finished segment"<<std::endl;
-
-
   sort_matrix_rows_mgpu(uniqueDist, idx, idx.size(), segments, m);
+  t.stop(); t_sort += t.elapsed_time();
   //std::cout<<"Finished sort"<<std::endl;
     
   
   // get first k-cols
+  t.start();
   ID = thrust::raw_pointer_cast(idx.data());
   int *head  = thrust::raw_pointer_cast(segments.data());
 
@@ -140,6 +160,7 @@ void merge_neighbors(dvec<float> &nborDist, dvec<int> &nborID, int m, int n, int
 
   thrust::copy(thrust::device, permI, permI+m*k, PI);
   thrust::copy(thrust::device, permD, permD+m*k, PD);  
+  t.stop(); t_copy += t.elapsed_time();
   //std::cout<<"Finished merge"<<std::endl;
 }
 
