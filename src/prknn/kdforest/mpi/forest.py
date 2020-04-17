@@ -1,9 +1,16 @@
 from . import error as ErrorType
 from . import util as Primitives
 from .tree import *
+import os
+
 
 import numpy as np
-import cupy as cp
+
+if os.environ["PRKNN_USE_CUDA"] == '1':
+    import cupy as cp
+else:
+    import numpy as cp
+
 from collections import defaultdict
 import gc
 import time
@@ -196,7 +203,13 @@ class RKDForest:
             #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
         return result
 
-    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1):
+    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4):
+
+        total_t = time.time()
+
+        Primitives.set_cores(cores)
+        Primitives.reset_timing()
+
         v = (self.verbose or verbose)
         result = None
         rank = self.comm.Get_rank()
@@ -212,23 +225,32 @@ class RKDForest:
                 tree.build()
                 build_t = time.time() - build_t
                 print(rank, "Build_t", build_t, flush=True)
-
+ 
                 search_t = time.time()
                 neighbors = tree.aknn_all(k)
                 search_t = time.time() - search_t
                 print(rank, "Search_t", search_t, flush=True)
+
+                Primitives.aknn_t += (search_t) + (build_t)
+
             else:
                 dist_t = time.time()
                 tree.dist_build()
                 dist_t = time.time() - dist_t
                 print(rank, "Build_Dist_t", dist_t, flush=True)
+                Primitives.dist_build_t += dist_t
 
+                aknn_t = time.time()
                 if self.sparse:
                     neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
                 else:
                     neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device) 
                 
-            print(rank, "neighbors", neighbors, flush=True)
+                aknn_t = time.time() - aknn_t
+                print("aknn_t", aknn_t)
+                Primitives.aknn_t += aknn_t
+
+            #print(rank, "neighbors", neighbors, flush=True)
             #print(rank, "host real gids", tree.host_real_gids, flush=True)
             if self.location == "GPU":
                 tree.real_gids = tree.host_real_gids
@@ -261,6 +283,9 @@ class RKDForest:
             gids, neighbors = tree.redistribute(neighbors)
             dist_t = time.time() - dist_t
             print(rank, "redistribute_t", dist_t, flush=True)
+
+            Primitives.redistribute_t += dist_t
+
             #print("New GIDS", rank, gids, flush=True)
 
             #print("Results after Redist:", rank, neighbors, flush=True)
@@ -273,6 +298,7 @@ class RKDForest:
                 neighbors = neighbors_device
             copy_t = time.time() - copy_t
             print(rank, "copy_to_gpu_t", copy_t, flush=True)
+            Primitives.copy_gpu_t += copy_t
 
             if result is None:
                 result = neighbors
@@ -281,6 +307,7 @@ class RKDForest:
                 result = Primitives.merge_neighbors(result, neighbors, k)
                 merge_t = time.time() - merge_t
                 print(rank, "merge_t", merge_t, flush=True)
+                Primitives.merge_t += merge_t
 
             #print("Results after merge:", rank, neighbors, flush=True)
 
@@ -289,12 +316,18 @@ class RKDForest:
 
             gc.collect()
 
+        #Copy back to host
         if self.location == "GPU":
             res_ids = self.lib.asnumpy(result[0])
             res_dist = self.lib.asnumpy(result[1])
             res_host = (res_ids, res_dist)
             del result
             result = res_host
+
+        total_t = time.time() - total_t
+        Primitives.total_t = total_t
+
+        Primitives.timing()
 
         return result
 

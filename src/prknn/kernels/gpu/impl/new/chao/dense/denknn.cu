@@ -9,7 +9,7 @@
 #include "print.hpp"
 
 
-void build_tree(fvec&, int, int, ivec&, float&);
+void build_tree(fvec&, int, int, ivec&, int, float&);
 
 void leaf_knn(const ivec&, const fvec&, int, int, int, int*, float*, int, int, int);
 
@@ -47,6 +47,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
            <<"\n========================\n"
            <<std::endl;
 
+  TimerGPU start_t;
 
   // copy data to GPU
   dvec<int> dID(N);
@@ -57,19 +58,22 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
 
   dvec<int> dNborID(N*k*2, std::numeric_limits<int>::max());
   dvec<float> dNborDist(N*k*2, std::numeric_limits<float>::max());
+
+  start_t.start();
   auto zero = thrust::make_counting_iterator<int>(0);
   auto iter = thrust::make_transform_iterator(zero, firstKCols(k, 2*k));
   auto leftKColsID = thrust::make_permutation_iterator(dNborID.begin(), iter);
   auto leftKColsDist = thrust::make_permutation_iterator(dNborDist.begin(), iter);
+
   thrust::copy(hNborID, hNborID+n*k, leftKColsID);
   thrust::copy(hNborDist, hNborDist+n*k, leftKColsDist);
 
+  start_t.stop();
   // insert artificial points at infinity
   thrust::sequence(dID.begin()+n, dID.end(), -nExtra, 1); // negative id
   thrust::fill(dP.begin()+n*d, dP.end(), -std::numeric_limits<float>::max());
   
   //tprint(N, d, dP, "Points on GPU");
-
 
   // local ordering
   dvec<int> order(N);
@@ -79,6 +83,9 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   dvec<float> R(d*level); // column-major
   dvec<float> Y(N*level); // column-major
       
+
+  float t_start = 0.;
+  t_start = start_t.elapsed_time();
   // -----------------------
   // timing
   // -----------------------
@@ -118,7 +125,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
         std::cout<<"Finished GEMM.\n"<<std::endl;
 
         // compute permutation
-        build_tree(Y, N, level, perm, t_sort);
+        build_tree(Y, N, level, perm, d, t_sort);
       }
       t.stop(); t_tree += t.elapsed_time();
       //std::cout<<"Finished tree construction.\n"<<std::endl;
@@ -155,6 +162,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
            <<"\n\t- sort: "<<t_sort<<" s"
            <<"\n* Leaf KNN: "<<t_knn<<" s"
            <<"\n* Merge: "<<t_merge<<" s"
+           <<"\n* startup:"<<t_start<<" s"
            <<"\n===========================\n"
            <<std::endl;
 

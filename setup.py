@@ -24,7 +24,12 @@ os.environ["CC"] = "mpicc"
 os.environ["CXX"] = "mpicxx"
 use_cuda = False
 try:
-    use_cuda = bool(os.environ["PRKNN_USE_CUDA"])
+    use_cuda = os.environ["PRKNN_USE_CUDA"]
+    if use_cuda == 0:
+        use_cuda = False
+    else:
+        use_cuda = True
+    print(use_cuda)
 except:
     print("Enviornment varibale PRKNN_USE_CUDA is not set. Assuming CUDA is not being used.")
 

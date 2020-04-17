@@ -1,3 +1,7 @@
+import os
+print(os.environ["PRKNN_USE_CUDA"])
+print(bool(os.environ["PRKNN_USE_CUDA"]))
+
 from . import error as ErrorType
 from . import util as Primitives
 
@@ -10,7 +14,12 @@ import time
 import os
 
 import numpy as np
-import cupy as cp
+
+if os.environ["PRKNN_USE_CUDA"] == '1':
+    import cupy as cp
+else:
+    import numpy as cp
+
 import scipy.sparse as sp
 import random
  
@@ -110,13 +119,13 @@ class RKDT:
             self.lib = np
         elif(self.location == "GPU"):
             self.lib = cp
-            cp.cuda.runtime.setDevice(rank%4)
+            #cp.cuda.runtime.setDevice(rank%4)
 
         if (pointset is not None):
             self.local_size = pointset.shape[0]           #the number of points in the pointset
             
-            self.real_gids = self.lib.arange(rank*self.local_size, (rank+1)*self.local_size, dtype=np.int32)    #the global ids of the points in the pointset (assign original ordering)
-            self.gids = self.lib.arange(self.local_size, dtype=np.int32)
+            self.real_gids = np.arange(rank*self.local_size, (rank+1)*self.local_size, dtype=np.int32)    #the global ids of the points in the pointset (assign original ordering)
+            self.gids = np.arange(self.local_size, dtype=np.int32)
 
             print(rank, "init", self.real_gids, self.gids)
 
@@ -604,9 +613,9 @@ class RKDT:
 
         self.vectors = vectors
 
-        if self.location == "GPU":
-            #Move to GPU
-            self.vectors = self.lib.array(self.vectors, dtype=np.float32)
+        #if self.location == "GPU":
+        #    #Move to GPU
+        #    self.vectors = self.lib.array(self.vectors, dtype=np.float32)
 
         print("vec shape", self.vectors.shape, flush=True)
 
@@ -1003,8 +1012,8 @@ class RKDT:
         else:
             self.data = np.array(self.host_data)
 
-        self.gids = self.lib.array(self.host_gids, dtype=np.int32)
-        self.real_gids = self.lib.array(self.host_real_gids, dtype=np.int32)
+        self.gids = np.array(self.host_gids, dtype=np.int32)
+        self.real_gids = np.array(self.host_real_gids, dtype=np.int32)
 
 
     def reorder(self, lids, data):
@@ -1084,7 +1093,7 @@ class RKDT:
 
         #Precompute the offset for each node
         for level in range(0, self.levels-self.dist_levels+1):
-            self.offset_list.append(self.lib.cumsum(self.size_list[level]))
+            self.offset_list.append(np.cumsum(self.size_list[level]))
             self.host_offset_list.append(np.cumsum(self.size_list[level]))
 
         #print(self.offset_list)
@@ -1371,7 +1380,7 @@ class RKDT:
         result_dist = np.zeros((self.local_size, k), dtype=np.float32)
 
         if self.location == "GPU":
-            real_gids = self.lib.asnumpy(self.real_gids)
+            real_gids = self.host_real_gids
         else:
             real_gids = self.real_gids
 
@@ -2082,7 +2091,7 @@ class RKDT:
         real_gids = self.real_gids
 
         #compute batchsize
-        MAXBATCH = 2048
+        MAXBATCH = 2**28
         n_leaves = len(leaf_nodes)
         batchsize = n_leaves if n_leaves < MAXBATCH else MAXBATCH 
         
@@ -2169,14 +2178,16 @@ class RKDT:
 
         root = self.nodelist[0]
         result =  root.knn(Q, k)
+        print(result)
         recvbuff_list = np.empty([size, self.local_size, k], dtype=np.int32)
         recvbuff_dist = np.empty([size, self.local_size, k], dtype=np.float32)
 
-        ids = self.real_gids[result[0]]
+        rgs = self.real_gids
+        ids = rgs[result[0]]
+        print(rank, ids)
 
         self.comm.Gather(ids, recvbuff_list, root=0)
         self.comm.Gather(result[1], recvbuff_dist, root=0)
-
 
         if rank ==0:
             print(recvbuff_list)

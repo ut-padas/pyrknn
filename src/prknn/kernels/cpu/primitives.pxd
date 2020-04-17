@@ -15,9 +15,9 @@ cdef extern from "impl/primitives_shared.hpp" nogil:
     cdef void GSKNN[T](int *rgids, int *qgids, T *R, T *Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except + 
     cdef void blockedGSKNN[T](int *rgids, int *qgids, T *R, T *Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except + 
     cdef void batchedDirectKNN[T](int **gids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves) except +
-    cdef void batchedGSKNN[T](int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves) except +
+    cdef void batchedGSKNN[T](int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves, int cores) except +
     cdef void batchedRef[T](int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves) except +
     cdef void test[T]() except +
     cdef void choose2(int *out, int N) except +
     cdef void quickselect[T](T *array, int N, int k) except +
-    cdef void merge_neighbor_cpu[T](T* D1, int* I1, T* D2, int* I2, int n, int k) except +
+    cdef void merge_neighbor_cpu[T](T* D1, int* I1, T* D2, int* I2, int n, int k, int cores) except +

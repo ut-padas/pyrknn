@@ -905,10 +905,11 @@ void batchedGSKNN(idx_type<T> **rgids,
              const idx_type<T>  k,
              idx_type<T>** neighbor_list,
              T** neighbor_dist, 
-             const idx_type<T>  nleaves
+             const idx_type<T>  nleaves, 
+             const int cores
             ){
 
-    omp_set_num_threads(4);
+    omp_set_num_threads(cores);
     //printf("Started C++ Section \n");
     idx_type<T> maxt = (idx_type<T>) omp_get_max_threads();
     //printf("MAXT %d\n", maxt);
@@ -1146,8 +1147,8 @@ inline bool equal_value(const pair<key_t, value_t> &a, const pair<key_t, value_t
 
 
 template<typename T>
-void merge_neighbor_cpu(T* D1, int* I1, T* D2, int* I2, const int n, const int k){
-    omp_set_num_threads(4);
+void merge_neighbor_cpu(T* D1, int* I1, T* D2, int* I2, const int n, const int k, const int cores){
+    omp_set_num_threads(cores);
 
     #pragma omp parallel
     {

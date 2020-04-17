@@ -78,11 +78,11 @@ cpdef PyGSKNNBlocked(gids, R, Q, k):
 
     return neighbor_list, neighbor_dist 
 
-cpdef batched_knn(gidsList, RList, QList, k):
+cpdef batched_knn(gidsList, RList, QList, k, cores):
     cdef int nleaves = len(RList); #Assume input is proper #TODO: Add checks
     cdef int cd = RList[0].shape[1];
     cdef int ck = k;
-
+    cdef int ccores = cores
     cdef size_t[:] cRList = np.zeros(nleaves, dtype=np.uintp);
     cdef size_t[:] cQList = np.zeros(nleaves, dtype=np.uintp);
 
@@ -142,7 +142,7 @@ cpdef batched_knn(gidsList, RList, QList, k):
         cNDList[i] = <np.uintp_t>&cND[0, 0];
 
     with nogil:
-        batchedGSKNN[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves);
+        batchedGSKNN[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves, <int> ccores);
     
     #NLL = np.asarray(cNLList);
     #NDL = np.asarray(cNDList);
@@ -241,7 +241,7 @@ cpdef kselect(arr, k):
 
 
 
-cpdef merge_neighbors(a, b, k):
+cpdef merge_neighbors(a, b, k, cores):
     merge_t = time.time()
 
     I1 = a[0]
@@ -258,9 +258,9 @@ cpdef merge_neighbors(a, b, k):
 
     cdef int cn = I1.shape[0]
     cdef int ck = k
-
+    cdef int ccores = cores
     with nogil:
-        merge_neighbor_cpu[float](&cD1[0, 0], &cI1[0, 0], &cD2[0, 0], &cI2[0, 0], cn, ck)
+        merge_neighbor_cpu[float](&cD1[0, 0], &cI1[0, 0], &cD2[0, 0], &cI2[0, 0], cn, ck, <int> ccores)
 
     merge_t = time.time() - merge_t
     print("Merge time:", merge_t)

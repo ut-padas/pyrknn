@@ -1,10 +1,16 @@
 import numpy as np
-import cupy as cp
 import numba 
-from numba import cuda
-
+import os
 from ...kernels.cpu import core as cpu
-from ...kernels.gpu import core as gpu
+
+if os.environ["PRKNN_USE_CUDA"] == '1':
+    from ...kernels.gpu import core as gpu
+    from numba import cuda
+    import cupy as cp
+else:
+    import numpy as cp
+    from ...kernels.cpu import core as gpu
+
 import time
 
 """File that contains key kernels to be replaced with high performance implementations"""
@@ -18,10 +24,45 @@ import time
 #TODO: 3 Add switching mechanism based on: Task Context? Where the data is? etc...
 
 
+dist_build_t = 0
+total_t = 0
+aknn_t = 0
+redistribute_t = 0
+merge_t = 0
+accuracy = []
+copy_gpu_t = 0
+
+def reset_timing():
+    global dist_build_t
+    global total_t
+    global aknn_t
+    global redistribute_t
+    global merge_t
+    global accuracy
+    global copy_gpu_t
+
+    dist_build_t = 0
+    total_t = 0
+    aknn_t = 0
+    redistribute_t = 0
+    merge_t = 0
+    accuracy = []
+    copy_gpu_t = 0
+
+def timing():
+    print("dist_build_t", dist_build_t)
+    print("aknn_t", aknn_t)
+    print("redistribute_t", redistribute_t)
+    print("copy_gpu_t", copy_gpu_t)
+    print("merge_t", merge_t)
+    print(accuracy)
+
 env = "CPU" #Coarse kernel context switching mechanism for debugging (this is a bad pattern, to be replace in #TODO 3)
 lib = np
 batched = 1
 sparse = 0
+
+cores = 0
 
 def set_env(loc, sp):
     global env
@@ -39,6 +80,9 @@ def set_env(loc, sp):
     else:
         raise Exception("Not a valid enviorment target. Specify CPU or GPU")
     
+def set_cores(c):
+    global cores
+    cores = c
 
 #TODO: Q2 and R2 could be precomputed and given as arguments to distance(), should make keyword parameters for this option
 def distance(R, Q):
@@ -110,7 +154,7 @@ def single_knn(gids, R, Q, k):
 
 def batched_knn(gidsList, RList, QList, k):
    if env == "CPU":
-        return cpu.batched_knn(gidsList, RList, QList, k)
+        return cpu.batched_knn(gidsList, RList, QList, k, cores)
    if env == "GPU":
         raise Exception("Use combined kernel")
         #return gpu.batched_knn(gidsList, RList, QList, k)
@@ -191,7 +235,7 @@ def merge_neighbors(a, b, k):
     merge_t = time.time()
 
     if env == "CPU":
-        return cpu.merge_neighbors(a, b, k)
+        return cpu.merge_neighbors(a, b, k, cores)
 
     if env == "GPU":
         out = gpu.merge_neighbors(a, b, k)
