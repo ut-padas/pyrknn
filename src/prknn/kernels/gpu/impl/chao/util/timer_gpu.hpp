@@ -2,6 +2,7 @@
 #define timer_gpu_hpp
 
 #include <string>
+namespace old {
 
 class TimerGPU {
 public:
@@ -17,4 +18,5 @@ private:
   double tStop = 0.0;
 };
 
+}
 #endif /* timer_gpu_hpp */

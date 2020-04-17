@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 
+namespace old {
 //#include 
 
 // Return time in seconds since the Unix epoch
@@ -42,4 +43,5 @@ std::string TimerGPU::get_elapsed_time(const char* msg) {
   std::stringstream ss;
   ss << msg << " : " << tStop-tStart << " seconds." << std::endl;
   return ss.str();
+}
 }

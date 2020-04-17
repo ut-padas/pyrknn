@@ -107,7 +107,8 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
     int blkLeaf, int blkPoint, int device) {
  
   //print(n, d, nnz, hRowPtr, hColIdx, hVal, "host P");
-  
+  cudaSetDevice(device);
+ 
   const int nLeaf = 1<<level;
   const int maxPoint = (n+nLeaf-1)/nLeaf;
   const int nExtra = maxPoint*nLeaf - n;

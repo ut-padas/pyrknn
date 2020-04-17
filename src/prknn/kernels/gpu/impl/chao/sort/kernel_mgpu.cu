@@ -1,6 +1,8 @@
 #include "sort_gpu.hpp"
 #include <moderngpu/kernel_segsort.hxx>
 
+namespace old {
+
 mgpu::standard_context_t* sortGPU::ctxMGPU = NULL;
 
 void sortGPU::init_mgpu() {
@@ -27,4 +29,4 @@ void sortGPU::sort_matrix_rows_mgpu(dvec<float> &A, dvec<int> &idx, int N,
   mgpu::segmented_sort_indices(keys, vals, N, segs, m, mgpu::less_t<float>(), *(sortGPU::ctxMGPU));
 }
 
-
+}

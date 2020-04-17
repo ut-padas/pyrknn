@@ -14,6 +14,8 @@ using dvec = thrust::device_vector<T>;
 #include "../util/util.hpp"
 #endif
 
+namespace old {
+
 struct strideBlock: public thrust::unary_function<int, int> {
 
   int start; 
@@ -231,5 +233,6 @@ void merge_neighbors(float *nborD1, const float *nborD2, int *nborI1, const int 
            <<"sort2: "<<t_sort2/t_kernel*100<<" %\n"
            <<"out: "<<t_out/t_kernel*100<<" %\n"
            <<"==============\n\n";
+}
 }
 

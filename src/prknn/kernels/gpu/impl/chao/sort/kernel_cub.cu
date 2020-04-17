@@ -1,6 +1,7 @@
 #include "sort_gpu.hpp"
 #include <cub/cub.cuh>
 
+namespace old{
 
 size_t sortGPU::storage_bytes_cub = 0;
 void*  sortGPU::storage_cub = NULL;
@@ -131,4 +132,4 @@ void sortGPU::sort_matrix_rows_cub2(dvec<float> &A, dvec<int> &idx, int m, int n
         d_keys, d_values, m*n, m, ofs_begin, ofs_end) );
 }
 
-
+}

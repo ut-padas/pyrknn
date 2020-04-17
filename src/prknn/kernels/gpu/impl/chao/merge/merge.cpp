@@ -7,6 +7,8 @@
 
 #include <Eigen/Dense>
 
+namespace old {
+
 using namespace Eigen;
 typedef Matrix<float, Dynamic, Dynamic, RowMajor> Mat;
 typedef Matrix<int, Dynamic, Dynamic, RowMajor> MatInt;
@@ -52,6 +54,9 @@ void merge_neighbor(const float *D2PtrL, const int *IDl, int kl,
   kselect(value.data(), ID.data(), ID.size(), nborDistPtr, nborIDPtr, k);
 }
 
+}
+
+using namespace old;
 int main(int argc, char *argv[]) {
 
   int m = 3;
@@ -189,5 +194,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-
 

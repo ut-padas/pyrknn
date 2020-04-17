@@ -71,7 +71,7 @@ gpu_inc_dirs = gpu_inc_dirs + [CUDA_LIB+'/stubs/']
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/sort']
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/merge']
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/util']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/']
+#gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/']
 
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/gemm']
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/merge']
@@ -98,7 +98,7 @@ gpu_lib_dirs = gpu_lib_dirs + [CUDA_LIB+'/stubs/']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/sort']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/merge']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/util']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/']
+#gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/']
 
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/gemm']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/merge']
@@ -139,7 +139,7 @@ def makeExtension(extName):
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
                 extra_objects=args.gpu_obj,
-                libraries=["cuda", "cudart", "cublas", "cusparse", "cusolver", "util", "sortgpu", "mergegpu", "knngpu"] +["gemm_new", "util_new", "sort_new", "merge_new", "denknngpu_new", "spknngpu_new", "transpose_new", "orthogonal_new", "reorder_new", "sort_new"], 
+                libraries=["cuda", "cudart", "cublas", "cusparse", "cusolver", "util", "sortgpu", "mergegpu"] +["gemm_new", "util_new", "sort_new", "merge_new", "denknngpu_new", "spknngpu_new", "transpose_new", "orthogonal_new", "reorder_new", "sort_new"], 
                 extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-DPROD"],
                 extra_link_args=["-ldl", "-lpthread", "-qopenmp"]
                 )

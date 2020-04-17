@@ -4,6 +4,7 @@
 #include "sort_gpu.hpp"
 
 using namespace std;
+namespace old {
 
 inline void check(cudaError_t status, string error) {
   if (status != cudaSuccess) {
@@ -100,4 +101,4 @@ void k_select(T *distances_device, int *indices_device,
 */
 
 
-
+}

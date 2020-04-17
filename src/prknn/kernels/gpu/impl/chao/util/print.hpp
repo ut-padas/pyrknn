@@ -3,6 +3,7 @@
 
 #include <thrust/device_vector.h>
 #include <iostream>
+namespace old {
 
 template <typename T>
 void print(const thrust::device_vector<T>& vec, const std::string &name) {
@@ -22,4 +23,5 @@ void print(const thrust::device_vector<T>& vec, int m, int n, const std::string 
   }
 }
 
+}
 #endif

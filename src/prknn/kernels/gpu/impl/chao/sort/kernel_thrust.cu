@@ -1,6 +1,7 @@
 #include "sort_gpu.hpp"
 #include <thrust/functional.h>
 
+namespace old {
 
 void sortGPU::sort_matrix_rows_thrust(dvec<float> &A, dvec<int> &idx, int m, int n) {
 
@@ -30,4 +31,4 @@ void sortGPU::sort_matrix_rows_thrust2(dvec<float> &A, dvec<int> &idx, int m, in
   thrust::stable_sort_by_key(seg.begin(), seg.end(), idx.begin());
 }
 
-
+}

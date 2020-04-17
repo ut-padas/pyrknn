@@ -12,6 +12,8 @@ using dvec = thrust::device_vector<T>;
 #include "sort_gpu.hpp"
 #include "../util/util.hpp"
 
+namespace old {
+
 struct prg : public thrust::unary_function<unsigned int, float> {
   float a, b;
 
@@ -70,6 +72,9 @@ void get_kcols(const dvec<T> &D, dvec<T> &K, int m, int n, int k) {
   thrust::copy(perm, perm+m*k, K.begin());  
 }
 
+}
+
+using namespace old;
 int main(int argc, char *argv[]) {
 
   int m = 3;
@@ -294,5 +299,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-
 

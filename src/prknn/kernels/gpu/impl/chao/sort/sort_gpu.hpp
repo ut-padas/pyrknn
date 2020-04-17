@@ -4,6 +4,8 @@
 #include <thrust/device_vector.h>
 #include <moderngpu/kernel_segsort.hxx>
 
+namespace old {
+
 class sortGPU {
 
 public:
@@ -94,5 +96,6 @@ void sortGPU::sort_matrix_rows_mgpu(dvec<T> &A, dvec<int> &idx, int m, int n) {
   mgpu::segmented_sort_indices(keys, vals, m*n, segs, m, mgpu::less_t<T>(), *(sortGPU::ctxMGPU));
 }
 
+}
 
 #endif

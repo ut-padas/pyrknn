@@ -128,9 +128,9 @@ class RKDT:
 
                 #Copy of data in CPU Memory
 
-                local_data = self.lib.asarray(pointset.data, dtype=np.float32)
-                local_row = self.lib.asarray(pointset.row, dtype=np.int32)
-                local_col = self.lib.asarray(pointset.col, dtype=np.int32)
+                local_data = np.asarray(pointset.data, dtype=np.float32)
+                local_row = np.asarray(pointset.row, dtype=np.int32)
+                local_col = np.asarray(pointset.col, dtype=np.int32)
 
                 self.host_data = sp.coo_matrix( (local_data, (local_row, local_col) ))
 
@@ -188,10 +188,8 @@ class RKDT:
                 self.host_data = np.asarray([], dtype=np.float32)
                 #Copy of data in location memory
                 #self.data = self.lib.asarray([], dtype=np.float32)
-
-
-        if(self.location == "CPU"): 
-            self.data = self.host_data
+                if(self.location == "CPU"): 
+                    self.data = self.host_data
 
         #Assumes all trees have the same location and (dense/sparse)ness        
         Primitives.set_env(self.location, self.sparse)
@@ -200,9 +198,6 @@ class RKDT:
         temp_global_size = np.array(0, dtype=np.int32)
         self.comm.Allreduce(temp_local_size, temp_global_size, op=MPI.SUM)
         self.size = temp_global_size
-
-        if(self.location=="CPU"):
-            self.data = self.host_data
 
         self.built=False
 
@@ -1008,8 +1003,8 @@ class RKDT:
         else:
             self.data = np.array(self.host_data)
 
-        self.gids = np.array(self.host_gids)
-        self.real_gids = np.array(self.host_real_gids)
+        self.gids = self.lib.array(self.host_gids, dtype=np.int32)
+        self.real_gids = self.lib.array(self.host_real_gids, dtype=np.int32)
 
 
     def reorder(self, lids, data):
@@ -1387,7 +1382,8 @@ class RKDT:
         lids = np.arange(self.local_size, dtype=np.int32)
 
         collect_t = time.time()
-        real_gids = real_gids[self.gids]
+        if self.location == "CPU":
+            real_gids = real_gids[self.gids]
 
         #print(rank, "gids", real_gids, flush=True)
         #print(rank, "gids_max", np.max(gids), flush=True)
@@ -1862,6 +1858,7 @@ class RKDT:
             #invp = np.array(invp, dtype=np.int32)
 
             results = (self.gids[l[:, :]], d[:, :])
+            results = Primitives.merge_neighbors(results, results, k)
             return results
             
 

@@ -112,7 +112,8 @@ def batched_knn(gidsList, RList, QList, k):
    if env == "CPU":
         return cpu.batched_knn(gidsList, RList, QList, k)
    if env == "GPU":
-        return gpu.batched_knn(gidsList, RList, QList, k)
+        raise Exception("Use combined kernel")
+        #return gpu.batched_knn(gidsList, RList, QList, k)
 
 def multileaf_knn(gidsList, RList, QList, k):
 
@@ -283,6 +284,11 @@ def neighbor_dist(a, b):
 def dist_select(k, data, ids, comm):
     return cpu.dist_select(k, data, ids, comm)
 
+def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
+    return gpu.sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device)
+
+def dense_knn(gids, X, levels, ntrees, k, blocksize, device):
+    return gpu.dense_knn(gids, X, levels, ntrees, k, blocksize, device)
 
 def neighbor_order(neighbor_list, neighbor_dist, NLL, NDL, size, k):
     print("NOT COMPLETE")

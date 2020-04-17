@@ -7,6 +7,7 @@ import cupy as cp
 from collections import defaultdict
 import gc
 import time
+import scipy.sparse as sp
 
 from mpi4py import MPI
 
@@ -37,6 +38,9 @@ class RKDForest:
         self.ntrees = ntrees
         self.location = location
         self.sparse = sparse
+        rank = self.comm.Get_rank()
+
+        self.device = rank%4
 
         if self.location == "CPU":
             self.lib = np
@@ -44,9 +48,18 @@ class RKDForest:
             self.lib = cp
  
         if (pointset is not None):
-            self.size = len(pointset)
+            self.size = pointset.shape[0]
             self.gids = np.arange(self.size)
-            self.data = np.asarray(pointset, dtype=np.float32)
+
+            if(self.sparse):
+                local_data = np.asarray(pointset.data, dtype=np.float32)
+                local_row = np.asarray(pointset.row, dtype=np.int32)
+                local_col = np.asarray(pointset.col, dtype=np.int32)
+
+                self.data = sp.coo_matrix( (local_data, (local_row, local_col) ))
+            else:
+                self.data = np.asarray(pointset, dtype=np.float32)
+
             if (leafsize is None):
                 self.leafsize = self.size
             if (self.ntrees == 0):
@@ -59,7 +72,27 @@ class RKDForest:
         else:
             self.empty= True
             self.ntrees = 0
-            self.data = np.asarray([])
+            if(self.sparse):
+                #Copy of CPU Memory
+                local_data = np.asarray([], dtype=np.float32)
+                local_row = np.asarray([], dtype=np.int32)
+                local_col = np.asarray([], dtype=np.float32)
+                
+                self.data = sp.coo_matrix( (local_data, (local_row, local_col) ))
+
+                #Copy of location memory
+                #local_data = self.lib.asarray([], dtype=np.float32)
+                #local_indices = self.lib.asarray([], dtype=np.int32)
+                #local_indptr = self.lib.asarray([], dtype=np.float32)
+                
+                #self.data = self.lib.csr_matrix( (local_data, local_indicies, local_indptr) )
+            else:
+                #Copy of data in CPU Memory
+                self.data = np.asarray([], dtype=np.float32)
+                #Copy of data in location memory
+                #self.data = self.lib.asarray([], dtype=np.float32)
+
+
 
         self.built=False
 
@@ -84,7 +117,7 @@ class RKDForest:
         self.forestlist = [None]*self.ntrees
 
         for i in range(self.ntrees):
-            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm)
+            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
             tree.build()
             self.forestlist[i] = tree
 
@@ -163,54 +196,66 @@ class RKDForest:
             #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
         return result
 
-    def aknn_all_build(self, k, verbose=False):
+    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1):
         v = (self.verbose or verbose)
         result = None
         rank = self.comm.Get_rank()
         #TODO: Key Area for PARLA Tasks
 
         for i in range(self.ntrees):
-            print(rank, "begin tree", flush=True)
-            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm)
+            print(rank, "Begin tree", flush=True)
 
-            build_t = time.time()
-            tree.build()
-            build_t = time.time() - build_t
-            print(rank, "Build_t", build_t, flush=True)
+            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
 
-            search_t = time.time()
-            neighbors = tree.aknn_all(k)
-            search_t = time.time() - search_t
-            print(rank, "Search_t", search_t, flush=True)
+            if self.location == "CPU":
+                build_t = time.time()
+                tree.build()
+                build_t = time.time() - build_t
+                print(rank, "Build_t", build_t, flush=True)
 
+                search_t = time.time()
+                neighbors = tree.aknn_all(k)
+                search_t = time.time() - search_t
+                print(rank, "Search_t", search_t, flush=True)
+            else:
+                dist_t = time.time()
+                tree.dist_build()
+                dist_t = time.time() - dist_t
+                print(rank, "Build_Dist_t", dist_t, flush=True)
+
+                if self.sparse:
+                    neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
+                else:
+                    neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device) 
+                
+            print(rank, "neighbors", neighbors, flush=True)
             #print(rank, "host real gids", tree.host_real_gids, flush=True)
-            copy_t = time.time()
             if self.location == "GPU":
-                neighbor_ids = self.lib.asnumpy(neighbors[0])
-                neighbor_dist = self.lib.asnumpy(neighbors[1])
-                neighbors_host = (neighbor_ids, neighbor_dist)
-                del neighbors
-                neighbors = neighbors_host
-            copy_t = time.time() - copy_t
-            print(rank, "copy_from_gpu_t", copy_t, flush=True)
-
+                tree.real_gids = tree.host_real_gids
+            #    real_gids = tree.host_real_gids[tree.host_gids]
+            #    neighbor_list = real_gids[neighbors[0]]
+            #    print("gids", tree.host_real_gids)
+            #    print("doblb", neighbor_list, flush=True)
+            #    neighbors = (neighbor_list, neighbors[1])
+                #neighbor_list2 = tree.host_real_gids[neighbors[0]]
+                #print("sng", neighbor_list2, flush=True)
             #print(rank, "gids", tree.real_gids)
-            if 0 in tree.real_gids:
-                print("0 is on rank", rank)
-                loc = np.where(tree.real_gids==0)
-                print("at loc", loc[0])
-                loc_2 = np.where(tree.gids==loc[0])
-                print("The datapoint is", tree.data[loc_2])
+            #if 0 in tree.real_gids:
+            #    print("0 is on rank", rank)
+            #    loc = np.where(tree.real_gids==0)
+            #    print("at loc", loc[0])
+            #    loc_2 = np.where(tree.gids==loc[0])
+            #    print("The datapoint is", tree.data[loc_2])
             
             #DEBUG: Merge with self to sort
-            neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
+            #neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
             
-            print("Before redist", rank, neighbors, flush=True)
-            if 0 in tree.real_gids:
-                print("0 is on rank", rank)
-                loc = np.where(tree.real_gids==0)
-                print("zero", neighbors[0][loc, ...])
-                print("zero", neighbors[1][loc, ...])
+            #print("Before redist", rank, neighbors, flush=True)
+            #if 0 in tree.real_gids:
+            #    print("0 is on rank", rank)
+            #    loc = np.where(tree.real_gids==0)
+            #    print("zero", neighbors[0][loc, ...])
+            #    print("zero", neighbors[1][loc, ...])
 
             dist_t = time.time()
             gids, neighbors = tree.redistribute(neighbors)
@@ -223,13 +268,11 @@ class RKDForest:
             if self.location == "GPU":
                 neighbor_ids = self.lib.array(neighbors[0])
                 neighbor_dist = self.lib.array(neighbors[1])
-                neighbors_deice = (neighbor_ids, neighbor_dist)
+                neighbors_device = (neighbor_ids, neighbor_dist)
                 del neighbors
                 neighbors = neighbors_device
             copy_t = time.time() - copy_t
-
             print(rank, "copy_to_gpu_t", copy_t, flush=True)
-
 
             if result is None:
                 result = neighbors
@@ -245,6 +288,13 @@ class RKDForest:
             del neighbors
 
             gc.collect()
+
+        if self.location == "GPU":
+            res_ids = self.lib.asnumpy(result[0])
+            res_dist = self.lib.asnumpy(result[1])
+            res_host = (res_ids, res_dist)
+            del result
+            result = res_host
 
         return result
 

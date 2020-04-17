@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <sstream>
 #include <iostream>
+namespace old {
 
 // Return time in seconds since the Unix epoch
 static double timer() {
@@ -38,4 +39,6 @@ std::string Timer::get_elapsed_time(const char* msg) {
   std::stringstream ss;
   ss << msg << " : " << tStop-tStart << " seconds." << std::endl;
   return ss.str();
+}
+
 }

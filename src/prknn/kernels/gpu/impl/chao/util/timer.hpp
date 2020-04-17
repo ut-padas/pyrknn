@@ -2,6 +2,7 @@
 #define timer_hpp
 
 #include <string>
+namespace old {
 
 class Timer {
 public:
@@ -16,5 +17,7 @@ private:
   double tStart = 0.0;
   double tStop = 0.0;
 };
+
+}
 
 #endif /* timer_hpp */
