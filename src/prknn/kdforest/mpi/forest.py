@@ -170,18 +170,20 @@ class RKDForest:
         #TODO: Key Area for PARLA Tasks
 
         for i in range(self.ntrees):
+            print(rank, "begin tree", flush=True)
             tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm)
 
             build_t = time.time()
             tree.build()
             build_t = time.time() - build_t
-            print(rank, "Build_t", build_t)
+            print(rank, "Build_t", build_t, flush=True)
 
             search_t = time.time()
             neighbors = tree.aknn_all(k)
             search_t = time.time() - search_t
-            print(rank, "Search_t", search_t)
+            print(rank, "Search_t", search_t, flush=True)
 
+            #print(rank, "host real gids", tree.host_real_gids, flush=True)
             copy_t = time.time()
             if self.location == "GPU":
                 neighbor_ids = self.lib.asnumpy(neighbors[0])
@@ -190,28 +192,57 @@ class RKDForest:
                 del neighbors
                 neighbors = neighbors_host
             copy_t = time.time() - copy_t
-            print(rank, "copy_from_gpu_t", copy_t)
+            print(rank, "copy_from_gpu_t", copy_t, flush=True)
 
-            #print("Before redist", rank, neighbors, flush=True)
+            #print(rank, "gids", tree.real_gids)
+            if 0 in tree.real_gids:
+                print("0 is on rank", rank)
+                loc = np.where(tree.real_gids==0)
+                print("at loc", loc[0])
+                loc_2 = np.where(tree.gids==loc[0])
+                print("The datapoint is", tree.data[loc_2])
+            
+            #DEBUG: Merge with self to sort
+            neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
+            
+            print("Before redist", rank, neighbors, flush=True)
+            if 0 in tree.real_gids:
+                print("0 is on rank", rank)
+                loc = np.where(tree.real_gids==0)
+                print("zero", neighbors[0][loc, ...])
+                print("zero", neighbors[1][loc, ...])
+
             dist_t = time.time()
             gids, neighbors = tree.redistribute(neighbors)
             dist_t = time.time() - dist_t
-            print(rank, "redistribute_t", dist_t)
+            print(rank, "redistribute_t", dist_t, flush=True)
             #print("New GIDS", rank, gids, flush=True)
 
-            print("Results after Redist:", rank, neighbors, flush=True)
+            #print("Results after Redist:", rank, neighbors, flush=True)
+            copy_t = time.time()
+            if self.location == "GPU":
+                neighbor_ids = self.lib.array(neighbors[0])
+                neighbor_dist = self.lib.array(neighbors[1])
+                neighbors_deice = (neighbor_ids, neighbor_dist)
+                del neighbors
+                neighbors = neighbors_device
+            copy_t = time.time() - copy_t
+
+            print(rank, "copy_to_gpu_t", copy_t, flush=True)
+
 
             if result is None:
                 result = neighbors
             else:
                 merge_t = time.time()
-                Primitives.set_env("CPU", self.sparse)
                 result = Primitives.merge_neighbors(result, neighbors, k)
-                Primitives.set_env(self.location, self.sparse)
                 merge_t = time.time() - merge_t
-                print(rank, "merge_t", merge_t)
+                print(rank, "merge_t", merge_t, flush=True)
+
+            #print("Results after merge:", rank, neighbors, flush=True)
 
             del tree
+            del neighbors
 
             gc.collect()
 

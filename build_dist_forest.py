@@ -17,14 +17,14 @@ def test_build():
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
 
-    N = 2**18
+    N = 2**20
     d = 10
-    
+    k=64
     rank = comm.Get_rank()
     print(rank, platform.node())
-    np.random.seed(rank*10)  #Fails on 10
+    #np.random.seed(rank*10)  #Fails on 10
 
-    dataset = "UNIF"
+    dataset = "SPHERE"
     if dataset=="SPHERE":
         local_arr = np.random.rand(N, d)
         local_arr = np.array(local_arr, dtype=np.float32)
@@ -35,8 +35,8 @@ def test_build():
         class2 = np.random.randn((int)(np.ceil(N/2)), d)
         local_arr = np.concatenate((class1, class2), axis=1)
 
-    tree = RKDForest(pointset=local_arr, levels=20, leafsize=512, comm=comm, location="CPU", ntrees=3)
-    results = tree.aknn_all_build(3)
+    tree = RKDForest(pointset=local_arr, levels=20, leafsize=1024, comm=comm, location="CPU", ntrees=3)
+    results = tree.aknn_all_build(k)
 
     print("Final Solution", rank, results, flush=True)
 

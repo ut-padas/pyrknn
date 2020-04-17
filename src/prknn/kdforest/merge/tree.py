@@ -576,6 +576,7 @@ class RKDT:
                 k -- number of nearest neighbors
             """
             R = self.get_reference()
+            print("knn gids", self.gids)
             return Primitives.single_knn(self.gids, R, Q, k)
 
         def knn_all(self, k):

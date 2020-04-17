@@ -273,14 +273,11 @@ def neighbor_dist(a, b):
     nn_dist = lib.zeros(Na)
     first_diff = lib.zeros(Na)
     for i in range(Na):
-        changes += (ka - lib.sum(a_list[i] == b_list[i]))
-        nn_dist[i] = lib.abs(a_dist[i, -1] - b_dist[i, -1])/lib.abs(a_dist[i, -1])
-        diff_array = lib.abs(a_list[i, ...] - b_list[i, ...])
-        first_diff[i] = lib.argmax(diff_array > 0.5)
+        changes += np.sum([1 if a_list[i, k] in b_list[i] else 0 for k in range(k)])
 
     perc = changes/(Na*ka)
 
-    return perc, lib.mean(nn_dist), first_diff
+    return perc
 
 
 def dist_select(k, data, ids, comm):
