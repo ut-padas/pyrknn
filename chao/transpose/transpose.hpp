@@ -4,7 +4,7 @@
 #include "util_gpu.hpp"
 
 void transpose(const int, const int, const int, int*, int*, float*,
-    ivec&, ivec&, fvec&);
+    ivec&, ivec&, fvec&, float&);
 
 void transpose(const int, const int, const int, const ivec&, const ivec&, const fvec&,
     ivec&, ivec&, fvec&);

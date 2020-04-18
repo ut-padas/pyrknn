@@ -6,7 +6,7 @@ default: $(EXE)
 
 CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcuda -lcudart \
-			-L./ -lreorder_new -L../gemm/ -lgemm_new
+			-L./ -lreorder_new -L../gemm/ -lgemm_new -L../util -lutil
 
 ifeq ($(findstring frontera,$(shell uname -n)),frontera)
   $(info *** on frontera machine ***)

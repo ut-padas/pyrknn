@@ -54,25 +54,25 @@ build_tree.o: build_tree.cu
 leaf_knn.o: leaf_knn.cu
 	nvcc -c $< $(VFLAG) -I ../util -I ../sort -I $(MGPU_ROOT) --expt-extended-lambda
 
-../util/libutil.so:
+../util/libutil_new.so:
 	cd ../util; make -j8
 
-../readSVM/libreadSVM.so:
+../readSVM/libreadSVM_new.so:
 	cd ../readSVM; make -j8
 
-../transpose/libtranspose.so:
+../transpose/libtranspose_new.so:
 	cd ../transpose; make -j8
 
-../orthogonal/liborthogonal.so:
+../orthogonal/liborthogonal_new.so:
 	cd ../orthogonal; make -j8
 
-../gemm/libgemm.so:
+../gemm/libgemm_new.so:
 	cd ../gemm; make -j8
 
-../reorder/libreorder.so:
+../reorder/libreorder_new.so:
 	cd ../reorder; make -j8
 
-../merge/libmerge.so:
+../merge/libmerge_new.so:
 	cd ../merge; make -j8
 
 run: $(EXE)
@@ -82,7 +82,9 @@ debug: $(EXE)
 	$(EXE) -n 10 -d 5 -l 1 -k 3 -bt 1 -t 20
 
 benchmark: $(EXE)
-	$(EXE) -dataset mnist -l 5 -k 64 -bt 1 -t 50
+	#$(EXE) -dataset mnist -l 5 -k 64 -bt 1 -t 50
+	#$(EXE) -k 64 -bt 1 -t 2 -l 10 -leaf 1024 -bp 256 -bl 1024
+	$(EXE) -k 64 -bt 1 -t 2 -l 12 -leaf 4096 -bp 64 -d 10
 	
 clean:
 	rm -f *.o $(EXE) $(LIB)

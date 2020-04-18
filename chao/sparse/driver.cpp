@@ -158,7 +158,6 @@ int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &
   
   int miss = 0;
   for (int i=0; i<n; i++) {
-    std::cout<<"\n[row "<<i<<"]"<<std::endl;
     float *start = dist_cpu.data()+i*k;
     float *end = dist_cpu.data()+(i+1)*k;
     for (int j=0; j<k; j++) {
@@ -167,7 +166,7 @@ int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &
         //std::cout<<"Found "<<j<<": "<<dist(i,j)<<" at "<<*start<<std::endl;
         start++;  
       } else { // not found
-        std::cout<<"Gave up at "<<j<<", missed "<<k-j<<std::endl;
+        //std::cout<<"\n[row "<<i<<"]: Gave up at "<<j<<", missed "<<k-j<<std::endl;
         miss += k-j;
         break; // no need to search for the rest
       }
@@ -226,7 +225,7 @@ int main(int argc, char *argv[]) {
            <<"----------------------\n"
            <<"block tree: "<<blkTree<<std::endl
            <<"block leaf: "<<blkLeaf<<std::endl
-           <<"block tree: "<<blkPoint<<std::endl
+           <<"block point: "<<blkPoint<<std::endl
            //<<"repeat: "<<repeat<<std::endl
            //<<"debug: "<<debug<<std::endl
            //<<"benchmark: "<<benchmark<<std::endl

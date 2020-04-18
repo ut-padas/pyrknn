@@ -5,7 +5,7 @@
 #include "print.hpp"
 
 
-void build_tree(dvec<float> &P, int n, int L, dvec<int> &order, float &t_sort) {
+void build_tree(dvec<float> &P, int n, int L, dvec<int> &order, int nBases, float &t_sort) {
   // initial order
   thrust::sequence(order.begin(), order.end(), 0);
   // permutation at every level (no need to initialize)
@@ -19,7 +19,7 @@ void build_tree(dvec<float> &P, int n, int L, dvec<int> &order, float &t_sort) {
     ivec seg(nNode);
     thrust::sequence(seg.begin(), seg.end(), 0, n/nNode);
     int *seghead = thrust::raw_pointer_cast(seg.data());
-    float *val = thrust::raw_pointer_cast(P.data()+i*n);
+    float *val = thrust::raw_pointer_cast(P.data()+(i%nBases)*n);
     if (i>0) gather(val, n, order); // apply permutation of all previous levels
     //dprint(n, val, "value");
     t.start();

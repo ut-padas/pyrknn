@@ -61,12 +61,13 @@ void gather(dvec<int> &A_rowPtr, dvec<int> &A_colIdx, dvec<float> &A_val,
   int *rowPtrB, *colIdxB, nnzB;
   float *valB;
 
+  float t0 = 0., t1 = 0.;
   auto& handle = knnHandle_t::instance();
   GEMM_SSS(m, n, m, 1.0,
       P_rowPtr, P_colIdx, P_val, m,
       rowPtrA, colIdxA, valA, nnz,
       rowPtrB, colIdxB, valB, nnzB,
-      handle.info, handle.sparse, handle.mat);
+      handle.info, handle.sparse, handle.mat, t0, t1);
 
   assert(nnz == nnzB);
 

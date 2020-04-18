@@ -9,7 +9,8 @@ default: $(EXE)
 
 CFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC
 
-LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart
+LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart \
+			-L../util -lutil
 
 ifeq ($(PROD), 1)
 	CFLAG+=-DPROD

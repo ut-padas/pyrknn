@@ -69,13 +69,16 @@ Mat create_random_points(int argc, char *argv[]) {
 
   int n = 1024;
   int d = 64;
+  int leaf = 1;
   for (int i=1; i<argc; i++) {
     if (!strcmp(argv[i],"-n"))
       n = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-d"))
       d = atoi(argv[i+1]);
+    if (!strcmp(argv[i],"-leaf"))
+      leaf = atoi(argv[i+1]);
   }
-  int N = n;
+  int N = n*leaf;
   assert(n>0);
   assert(d>0);
 
@@ -138,7 +141,7 @@ int main(int argc, char *argv[]) {
            <<"----------------------\n"
            <<"block tree: "<<blkTree<<std::endl
            <<"block leaf: "<<blkLeaf<<std::endl
-           <<"block tree: "<<blkPoint<<std::endl
+           <<"block point: "<<blkPoint<<std::endl
            <<"======================\n\n";
 
   Timer t;
@@ -185,7 +188,7 @@ int main(int argc, char *argv[]) {
     std::cout<<"\t*** Results of first "<<no<<" points ***\n"
              <<"neighbor ID:\n"<<nborID.topLeftCorner(no, k)<<"\n"
              <<"neighbor distance:\n"<<nborDist.topLeftCorner(no, k)<<"\n"
-             <<"Time for sparse KNN: "<<t_knn<<" s\n"<<std::endl;
+             <<"Time for dense KNN: "<<t_knn<<" s\n"<<std::endl;
 
     std::cout<<"\n\t*** CPU reference ***\n"
              <<"neighbor ID:\n"<<nborIDCPU.topLeftCorner(no, k)<<"\n"
