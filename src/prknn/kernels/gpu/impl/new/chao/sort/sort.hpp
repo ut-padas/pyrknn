@@ -2,6 +2,7 @@
 #define SORT_HPP
 
 #include "mgpu_handle.hpp"
+#include "cuda_profiler_api.h"
 
 #include <thrust/device_vector.h>
 #include <moderngpu/kernel_segsort.hxx>
@@ -19,7 +20,9 @@ void sort_matrix_rows_mgpu(dvec<T> &A, dvec<int> &idx, int N, dvec<int> &segment
   T *keys = thrust::raw_pointer_cast(A.data());
   int *vals = thrust::raw_pointer_cast(idx.data());
   int *segs = thrust::raw_pointer_cast(segments.data());
+  cudaProfilerStart();
   mgpu::segmented_sort_indices(keys, vals, N, segs, m, mgpu::less_t<T>(), handle.mgpu_ctx());
+  cudaProfilerStop();
 }
 
 template <typename T>

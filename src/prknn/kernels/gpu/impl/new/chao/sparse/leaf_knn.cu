@@ -3,6 +3,7 @@
 #include "transpose.hpp"
 #include "knn_handle.hpp"
 #include "timer_gpu.hpp"
+#include "matrix.hpp"
 
 #include <string>
   
@@ -84,10 +85,14 @@ struct computeRowPtr: public thrust::binary_function<int, int, int> {
 
 
 void get_strided_block(int *rowPtrP, int *colIdxP, float *valP, 
-    int *seghead, int nNode, int b, int m,
+    int maxPoint, int nNode, int b, int m,
     dvec<int> &Q_rowPtr, dvec<int> &Q_colIdx, dvec<float> &Q_val, 
     int &nRowQ, int &nnzQ) {
   
+  ivec segments(nNode+1);
+  thrust::sequence(segments.begin(), segments.end(), 0, maxPoint);
+  int *seghead = thrust::raw_pointer_cast(segments.data());
+
   dvec<int> startRow(nNode), endRow(nNode);
 
   dptr<int> headPtr(seghead);
@@ -200,8 +205,8 @@ void form_dense_matrix(int *dD_rowPtr, int *dD_colIdx, float *dD_val, int nnzD,
 
 void compute_distance(dvec<int> &Q_rowPtr, dvec<int> &Q_colIdx, dvec<float> &Q_val, int nnzQ,
     int *rowPtrR, int *colIdxR, float *valR, int nnzR, dvec<float> &P2, dvec<float> &ones,
-    int m, int nLeaf, int n, int d, int *seghead, int maxPoint, int offset,
-    dvec<float> &D, float &t_gemm, float &t_den) {
+    int m, int nLeaf, int n, int d, int maxPoint, int offset,
+    dvec<float> &D, float &t_sss, float &t_gemm, float &t_setup, float &t_den, float &sparse) {
 
   auto& handle = knnHandle_t::instance();
 
@@ -218,13 +223,17 @@ void compute_distance(dvec<int> &Q_rowPtr, dvec<int> &Q_colIdx, dvec<float> &Q_v
       rowPtrQ, colIdxQ, valQ, nnzQ,
       rowPtrR, colIdxR, valR, nnzR,
       rowPtrD, colIdxD, valD, nnzD,
-      handle.info, handle.sparse, handle.mat);
-  t.stop(); t_gemm += t.elapsed_time();
+      handle.info, handle.sparse, handle.mat, t_gemm, t_setup);
+  sparse += 1.*nnzD/D.size();
+  t.stop(); t_sss += t.elapsed_time();
 
   //dprint(m*nLeaf, n, nnzD, rowPtrD, colIdxD, valD, "GEMM");
 
   // dense format
   t.start();
+  ivec segments(nLeaf+1);
+  thrust::sequence(segments.begin(), segments.end(), 0, maxPoint);
+  int *seghead = thrust::raw_pointer_cast(segments.data());
   float *Dist = thrust::raw_pointer_cast(D.data());
   form_dense_matrix(rowPtrD, colIdxD, valD, nnzD, 
       seghead, nLeaf, m, maxPoint, Dist, 
@@ -269,48 +278,36 @@ void compute_distance(dvec<int> &Q_rowPtr, dvec<int> &Q_colIdx, dvec<float> &Q_v
   //  int n, int d, int nnzP, int nLeaf, int maxPoint,
     //ivec &nborID, fvec &nborDist, int k, int m) {
 
-void leaf_knn(int *ID, int *rowPtrP, int *colIdxP, float *valP, 
-    int n, int d, int nnzP, int nLeaf, int maxPoint,
-    int *nborID, float *nborDist, int LD, int k, int m) {
-
-  TimerGPU t;
-  float t_mat = 0., t_dist = 0., t_nbor = 0., t_trans = 0.;
-  float t_sort = 0., t_kcol = 0.;
-  float t_gemm = 0., t_den = 0.;
-
+void leaf_knn(int *ID, SpMat matrix, ivec &R_rowPtr, ivec &R_colIdx, fvec &R_val, int maxPoint,
+    int *nborID, float *nborDist, int LD, int k, int m, fvec &Dist, ivec &tmp,
+    float &t_trans, float &t_dist, float &t_sss, float &t_gemm, float &t_nnz, float &t_den, float &t_sort, float &sparse) {
 
   //dprint(n, d*nLeaf, nnzP, rowPtrP, colIdxP, valP, "Points");
   //dprint(n, ID, "ID");
   
-  // R = P^T
-  std::cout<<"[Transpose] R: "<<d/1.e9*nLeaf*4+nnzP/1.e9*4*2<<" GB"<<std::endl;
-  dvec<int> R_rowPtr(d*nLeaf+1);
-  dvec<int> R_colIdx(nnzP);
-  dvec<float> R_val(nnzP);
+  TimerGPU t;
+  float t_nbor = 0., t_mat = 0., t_norm = 0.;
+  float t_kcol = 0.;
+  float t_row = 0.;
 
+  int n = matrix.rows(), d = matrix.cols(), nnzP = matrix.nnz, nLeaf = matrix.nNodes; 
+  int *rowPtrP = matrix.rowPtr, *colIdxP = matrix.colIdx;
+  float *valP = matrix.val; 
+  
   t.start();
-  transpose(n, d*nLeaf, nnzP, rowPtrP, colIdxP, valP, R_rowPtr, R_colIdx, R_val);
-  t.stop(); t_trans = t.elapsed_time();
-  std::cout<<"Finished transpose"<<std::endl;
+  transpose(n, d*nLeaf, nnzP, rowPtrP, colIdxP, valP, R_rowPtr, R_colIdx, R_val, t_row);
+  t.stop(); t_trans += t.elapsed_time();
+  //std::cout<<"Finished transpose"<<std::endl;
 
   // point norm
+  t.start();
   dvec<float> P2(n, 0.);
   compute_row_norms(n, nnzP, rowPtrP, valP, P2);
+  t.stop(); t_norm += t.elapsed_time();
 
-  // temporary array for distance calculation
-  dvec<float> Dist(maxPoint*m*nLeaf);
-  
   // for rank-1 updates 
   dvec<float> ones(maxPoint*nLeaf, 1.);
   
-  // temporary array for sorting
-  dvec<int> tmp(m*nLeaf*maxPoint); // no need to initialize for mgpu
-  std::cout<<"Allocate distance and index array: "<<Dist.size()/1.e9*4*2<<" GB\n";
-
-  ivec segments(nLeaf+1);
-  thrust::sequence(segments.begin(), segments.end(), 0, maxPoint);
-  int *seghead = thrust::raw_pointer_cast(segments.data());
-
   // loop over blocks
   int nBlock = (maxPoint + m-1)/m;
   for (int b=0; b<nBlock; b++) {
@@ -319,9 +316,7 @@ void leaf_knn(int *ID, int *rowPtrP, int *colIdxP, float *valP,
     dvec<int> Q_rowPtr, Q_colIdx;
     dvec<float> Q_val;
     t.start();
-    get_strided_block(rowPtrP, colIdxP, valP,
-        thrust::raw_pointer_cast(segments.data()), 
-        nLeaf, b, m,
+    get_strided_block(rowPtrP, colIdxP, valP, maxPoint, nLeaf, b, m,
         Q_rowPtr, Q_colIdx, Q_val, nRowQ, nnzQ);
     t.stop(); t_mat += t.elapsed_time();
     //dprint(nRowQ, d*nLeaf, nnzQ, Q_rowPtr, Q_colIdx, Q_val, "Query");
@@ -337,8 +332,8 @@ void leaf_knn(int *ID, int *rowPtrP, int *colIdxP, float *valP,
 
     compute_distance(Q_rowPtr, Q_colIdx, Q_val, nnzQ,
         rowPtrR, colIdxR, valR, nnzP, P2, ones, 
-        blockSize, nLeaf, n, d, seghead, maxPoint, b*m, Dist, 
-        t_gemm, t_den);
+        blockSize, nLeaf, n, d, maxPoint, b*m, Dist, 
+        t_sss, t_gemm, t_nnz, t_den, sparse);
     t.stop(); t_dist += t.elapsed_time();
 
     t.start();
@@ -346,21 +341,6 @@ void leaf_knn(int *ID, int *rowPtrP, int *colIdxP, float *valP,
         tmp, t_sort, t_kcol);
     t.stop(); t_nbor += t.elapsed_time();
   }
-
-  std::cout<<"\n========================================"
-           <<"\n\tLeaf KNN Timing"
-           <<"\n----------------------------------------"
-           <<"\n* Transpose: "<<t_trans<<" s"
-           //<<"\n* Get submatrix: "<<t_mat<<" s"
-           <<"\n* Compute distance: "<<t_dist<<" s"
-           <<"\n\t- gemm: "<<t_gemm<<" s"
-           //<<"\n\t- densify: "<<t_den<<" s"
-           //<<"\n\t- rank-1: "<<t_rank<<" s"
-           <<"\n* Find neighbors: "<<t_nbor<<" s"
-           <<"\n\t- sort distance: "<<t_sort<<" s"
-           //<<"\n\t- get k-column: "<<t_kcol<<" s"
-           <<"\n========================================"
-           <<"\n"<<std::endl;
 }
 
 

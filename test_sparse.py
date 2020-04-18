@@ -30,11 +30,12 @@ def test_build():
             data = np.fromfile("test_sparse_data.bin", dtype=np.float32)
             indptr = np.fromfile("test_sparse_ptr.bin", dtype=np.int32)
             idx = np.fromfile("test_sparse_idx.bin", dtype=np.int32)
+            g_arr = sp.csr_matrix( (data, idx, indptr) );
         else:
-            g_arr = sp.random(N, d, density=0.0001, format='csr', dtype=np.float32)
+            g_arr = sp.random(N, d, density=0.01, format='csr', dtype=np.float32)
             data = np.array(g_arr.data, dtype=np.float32)
-            indptr = np.array(g_arr.data, dtype=np.int32)
-            idx = np.array(g_arr,data, dtype=np.int32)
+            indptr = np.array(g_arr.indptr, dtype=np.int32)
+            idx = np.array(g_arr.indices, dtype=np.int32)
 
             data.tofile("test_sparse_data.bin")
             indptr.tofile("test_sparse_ptr.bin")
@@ -44,6 +45,14 @@ def test_build():
     else:
         g_arr = np.random.rand(N, d)
         g_arr = np.array(g_arr, dtype=np.float32)
+
+    print("data", data)
+    print("indptr", indptr)
+    print("idx", idx)
+
+    print("len(data)", len(data))
+    print("len(ptr)", len(indptr))
+    print("len(idx)", len(idx))
 
     #Grab local portion (strong scaling)
     nlocal = N/size
@@ -55,8 +64,8 @@ def test_build():
     else:
         A = np.copy(local_arr) 
 
-    tree = RKDForest(pointset=A, levels=20, leafsize=2048, comm=comm, location="GPU", ntrees=1, sparse=sparse)
-    approx = tree.aknn_all_build(k, ntrees=1, blockleaf=10, blocksize=64, cores=56)
+    tree = RKDForest(pointset=A, levels=20, leafsize=1024, comm=comm, location="GPU", ntrees=1, sparse=sparse)
+    approx = tree.aknn_all_build(k, ntrees=1, blockleaf=512, blocksize=32, cores=56)
 
     print("Results", rank, approx, flush=True)
 

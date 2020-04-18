@@ -1,4 +1,5 @@
 #include "transpose.hpp"
+#include "timer_gpu.hpp"
 
 #include <thrust/device_vector.h>
 #include <thrust/device_ptr.h>
@@ -69,18 +70,26 @@ void transpose(const int m, const int n, const int nnz,
 
 
 void transpose(int m, int n, int nnz, int *rowPtrA, int *colIdxA, float *valA,
-    dvec<int> &rowPtrT, dvec<int> &colIdxT, dvec<float> &valT) {
-  std::cout<<"[transpose] buffer: "<<nnz/1.e9*4*2<<" GB"<<std::endl;
+    dvec<int> &rowPtrT, dvec<int> &colIdxT, dvec<float> &valT, float &t_row) {
+  TimerGPU t;
+  //std::cout<<"[transpose] buffer: "<<nnz/1.e9*4*2<<" GB"<<std::endl;
   dvec<int> permutation(nnz);
   thrust::sequence(permutation.begin(), permutation.end(), 0);
   dvec<int> idx(dptr<int>(colIdxA), dptr<int>(colIdxA)+nnz);
+  
   thrust::sort_by_key(idx.begin(), idx.end(), permutation.begin());
+  
   // permute original value array
   thrust::gather(permutation.begin(), permutation.end(), dptr<float>(valA), valT.begin());
+  
   // compute row pointer of the tanspose
+  t.start();
   indices_to_offsets(idx, rowPtrT);
+  t.stop(); t_row += t.elapsed_time();
+
   // permute original row indices
   offsets_to_indices(dptr<int>(rowPtrA), m, idx);// form row indices
+  
   thrust::gather(permutation.begin(), permutation.end(), idx.begin(), colIdxT.begin());
 }
 

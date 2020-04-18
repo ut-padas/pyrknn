@@ -84,6 +84,12 @@ def set_cores(c):
     global cores
     cores = c
 
+device = 0
+def set_device(c):
+    global device
+    device = c
+
+
 #TODO: Q2 and R2 could be precomputed and given as arguments to distance(), should make keyword parameters for this option
 def distance(R, Q):
     """Compute the distances between a reference set R (|R| x d) and query set Q (|Q| x d).
@@ -238,7 +244,7 @@ def merge_neighbors(a, b, k):
         return cpu.merge_neighbors(a, b, k, cores)
 
     if env == "GPU":
-        out = gpu.merge_neighbors(a, b, k)
+        out = gpu.merge_neighbors(a, b, k, device)
 
     if env == "PYTHON":
         # This is currently very wasteful/suboptimal
@@ -317,12 +323,14 @@ def neighbor_dist(a, b):
     changes = 0
     nn_dist = lib.zeros(Na)
     first_diff = lib.zeros(Na)
+    knndist = 0
     for i in range(Na):
-        changes += np.sum([1 if a_list[i, k] in b_list[i] else 0 for k in range(k)])
+        changes += np.sum([1 if a_list[i, k] in b_list[i] else 0 for k in range(ka)])
+        knndist = max(knndist, np.abs(a_dist[i, ka-1] - b_dist[i, kb-1])/a_dist[i, ka-1])
 
     perc = changes/(Na*ka)
 
-    return perc
+    return perc, knndist
 
 
 def dist_select(k, data, ids, comm):

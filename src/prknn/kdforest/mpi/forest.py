@@ -48,6 +48,7 @@ class RKDForest:
         rank = self.comm.Get_rank()
 
         self.device = rank%4
+        Primitives.set_device(self.device);
 
         if self.location == "CPU":
             self.lib = np
@@ -203,7 +204,7 @@ class RKDForest:
             #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
         return result
 
-    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4):
+    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None):
 
         total_t = time.time()
 
@@ -217,8 +218,9 @@ class RKDForest:
 
         for i in range(self.ntrees):
             print(rank, "Begin tree", flush=True)
-
-            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
+            #X = np.copy(self.data)
+            X = self.data
+            tree = RKDT(pointset=X, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
 
             if self.location == "CPU":
                 build_t = time.time()
@@ -242,16 +244,35 @@ class RKDForest:
 
                 aknn_t = time.time()
                 if self.sparse:
+                    print("data", (tree.data.data))
+                    print("ptr", (tree.data.indptr))
+                    print("idx", (tree.data.indices))
                     neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
                 else:
                     neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device) 
-                
+                #[0, 1, 2, 3, 4, 5]
+                #[2, 3, 5, 10, 3, 6]               
+ 
                 aknn_t = time.time() - aknn_t
                 print("aknn_t", aknn_t)
                 Primitives.aknn_t += aknn_t
 
+                #print("gids", tree.host_gids)
+                #print("rids", tree.host_real_gids)
+
+                neighbor_id = neighbors[0]
+                neighbor_dist = neighbors[1]
+
+                #neighbor_id = tree.host_real_gids[neighbors[0][:]]
+                neighbor_dist = neighbors[1][:]
+
+                neighbors = (neighbor_id, neighbor_dist)
+
             #print(rank, "neighbors", neighbors, flush=True)
-            #print(rank, "host real gids", tree.host_real_gids, flush=True)
+
+            #print(rank, "host gids", tree.host_gids, flush=True)
+            #print(rank, "host gids", tree.host_real_gids, flush=True)
+
             if self.location == "GPU":
                 tree.real_gids = tree.host_real_gids
             #    real_gids = tree.host_real_gids[tree.host_gids]
@@ -272,7 +293,7 @@ class RKDForest:
             #DEBUG: Merge with self to sort
             #neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
             
-            #print("Before redist", rank, neighbors, flush=True)
+            print("Before redist", rank, neighbors, flush=True)
             #if 0 in tree.real_gids:
             #    print("0 is on rank", rank)
             #    loc = np.where(tree.real_gids==0)
@@ -280,7 +301,7 @@ class RKDForest:
             #    print("zero", neighbors[1][loc, ...])
 
             dist_t = time.time()
-            gids, neighbors = tree.redistribute(neighbors)
+            gids, neighbors = tree.redist(neighbors)
             dist_t = time.time() - dist_t
             print(rank, "redistribute_t", dist_t, flush=True)
 
@@ -288,21 +309,21 @@ class RKDForest:
 
             #print("New GIDS", rank, gids, flush=True)
 
-            #print("Results after Redist:", rank, neighbors, flush=True)
+            print("Results after Redist:", rank, neighbors, flush=True)
+            
             copy_t = time.time()
             if self.location == "GPU":
                 neighbor_ids = self.lib.array(neighbors[0])
                 neighbor_dist = self.lib.array(neighbors[1])
-
-                if result:
-                    res_ids = self.lib.array(result[0])
-                    res_dist = self.lib.array(result[1])
 
                 neighbors_device = (neighbor_ids, neighbor_dist)
                 del neighbors
                 neighbors = neighbors_device
 
                 if result:
+                    res_ids = self.lib.array(result[0])
+                    res_dist = self.lib.array(result[1])
+
                     res_device = (res_ids, res_dist)
                     del result
                     result = res_device
@@ -314,12 +335,14 @@ class RKDForest:
             if result is None:
                 result = neighbors
             else:
+                #print("result", result)
+                #print("neighbors", neighbors)
                 merge_t = time.time()
                 result = Primitives.merge_neighbors(result, neighbors, k)
                 merge_t = time.time() - merge_t
-                print(rank, "merge_t", merge_t, flush=True)
+                #print(rank, "merge_t", merge_t, flush=True)
                 Primitives.merge_t += merge_t
-
+                #print("after merge", result)
 
             #Copy results back to host to save room on gpu
             if self.location == "GPU":
@@ -327,12 +350,23 @@ class RKDForest:
                 res_dist = self.lib.asnumpy(result[1])
                 res_host = (res_ids, res_dist)
                 del result
+
                 result = res_host
 
             del tree
             del neighbors
 
+            mempool = cp.get_default_memory_pool()
+            mempool.free_all_blocks()
             gc.collect()
+
+            if truth:
+                tlist, tdist = truth
+                nq = tlist.shape[0]
+                rlist, rdist = result
+                test = (rlist[:nq, ...], rdist[:nq, ...])
+                acc = Primitives.neighbor_dist(truth, test)
+                Primitives.accuracy.append(acc)
 
         total_t = time.time() - total_t
         Primitives.total_t = total_t
