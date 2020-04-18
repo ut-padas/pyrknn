@@ -90,8 +90,10 @@ benchmark: $(EXE)
 	#$(EXE) -dataset avazu_app_t -l 10 -k 5 -t 3 -bl 512 -bp 256 -bt 1
 	#$(EXE) -dataset avazu_app -l 13 -k 16 -t 200 -bl 512 -bp 256 -bt 1
 	#time $(EXE) -dataset avazu -l 17 -k 5 -t 200 -bl 1024 -bp 256 -bt 1
-	$(EXE) -dataset url -l 11 -k 10 -t 3 -bl 512 -bp 64 -bt 1
+	#$(EXE) -dataset url -l 11 -k 10 -t 3 -bl 512 -bp 64 -bt 1
 	#$(PROF) $(EXE) -dataset avazu -l 15 -k 5 -t 2 -bl 1024 -bp 64 -bt 1
+	#$(EXE) -n 524288 -d 10000 -sparse 0.0001 -k 64 -t 1 -bl 10 -bp 64 -bt 1 -l 8
+	$(EXE) -dataset test -k 64 -t 1 -bl 512 -bp 64 -bt 1 -l 9
 
 clean:
 	rm -f *.o $(EXE) $(LIB)

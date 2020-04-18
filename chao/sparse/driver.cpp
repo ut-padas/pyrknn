@@ -31,13 +31,14 @@ void exact_knn(const SpMat &Q, const SpMat &R, const VecInt &ID, Mat &nborDist, 
 
 std::default_random_engine gen;
 void init_random(SpMat &A, int M, int N, float sparsity) {
-  //std::uniform_real_distribution<float> dist(0.0,1.0);
-  float *val = new float[M*N];
-  init_random_gpu(val, M*N);
+  std::uniform_real_distribution<float> dist(0.0,1.0);
+  //float *val = new float[M*N];
+  //init_random_gpu(val, M*N);
   std::vector<T> tripletList;
   for(int i=0; i<M; ++i) {
     for(int j=0; j<N; ++j) {
-       auto x = val[i*N+j];
+       //auto x = val[i*N+j];
+       auto x = dist(gen);
        if (x < sparsity) {
            tripletList.push_back( T(i,j,x) );
        }
@@ -45,7 +46,7 @@ void init_random(SpMat &A, int M, int N, float sparsity) {
   }
   A.setFromTriplets(tripletList.begin(), tripletList.end());
   A.makeCompressed();
-  delete[] val;
+  //delete[] val;
 }
 
 
@@ -73,6 +74,31 @@ SpMat read_dataset(std::string dataset) {
     P = read_csr_binary("/scratch/06108/chaochen/avazu_app_csr.bin");
   else if (dataset.compare("avazu_app_t")==0)
     P = read_csr_binary("/scratch/06108/chaochen/avazu_app_t_csr.bin");
+  else if (dataset.compare("test")==0) {
+    int m = 524288; 
+    int n = 10000;
+    int nnz = 52428800;
+    
+    std::ifstream ifile("/scratch/06108/chaochen/will/test_sparse_ptr.bin", 
+        std::ios::in | std::ios::binary);
+    assert(ifile.good());
+    
+    std::vector<int> rowPtr(m+1);
+    ifile.read((char *)rowPtr.data(), (m+1)*sizeof(int));
+    ifile.close();
+    std::vector<int> colIdx(nnz);
+    ifile.open("/scratch/06108/chaochen/will/test_sparse_idx.bin", 
+        std::ios::in | std::ios::binary);
+    ifile.read((char *)colIdx.data(), nnz*sizeof(int));
+    ifile.close();
+    std::vector<float> val(nnz);
+    ifile.open("/scratch/06108/chaochen/will/test_sparse_data.bin", 
+        std::ios::in | std::ios::binary);
+    ifile.read((char *)val.data(), nnz*sizeof(float));
+    ifile.close();
+    P = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>
+                (m, n, nnz, rowPtr.data(), colIdx.data(), val.data());
+  }
   else
     assert(false && "unknown dataset");
   t.stop();
