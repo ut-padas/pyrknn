@@ -293,9 +293,20 @@ class RKDForest:
             if self.location == "GPU":
                 neighbor_ids = self.lib.array(neighbors[0])
                 neighbor_dist = self.lib.array(neighbors[1])
+
+                if result:
+                    res_ids = self.lib.array(result[0])
+                    res_dist = self.lib.array(result[1])
+
                 neighbors_device = (neighbor_ids, neighbor_dist)
                 del neighbors
                 neighbors = neighbors_device
+
+                if result:
+                    res_device = (res_ids, res_dist)
+                    del result
+                    result = res_device
+
             copy_t = time.time() - copy_t
             print(rank, "copy_to_gpu_t", copy_t, flush=True)
             Primitives.copy_gpu_t += copy_t
@@ -309,20 +320,19 @@ class RKDForest:
                 print(rank, "merge_t", merge_t, flush=True)
                 Primitives.merge_t += merge_t
 
-            #print("Results after merge:", rank, neighbors, flush=True)
+
+            #Copy results back to host to save room on gpu
+            if self.location == "GPU":
+                res_ids = self.lib.asnumpy(result[0])
+                res_dist = self.lib.asnumpy(result[1])
+                res_host = (res_ids, res_dist)
+                del result
+                result = res_host
 
             del tree
             del neighbors
 
             gc.collect()
-
-        #Copy back to host
-        if self.location == "GPU":
-            res_ids = self.lib.asnumpy(result[0])
-            res_dist = self.lib.asnumpy(result[1])
-            res_host = (res_ids, res_dist)
-            del result
-            result = res_host
 
         total_t = time.time() - total_t
         Primitives.total_t = total_t
