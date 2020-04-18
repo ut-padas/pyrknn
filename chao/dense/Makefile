@@ -85,6 +85,7 @@ benchmark: $(EXE)
 	#$(EXE) -dataset mnist -l 5 -k 64 -bt 1 -t 50
 	#$(EXE) -k 64 -bt 1 -t 2 -l 10 -leaf 1024 -bp 256 -bl 1024
 	$(EXE) -k 64 -bt 1 -t 2 -l 12 -leaf 4096 -bp 64 -d 10
+	#$(EXE) -k 64 -bt 1 -t 2 -l 12 -leaf 4096 -bp 64 -d 200
 	
 clean:
 	rm -f *.o $(EXE) $(LIB)

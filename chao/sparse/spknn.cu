@@ -123,7 +123,8 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
     int blkLeaf, int blkPoint, int device) {
  
   //print(n, d, nnz, hRowPtr, hColIdx, hVal, "host P");
-  
+  TimerGPU t0; t0.start();
+
   const int nLeaf = 1<<level;
   const int maxPoint = (n+nLeaf-1)/nLeaf;
   const int nExtra = maxPoint*nLeaf - n;
@@ -145,9 +146,15 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
   auto iter  = thrust::make_transform_iterator(zero, firstKCols(k, 2*k));
   auto permI = thrust::make_permutation_iterator(dNborID.begin(), iter);
   auto permD = thrust::make_permutation_iterator(dNborDist.begin(), iter);
-  thrust::copy(hNborID, hNborID+n*k, permI);
-  thrust::copy(hNborDist, hNborDist+n*k, permD);
-  
+  {
+    dvec<int> tmpNborID(n*k);
+    dvec<float> tmpNborDist(n*k);
+    thrust::copy_n(hNborID, n*k, tmpNborID.begin());
+    thrust::copy_n(hNborDist, n*k, tmpNborDist.begin());
+    thrust::copy_n(tmpNborID.begin(), n*k, permI);
+    thrust::copy_n(tmpNborDist.begin(), n*k, permD);
+  }
+
   //tprint((n+nExtra), 2*k, dNborID, "nborID");
   //tprint((n+nExtra), 2*k, dNborDist, "nborDist");
 
@@ -156,6 +163,7 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
   thrust::sequence(dRowPtr.begin()+n, dRowPtr.end(), hRowPtr[n]);
   thrust::fill(dColIdx.begin()+nnz, dColIdx.end(), 0); // the first coordinate is infinity
   thrust::fill(dVal.begin()+nnz, dVal.end(), std::numeric_limits<float>::max()); 
+  t0.stop();
 
   // update # points and # nonzeros
   n += nExtra;
@@ -170,15 +178,17 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
            <<"\n# points: "<<n
            <<"\n# dimensions: "<<d
            <<"\n# nonzeros: "<<nnz
-           <<"\nmem: "<<(n+1)/1.e9*4+nnz/1.e9*4*2<<" GB"
            <<"\n------------------------"
            <<"\n# artificial points: "<<nExtra
            <<"\n# points/leaf: "<<maxPoint
            <<"\n# leaf nodes: "<<nLeaf
            <<"\n------------------------"
+           <<"\nmem points: "<<(n+1)/1.e9*4+nnz/1.e9*4*2<<" GB"
            <<"\nmem output: "<<n/1.e9*k*4*4<<" GB"
            <<"\nmem orthogonal bases: "<<d/1.e9*level*4<<" GB"
            <<"\nmem projection: "<<n/1.e9*level*4<<" GB"
+           <<"\n------------------------"
+           <<"\ncopy data time: "<<t0.elapsed_time()<<" s"
            <<"\n========================\n"
            <<std::endl;
 
@@ -336,7 +346,13 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
   // -----------------------
   // Copy to CPU
   // -----------------------
-  thrust::copy(permI, permI+(n-nExtra)*k, hNborID);
-  thrust::copy(permD, permD+(n-nExtra)*k, hNborDist);
+  {
+    dvec<int> tmpNborID(n*k);
+    dvec<float> tmpNborDist(n*k);
+    thrust::copy_n(permI, (n-nExtra)*k, tmpNborID.begin());
+    thrust::copy_n(permD, (n-nExtra)*k, tmpNborDist.begin());
+    thrust::copy_n(tmpNborID.begin(), (n-nExtra)*k, hNborID);
+    thrust::copy_n(tmpNborDist.begin(), (n-nExtra)*k, hNborDist);
+  }
 }
 
