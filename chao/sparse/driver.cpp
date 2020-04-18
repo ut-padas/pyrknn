@@ -31,13 +31,14 @@ void exact_knn(const SpMat &Q, const SpMat &R, const VecInt &ID, Mat &nborDist, 
 
 std::default_random_engine gen;
 void init_random(SpMat &A, int M, int N, float sparsity) {
-  //std::uniform_real_distribution<float> dist(0.0,1.0);
-  float *val = new float[M*N];
-  init_random_gpu(val, M*N);
+  std::uniform_real_distribution<float> dist(0.0,1.0);
+  //float *val = new float[M*N];
+  //init_random_gpu(val, M*N);
   std::vector<T> tripletList;
   for(int i=0; i<M; ++i) {
     for(int j=0; j<N; ++j) {
-       auto x = val[i*N+j];
+       //auto x = val[i*N+j];
+       auto x = dist(gen);
        if (x < sparsity) {
            tripletList.push_back( T(i,j,x) );
        }
@@ -45,7 +46,7 @@ void init_random(SpMat &A, int M, int N, float sparsity) {
   }
   A.setFromTriplets(tripletList.begin(), tripletList.end());
   A.makeCompressed();
-  delete[] val;
+  //delete[] val;
 }
 
 
