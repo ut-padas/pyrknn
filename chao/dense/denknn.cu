@@ -73,15 +73,15 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
            <<"\n------------------------"
            <<"\n# points: "<<N
            <<"\n# dimensions: "<<d
-           <<"\nmem: "<<n/1.e9*d*4<<" GB"
-           <<"\n------------------------"
            <<"\n# artificial points: "<<nExtra
            <<"\n# points/leaf: "<<nPoint
            <<"\n# leaf nodes: "<<nLeaf
            <<"\n------------------------"
-           <<"\nmem output: "<<n/1.e9*k*4*4<<" GB"
+           <<"\nmem points: "<<N/1.e9*d*4<<" GB"
+           <<"\nmem output: "<<N/1.e9*k*4*4<<" GB"
+           <<"\nmem distance: "<<N/1.e9*blkPoint*2*4<<" GB"
            <<"\nmem orthogonal bases: "<<d/1.e9*level*4<<" GB"
-           <<"\nmem projection: "<<n/1.e9*level*4<<" GB"
+           <<"\nmem projection: "<<N/1.e9*level*4<<" GB"
            <<"\n------------------------"
            <<"\nmalloc time: "<<t_alloc<<" s"
            <<"\ncopy data time: "<<t_copy1<<" s"
@@ -187,8 +187,14 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   // -----------------------
   // Copy results back to CPU
   // -----------------------
-  thrust::copy(leftKColsID, leftKColsID+n*k, hNborID);
-  thrust::copy(leftKColsDist, leftKColsDist+n*k, hNborDist);
+  {
+    dvec<int> tmpNborID(n*k);
+    dvec<float> tmpNborDist(n*k);
+    thrust::copy_n(leftKColsID, n*k, tmpNborID.begin());
+    thrust::copy_n(leftKColsDist, n*k, tmpNborDist.begin());
+    thrust::copy_n(tmpNborID.begin(), n*k, hNborID);
+    thrust::copy_n(tmpNborDist.begin(), n*k, hNborDist);
+  }
 }
 
 

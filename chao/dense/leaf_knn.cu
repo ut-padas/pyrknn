@@ -91,20 +91,23 @@ void leaf_knn(const ivec &ID, const fvec &P, int N, int d, int nLeaf,
     int *nborID, float *nborDist, int k, int LD, int blkPoint, 
     float &t_dist, float &t_sort) {
 
-  float t_kernel = 0., t_gemm = 0., t_rank = 0., t_nbor = 0.;
+  float t_kernel = 0., t_gemm = 0., t_rank = 0., t_nbor = 0., t_norm = 0.;
   TimerGPU t0, t1; t0.start();
 
+  t1.start();
   // auxilliary data for distance calculation
   const dvec<float> ones(N*nLeaf, 1.0);
 
   // compute row norms  
   dvec<float> Pnorm(N*nLeaf);
-
-  compute_row_norms(P, Pnorm, N*nLeaf, d);
-
+  
   // blocking of points
   dvec<float> Dist(blkPoint*N*nLeaf); // block/partial results 
   dvec<int> Idx(blkPoint*N*nLeaf);  // auxiliary memory for sorting
+  t1.stop(); t_norm += t1.elapsed_time();
+
+  compute_row_norms(P, Pnorm, N*nLeaf, d);
+
   int nBlock = (N+blkPoint-1)/blkPoint;
   for (int i=0; i<nBlock; i++) {
     int offset  = i*blkPoint;
@@ -123,6 +126,7 @@ void leaf_knn(const ivec &ID, const fvec &P, int N, int d, int nLeaf,
   printf("\n===========================");
   printf("\n    Leaf Kernel Timing");
   printf("\n---------------------------");
+  printf("\n* Malloc: %.2e s (%.0f %%)", t_norm, 100.*t_norm/t_kernel);
   printf("\n* Distance: %.2e s (%.0f %%)", t_dist, 100.*t_dist/t_kernel);
   printf("\n  -  rank: %.2e s (%.0f %%)", t_rank, 100.*t_rank/t_dist);
   printf("\n  -  gemm: %.2e s (%.0f %%)", t_gemm, 100.*t_gemm/t_dist);
