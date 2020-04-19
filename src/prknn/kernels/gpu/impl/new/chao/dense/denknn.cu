@@ -31,12 +31,20 @@ void merge_neighbors_python(float* nborD1, int *nborI1, const float* nborD2, con
     auto iter = thrust::make_transform_iterator(zero, firstKCols(k, 2*k));
     auto leftKColsID = thrust::make_permutation_iterator(dNborID.begin(), iter);
     auto leftKColsDist = thrust::make_permutation_iterator(dNborDist.begin(), iter);
+
+    auto rightKColsID = thrust::make_permutation_iterator(dNborID.begin()+k, iter);
+    auto rightKColsDist = thrust::make_permutation_iterator(dNborDist.begin()+k, iter);
+
     {
         dvec<int> tmpNborID(m*k);
         dvec<float> tmpNborDist(m*k);
 
         thrust::copy(nborI2, nborI2+m*k, tmpNborID.begin());
         thrust::copy(nborD2, nborD2+m*k, tmpNborDist.begin());
+
+        thrust::copy_n(tmpNborID.begin(), m*k, rightKColsID);
+        thrust::copy_n(tmpNborDist.begin(), m*k, rightKColsDist);
+
 
         thrust::copy_n(nborI1, m*k, tmpNborID.begin());
         thrust::copy_n(nborD1, m*k, tmpNborDist.begin());

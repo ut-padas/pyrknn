@@ -30,7 +30,9 @@ aknn_t = 0
 redistribute_t = 0
 merge_t = 0
 accuracy = []
+diff=[]
 copy_gpu_t = 0
+check_t = 0
 
 def reset_timing():
     global dist_build_t
@@ -55,7 +57,10 @@ def timing():
     print("redistribute_t", redistribute_t)
     print("copy_gpu_t", copy_gpu_t)
     print("merge_t", merge_t)
+    print("total_t", total_t)
+    print("check_t", check_t)
     print(accuracy)
+    print(diff)
 
 env = "CPU" #Coarse kernel context switching mechanism for debugging (this is a bad pattern, to be replace in #TODO 3)
 lib = np
@@ -136,6 +141,10 @@ def single_knn(gids, R, Q, k):
         neighbor_dist = lib.zeros([N, k])
 
         dist = distance(R, Q)                           #Compute all distances
+        print("internal dist", dist)
+        print("internal dist shape", dist.shape)
+        print(type(dist))
+
         for q_idx in range(N):
 
             #TODO: Replace with kselect kernel

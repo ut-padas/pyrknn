@@ -204,8 +204,8 @@ class RKDForest:
             #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
         return result
 
-    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None):
-
+    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False):
+        print("starting search...", flush=True)
         total_t = time.time()
 
         Primitives.set_cores(cores)
@@ -216,7 +216,18 @@ class RKDForest:
         rank = self.comm.Get_rank()
         #TODO: Key Area for PARLA Tasks
 
-        for i in range(self.ntrees):
+        test = None
+        if truth:
+            nq = truth[0].shape[0]
+            prev = np.empty([nq, k], dtype=np.int32)
+        else:
+            prev = None
+
+        if until:
+            self.ntrees = 100
+
+        print("...entering loop", flush=True)
+        for it in range(self.ntrees):
             print(rank, "Begin tree", flush=True)
             #X = np.copy(self.data)
             X = self.data
@@ -226,12 +237,12 @@ class RKDForest:
                 build_t = time.time()
                 tree.build()
                 build_t = time.time() - build_t
-                print(rank, "Build_t", build_t, flush=True)
+                print(rank, "Build_t CPU Tree", build_t, flush=True)
  
                 search_t = time.time()
                 neighbors = tree.aknn_all(k)
                 search_t = time.time() - search_t
-                print(rank, "Search_t", search_t, flush=True)
+                print(rank, "Search_t CPU", search_t, flush=True)
 
                 Primitives.aknn_t += (search_t) + (build_t)
 
@@ -293,7 +304,7 @@ class RKDForest:
             #DEBUG: Merge with self to sort
             #neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
             
-            print("Before redist", rank, neighbors, flush=True)
+            #print("Before redist", rank, neighbors, flush=True)
             #if 0 in tree.real_gids:
             #    print("0 is on rank", rank)
             #    loc = np.where(tree.real_gids==0)
@@ -303,14 +314,14 @@ class RKDForest:
             dist_t = time.time()
             gids, neighbors = tree.redist(neighbors)
             dist_t = time.time() - dist_t
-            print(rank, "redistribute_t", dist_t, flush=True)
+            #print(rank, "redistribute_t", dist_t, flush=True)
 
             Primitives.redistribute_t += dist_t
 
             #print("New GIDS", rank, gids, flush=True)
 
-            print("Results after Redist:", rank, neighbors, flush=True)
-            
+            #print("Results after Redist:", rank, neighbors, flush=True)
+            """
             copy_t = time.time()
             if self.location == "GPU":
                 neighbor_ids = self.lib.array(neighbors[0])
@@ -331,6 +342,7 @@ class RKDForest:
             copy_t = time.time() - copy_t
             print(rank, "copy_to_gpu_t", copy_t, flush=True)
             Primitives.copy_gpu_t += copy_t
+            """
 
             if result is None:
                 result = neighbors
@@ -343,7 +355,7 @@ class RKDForest:
                 #print(rank, "merge_t", merge_t, flush=True)
                 Primitives.merge_t += merge_t
                 #print("after merge", result)
-
+            """
             #Copy results back to host to save room on gpu
             if self.location == "GPU":
                 res_ids = self.lib.asnumpy(result[0])
@@ -352,21 +364,66 @@ class RKDForest:
                 del result
 
                 result = res_host
+            """
 
             del tree
             del neighbors
 
-            mempool = cp.get_default_memory_pool()
-            mempool.free_all_blocks()
-            gc.collect()
+            #mempool = cp.get_default_memory_pool()
+            #mempool.free_all_blocks()
+            #gc.collect()
 
+            gap = 5
+            check_t = time.time()
             if truth:
+                flag = False
                 tlist, tdist = truth
                 nq = tlist.shape[0]
                 rlist, rdist = result
+
                 test = (rlist[:nq, ...], rdist[:nq, ...])
+
+                if it>gap:
+                    print("test", test)
+                    print("temp", prev)
+
+                if prev is not None:
+                    diff = nq*k - np.sum(test[0] == prev)
+                    print("Difference", diff)
+                else:
+                    diff = nq*k
+
+                Primitives.diff.append(diff)
+
+                prev = np.copy(test[0])
+    
                 acc = Primitives.neighbor_dist(truth, test)
                 Primitives.accuracy.append(acc)
+                print("Iteration:", it, "Checking acc:", acc)
+
+                if it > gap:
+                    diff = abs(diff - Primitives.diff[it-gap]) < 1 and diff < 0.05*nq*k
+                else:
+                    diff = False
+
+                if until:
+                    if acc[0] > 0.95 or diff:
+                        print(acc, diff)
+                        flag = True
+            else:
+                flag = None
+
+            if until:
+                flag = self.comm.bcast(flag, root=0)
+            check_t = time.time() - check_t 
+            Primitives.check_t += check_t
+
+            print("check_t", check_t)
+
+            if flag:
+                break
+                
+
 
         total_t = time.time() - total_t
         Primitives.total_t = total_t

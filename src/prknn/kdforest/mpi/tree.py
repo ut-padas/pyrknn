@@ -306,8 +306,8 @@ class RKDT:
             lids = np.arange(self.local_size, dtype=np.int32)
             #print(rank, global_size/2, proj_data.shape, lids.shape, flush=True)
             median, local_split = Primitives.dist_select(global_size/2, proj_data, lids, comm)
-            print(rank, "med", median, flush=True)
-            print(rank, "split", local_split=True)
+            #print(rank, "med", median, flush=True)
+            #print(rank, "split", local_split=True)
 
             
 
@@ -316,10 +316,10 @@ class RKDT:
 
             #self.host_data = self.reorder(lids, self.host_data)
 
-            print(rank, "original_proj", proj_data)
-            print(rank, "max_o_p", np.max(proj_data))
-            print(rank, "min_o_p", np.min(proj_data))
-            print(rank, "local_median", np.median(proj_data))
+            #print(rank, "original_proj", proj_data)
+            #print(rank, "max_o_p", np.max(proj_data))
+            #print(rank, "min_o_p", np.min(proj_data))
+            #print(rank, "local_median", np.median(proj_data))
             #Redistribute 
 
 
@@ -368,8 +368,8 @@ class RKDT:
             else:
                 recv_dict = send_dict
 
-            print(rank, "Send Dict", send_dict, flush=True)
-            print(rank, "Recv Dict", recv_dict, flush=True)
+            #print(rank, "Send Dict", send_dict, flush=True)
+            #print(rank, "Recv Dict", recv_dict, flush=True)
             collect_t_f += time.time() - collect_t
 
             MAX_SIZE=2**24
@@ -385,9 +385,9 @@ class RKDT:
 
             sending_data = self.host_data[send_offset:send_offset+send_size, ...]
 
-            print(rank, "median", median, flush=True)
-            print(rank, "max_proj_before", np.max(sending_data @ vector), flush=True)
-            print(rank, "min_pro_before", np.min(sending_data @ vector), flush=True)
+            #print(rank, "median", median, flush=True)
+            #print(rank, "max_proj_before", np.max(sending_data @ vector), flush=True)
+            #print(rank, "min_pro_before", np.min(sending_data @ vector), flush=True)
 
             #Loop over nonblocking sends
             send_id_requests = deque()
@@ -534,9 +534,9 @@ class RKDT:
             self.host_data[send_offset:send_offset+send_size, ...] = sending_data
             self.host_real_gids[send_offset:send_offset+send_size] = sending_ids
 
-            print(rank, "median", median, flush=True)
-            print(rank, "max_proj_after", np.max(sending_data @ vector), flush=True)
-            print(rank, "min_proj_after", np.min(sending_data @ vector), flush=True)
+            #print(rank, "median", median, flush=True)
+            #print(rank, "max_proj_after", np.max(sending_data @ vector), flush=True)
+            #print(rank, "min_proj_after", np.min(sending_data @ vector), flush=True)
             
             median_list.append(median)           
 
@@ -661,18 +661,18 @@ class RKDT:
             lids = np.arange(self.local_size, dtype=np.int32)
             #print(rank, global_size/2, proj_data.shape, lids.shape, flush=True)
             median, local_split = Primitives.dist_select(global_size/2, proj_data, lids, comm)
-            print(rank, "med", median, flush=True)
+            #print(rank, "med", median, flush=True)
 
             self.host_real_gids = self.host_real_gids[lids] 
             #self.host_data = self.host_data[lids, ...]
 
             self.host_data = self.reorder(lids, self.host_data)
 
-            print(rank, "split", local_split)
-            print(rank, "original_proj", proj_data)
-            print(rank, "max_o_p", np.max(proj_data))
-            print(rank, "min_o_p", np.min(proj_data))
-            print(rank, "local_median", np.median(proj_data))
+            #print(rank, "split", local_split)
+            #print(rank, "original_proj", proj_data)
+            #print(rank, "max_o_p", np.max(proj_data))
+            #print(rank, "min_o_p", np.min(proj_data))
+            #print(rank, "local_median", np.median(proj_data))
             #Redistribute 
 
 
@@ -721,8 +721,8 @@ class RKDT:
             else:
                 recv_dict = send_dict
 
-            print(rank, "Send Dict", send_dict, flush=True)
-            print(rank, "Recv Dict", recv_dict, flush=True)
+            #print(rank, "Send Dict", send_dict, flush=True)
+            #print(rank, "Recv Dict", recv_dict, flush=True)
             collect_t_f += time.time() - collect_t
 
             MAX_SIZE= 2**24
@@ -985,8 +985,8 @@ class RKDT:
 
             self.host_real_gids[send_offset:send_offset+send_size] = sending_ids
 
-            print(rank, "median", median, flush=True)
-            print(rank, "sd size", sending_data.shape, flush=True)
+            #print(rank, "median", median, flush=True)
+            #print(rank, "sd size", sending_data.shape, flush=True)
             #print(rank, "max_proj", np.max(sending_data @ vector), flush=True)
             #print(rank, "min_proj", np.min(sending_data @ vector), flush=True)
             
@@ -1425,8 +1425,8 @@ class RKDT:
             split_sizes = all_lengths[r]
             split_starts = starts
 
-            print(rank, "sizes", split_sizes)
-            print(rank, "starts", split_starts)
+            #print(rank, "sizes", split_sizes)
+            #print(rank, "starts", split_starts)
 
             recv_size = split_sizes[rank]
 
@@ -1448,8 +1448,8 @@ class RKDT:
             recv_gid = np.empty(recv_size, dtype=np.int32)
             comm.Scatterv([send_block_gids, ssizes, sstarts, MPI.INT], recv_gid, root=r)
             result_gids[offset:offset+recv_size, ...] = recv_gid
-            print(rank, "sendgid", sending_gids)
-            print(rank, recv_gid)
+            #print(rank, "sendgid", sending_gids)
+            #print(rank, recv_gid)
 
             split_sizes = split_sizes * k
             split_starts = starts * k
@@ -1467,7 +1467,7 @@ class RKDT:
             comm.Scatterv([send_block_ids, ssizes, sstarts, MPI.INT], recv_id, root=r)
             result_ids[offset:offset+recv_size, ...] = recv_id
 
-            print(rank, recv_id)
+            #print(rank, recv_id)
 
             #communicate Dist block
             
@@ -2270,12 +2270,12 @@ class RKDT:
             #print("RList", RList[0].shape)
             #print(k)
             setup_t = time.time() - setup_t
-            print("Setup time took ", setup_t)
+            print("Search setup time took ", setup_t)
 
             comp_t = time.time()
             NLL, NDL, out = Primitives.multileaf_knn(gidsList, RList, RList, k)
             comp_t = time.time() - comp_t
-            print("Computation took ", comp_t)
+            print("Search computation took ", comp_t)
 
             #print("Finished kernel call")
 
@@ -2308,11 +2308,11 @@ class RKDT:
             #        neighbor_list[i,j] = real_gids[neighbor_list[i, j]]
 
             copy_t = time.time() - copy_t
-            print("Copy took ", copy_t)
+            print("Search copy took ", copy_t)
 
             #print("Finished copy")
             batch_t = time.time() - batch_t
-            print("BATCH TOOK:", batch_t)
+            print("Search took:", batch_t)
 
         return neighbor_list, neighbor_dist
 

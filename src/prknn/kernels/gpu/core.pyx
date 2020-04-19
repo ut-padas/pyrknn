@@ -210,7 +210,7 @@ def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     outDist = np.asarray(nDist)
 
     return (outID, outDist)
-
+"""
 def merge_neighbors(a, b, k, ldevice):
 
     merge_t = time.time()
@@ -253,8 +253,8 @@ def merge_neighbors(a, b, k, ldevice):
     print("Merge time:", merge_t)
 
     return (I1, D1)
-
 """
+
 cpdef merge_neighbors(a, b, k, device):
 
     I1 = a[0]
@@ -277,7 +277,6 @@ cpdef merge_neighbors(a, b, k, device):
         merge_neighbors_python( <float*> &cD1[0, 0], <int*> &cI1[0, 0], <float*> &cD2[0, 0], <int*> &cI2[0, 0], cn, ck, ck, <int> cdevice)
 
     return (I1, D1)
- """ 
 
 
 
