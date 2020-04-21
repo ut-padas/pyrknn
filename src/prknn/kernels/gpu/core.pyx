@@ -193,10 +193,13 @@ def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     print("len(d)", len(data))
     print("len(idx)", len(idx))
     print("len(ptr)", len(ptr))
-
     print("nnz", nnz)
     print("n", n)
     print("d", d) 
+    print("k", k)
+    print("blockleaf", blockleaf)
+    print("device", device)
+    print("blocksize", blocksize)
 
     cdef int[:, :] nID = np.zeros([n, k], dtype=np.int32) + -1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + 1e38
@@ -210,6 +213,8 @@ def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     outDist = np.asarray(nDist)
 
     return (outID, outDist)
+
+
 """
 def merge_neighbors(a, b, k, ldevice):
 
@@ -296,11 +301,10 @@ cpdef merge_neighbors(a, b, k, device):
 
 
 
-
+"""
 
 #Theres not really a point to this. It's just a compilation test and helpful example of how to format a function. 
 def add_vectors(a, b):
-    """Adds two vectors on the gpu. """
 
     cdef size_t N = len(a)
     cdef long device_a
@@ -367,4 +371,4 @@ def reduce_float(a):
 
     return out
 
-
+"""

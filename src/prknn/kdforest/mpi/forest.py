@@ -23,7 +23,7 @@ class RKDForest:
 
     verbose = False #Note: This is a static variable
 
-    def __init__(self, ntrees=1, levels=0, leafsize=None, pointset=None, location="CPU", comm=MPI.COMM_WORLD, sparse=False):
+    def __init__(self, ntrees=1, levels=0, leafsize=None, pointset=None, location="CPU", comm=MPI.COMM_WORLD, sparse=False, N=None, d=None):
         """Initialize Randomized KD Forest.
 
         Keyword Arguments:
@@ -37,6 +37,8 @@ class RKDForest:
 
         if ntrees < 0:
             raise ErrorType.InitializationError('Invalid ntrees parameter: '+str(ntrees)+' ntrees')
+        self.N = N
+        self.d = d
 
         self.comm = comm
         self.id = id(self)
@@ -49,6 +51,7 @@ class RKDForest:
 
         self.device = rank%4
         Primitives.set_device(self.device);
+        print("Running on device", self.device)
 
         if self.location == "CPU":
             self.lib = np
@@ -64,7 +67,7 @@ class RKDForest:
                 local_row = np.asarray(pointset.row, dtype=np.int32)
                 local_col = np.asarray(pointset.col, dtype=np.int32)
 
-                self.data = sp.coo_matrix( (local_data, (local_row, local_col) ))
+                self.data = sp.coo_matrix( (local_data, (local_row, local_col) ), shape=(N, d))
             else:
                 self.data = np.asarray(pointset, dtype=np.float32)
 
@@ -125,7 +128,7 @@ class RKDForest:
         self.forestlist = [None]*self.ntrees
 
         for i in range(self.ntrees):
-            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
+            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse, N=self.N, d=self.d)
             tree.build()
             self.forestlist[i] = tree
 
@@ -205,8 +208,6 @@ class RKDForest:
         return result
 
     def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False):
-        print("starting search...", flush=True)
-        total_t = time.time()
 
         Primitives.set_cores(cores)
         Primitives.reset_timing()
@@ -227,11 +228,14 @@ class RKDForest:
             self.ntrees = 100
 
         print("...entering loop", flush=True)
+        print("starting search...", flush=True)
+
+        total_t = time.time()
         for it in range(self.ntrees):
             print(rank, "Begin tree", flush=True)
             #X = np.copy(self.data)
             X = self.data
-            tree = RKDT(pointset=X, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
+            tree = RKDT(pointset=X, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse, N=self.N, d=self.d)
 
             if self.location == "CPU":
                 build_t = time.time()
@@ -248,16 +252,27 @@ class RKDForest:
 
             else:
                 dist_t = time.time()
-                tree.dist_build()
+                #tree.dist_build()
+                #tree.dist_build_lil()
+
+                if self.sparse:
+                    tree.dist_build_sparse()
+                else:
+                    tree.dist_build()
+
                 dist_t = time.time() - dist_t
                 print(rank, "Build_Dist_t", dist_t, flush=True)
                 Primitives.dist_build_t += dist_t
 
                 aknn_t = time.time()
                 if self.sparse:
-                    print("data", (tree.data.data))
-                    print("ptr", (tree.data.indptr))
-                    print("idx", (tree.data.indices))
+                    print(rank, "type", type(tree.data))
+                    print(rank, "data", (tree.data.data))
+                    print(rank, "ptr", (tree.data.indptr))
+                    print(rank, "idx", (tree.data.indices))
+                    print(rank, "matrix", (tree.data.toarray()))
+                    print(rank, "gids", tree.host_real_gids)
+
                     neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
                 else:
                     neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device) 
@@ -271,13 +286,13 @@ class RKDForest:
                 #print("gids", tree.host_gids)
                 #print("rids", tree.host_real_gids)
 
-                neighbor_id = neighbors[0]
-                neighbor_dist = neighbors[1]
+                #neighbor_id = neighbors[0]
+                #neighbor_dist = neighbors[1]
 
                 #neighbor_id = tree.host_real_gids[neighbors[0][:]]
-                neighbor_dist = neighbors[1][:]
+                #neighbor_dist = neighbors[1][:]
 
-                neighbors = (neighbor_id, neighbor_dist)
+                #neighbors = (neighbor_id, neighbor_dist)
 
             #print(rank, "neighbors", neighbors, flush=True)
 
@@ -366,16 +381,19 @@ class RKDForest:
                 result = res_host
             """
 
+            memory_t = time.time()
             del tree
             del neighbors
 
             #mempool = cp.get_default_memory_pool()
             #mempool.free_all_blocks()
             #gc.collect()
+            memory_t = time.time() - memory_t
+            print("memory_t", memory_t)
 
             gap = 5
             check_t = time.time()
-            if truth:
+            if truth is not None:
                 flag = False
                 tlist, tdist = truth
                 nq = tlist.shape[0]
@@ -424,8 +442,9 @@ class RKDForest:
                 break
                 
 
-
         total_t = time.time() - total_t
+        print("ALLKNN TIME", total_t)
+
         Primitives.total_t = total_t
 
         Primitives.timing()

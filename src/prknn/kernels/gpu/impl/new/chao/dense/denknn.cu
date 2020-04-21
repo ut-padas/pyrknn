@@ -229,6 +229,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   printf("\n  - unique: %.2e s (%.0f %%)", t_unique, 100.*t_unique/t_merge);
   printf("\n---------------------------");
   printf("\n! Sorting: %.2e s (%.0f %%)", t_sort, 100.*t_sort/t_kernel);
+  printf("\n Ran on GPU w/ dev id: (%d)", device);
   printf("\n===========================\n");
   
 

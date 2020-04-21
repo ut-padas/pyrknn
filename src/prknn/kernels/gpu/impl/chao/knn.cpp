@@ -15,6 +15,7 @@ typedef Matrix<float, Dynamic, Dynamic, RowMajor> Mat;
 typedef Matrix<int, Dynamic, Dynamic, RowMajor> MatInt;
 typedef VectorXf Vec;
 
+namespace old {
 
 Mat distSquared_cpu(const Mat& R, const Mat& Q, bool debug=false) {
   Vec R2 = R.rowwise().squaredNorm();
@@ -53,6 +54,10 @@ void knn_cpu(const Mat &R, const Mat &Q, const int *ID, int N, int d,
     kselect(D2.data()+i*N, ID, N, nborDist+i*k, nborID+i*k, k);
 }
 
+
+}
+
+using namespace old;
 
 int main(int argc, char* argv[]) {
 

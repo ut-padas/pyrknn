@@ -12,6 +12,7 @@ else:
     from ...kernels.cpu import core as gpu
 
 import time
+import scipy.sparse as sp
 
 """File that contains key kernels to be replaced with high performance implementations"""
 
@@ -33,6 +34,8 @@ accuracy = []
 diff=[]
 copy_gpu_t = 0
 check_t = 0
+collect_t = 0
+scatter_t = 0
 
 def reset_timing():
     global dist_build_t
@@ -59,6 +62,8 @@ def timing():
     print("merge_t", merge_t)
     print("total_t", total_t)
     print("check_t", check_t)
+    print("scatter_t", scatter_t)
+    print("collect_t", collect_t)
     print(accuracy)
     print(diff)
 
@@ -105,12 +110,23 @@ def distance(R, Q):
     """
     global env
     if env == "PYTHON" or env == "CPU" or env=="GPU":
-        D= -2*lib.dot(Q, R.T)                    #Compute -2*<q_i, r_j>, Note: Python is row-major
-        Q2 = lib.linalg.norm(Q, axis=1)**2       #Compute ||q_i||^2
-        R2 = lib.linalg.norm(R, axis=1)**2       #Compute ||r_j||^2
+        D= -2* (Q @ R.T)                    #Compute -2*<q_i, r_j>, Note: Python is row-major
 
-        D = D + Q2[:, np.newaxis]               #Add in ||q_i||^2 row-wise
-        D = D + R2                              #Add in ||q_i||^2 colum-wise
+        D = D.toarray()
+        print(type(D))
+
+        if sparse:
+            for i in range(Q.shape[0]):
+                for j in range(R.shape[0]):
+                    print(Q[i, :].shape)
+                    D[i,j] += (Q[i, :] @ Q[i, :].T)
+                    D[i,j] += (R[j, :] @ R[j, :].T)
+        else:
+            Q2 = lib.linalg.norm(Q, axis=1)**2       #Compute ||q_i||^2
+            R2 = lib.linalg.norm(R, axis=1)**2       #Compute ||r_j||^2
+
+            D = D + Q2[:, np.newaxis]               #Add in ||q_i||^2 row-wise
+            D = D + R2                              #Add in ||r_j||^2 colum-wise
         return D
 
 
@@ -119,7 +135,7 @@ def distance(R, Q):
         return cpu.distance(R, Q);
     """
 
-def single_knn(gids, R, Q, k):
+def single_knn(gids, R, Q, k, lenv = None):
     """Compute the k nearest neighbors from a query set Q (|Q| x d) in a reference set R (|R| x d).
 
     Note: Neighbors are indexed globally by gids, which provides a local (row idx) to global map.
@@ -131,7 +147,9 @@ def single_knn(gids, R, Q, k):
 
     """
     global env
-    if env == "PYTHON" or env=="GPU":
+    if lenv is None:
+        lenv = env
+    if lenv == "PYTHON" or lenv=="GPU":
         #Note: My Pure python implementation is quite wasteful with memory.
 
         N, d, = Q.shape
@@ -141,9 +159,6 @@ def single_knn(gids, R, Q, k):
         neighbor_dist = lib.zeros([N, k])
 
         dist = distance(R, Q)                           #Compute all distances
-        print("internal dist", dist)
-        print("internal dist shape", dist.shape)
-        print(type(dist))
 
         for q_idx in range(N):
 
@@ -164,7 +179,7 @@ def single_knn(gids, R, Q, k):
 
             return neighbor_list, neighbor_dist
 
-    if env == "CPU":
+    if lenv == "CPU":
         return cpu.single_knn(gids, R, Q, k)
 
 def batched_knn(gidsList, RList, QList, k):
