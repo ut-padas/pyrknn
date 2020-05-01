@@ -12,6 +12,7 @@ else:
     from ...kernels.cpu import core as gpu
 
 import time
+import scipy.sparse as sp
 
 """File that contains key kernels to be replaced with high performance implementations"""
 
@@ -30,7 +31,11 @@ aknn_t = 0
 redistribute_t = 0
 merge_t = 0
 accuracy = []
+diff=[]
 copy_gpu_t = 0
+check_t = 0
+collect_t = 0
+scatter_t = 0
 
 def reset_timing():
     global dist_build_t
@@ -55,7 +60,12 @@ def timing():
     print("redistribute_t", redistribute_t)
     print("copy_gpu_t", copy_gpu_t)
     print("merge_t", merge_t)
+    print("total_t", total_t)
+    print("check_t", check_t)
+    print("scatter_t", scatter_t)
+    print("collect_t", collect_t)
     print(accuracy)
+    print(diff)
 
 env = "CPU" #Coarse kernel context switching mechanism for debugging (this is a bad pattern, to be replace in #TODO 3)
 lib = np
@@ -84,6 +94,12 @@ def set_cores(c):
     global cores
     cores = c
 
+device = 0
+def set_device(c):
+    global device
+    device = c
+
+
 #TODO: Q2 and R2 could be precomputed and given as arguments to distance(), should make keyword parameters for this option
 def distance(R, Q):
     """Compute the distances between a reference set R (|R| x d) and query set Q (|Q| x d).
@@ -94,12 +110,23 @@ def distance(R, Q):
     """
     global env
     if env == "PYTHON" or env == "CPU" or env=="GPU":
-        D= -2*lib.dot(Q, R.T)                    #Compute -2*<q_i, r_j>, Note: Python is row-major
-        Q2 = lib.linalg.norm(Q, axis=1)**2       #Compute ||q_i||^2
-        R2 = lib.linalg.norm(R, axis=1)**2       #Compute ||r_j||^2
+        D= -2* (Q @ R.T)                    #Compute -2*<q_i, r_j>, Note: Python is row-major
 
-        D = D + Q2[:, np.newaxis]               #Add in ||q_i||^2 row-wise
-        D = D + R2                              #Add in ||q_i||^2 colum-wise
+        D = D.toarray()
+        print(type(D))
+
+        if sparse:
+            for i in range(Q.shape[0]):
+                for j in range(R.shape[0]):
+                    print(Q[i, :].shape)
+                    D[i,j] += (Q[i, :] @ Q[i, :].T)
+                    D[i,j] += (R[j, :] @ R[j, :].T)
+        else:
+            Q2 = lib.linalg.norm(Q, axis=1)**2       #Compute ||q_i||^2
+            R2 = lib.linalg.norm(R, axis=1)**2       #Compute ||r_j||^2
+
+            D = D + Q2[:, np.newaxis]               #Add in ||q_i||^2 row-wise
+            D = D + R2                              #Add in ||r_j||^2 colum-wise
         return D
 
 
@@ -108,7 +135,7 @@ def distance(R, Q):
         return cpu.distance(R, Q);
     """
 
-def single_knn(gids, R, Q, k):
+def single_knn(gids, R, Q, k, lenv = None):
     """Compute the k nearest neighbors from a query set Q (|Q| x d) in a reference set R (|R| x d).
 
     Note: Neighbors are indexed globally by gids, which provides a local (row idx) to global map.
@@ -120,7 +147,9 @@ def single_knn(gids, R, Q, k):
 
     """
     global env
-    if env == "PYTHON" or env=="GPU":
+    if lenv is None:
+        lenv = env
+    if lenv == "PYTHON" or lenv=="GPU":
         #Note: My Pure python implementation is quite wasteful with memory.
 
         N, d, = Q.shape
@@ -130,6 +159,7 @@ def single_knn(gids, R, Q, k):
         neighbor_dist = lib.zeros([N, k])
 
         dist = distance(R, Q)                           #Compute all distances
+
         for q_idx in range(N):
 
             #TODO: Replace with kselect kernel
@@ -149,7 +179,7 @@ def single_knn(gids, R, Q, k):
 
             return neighbor_list, neighbor_dist
 
-    if env == "CPU":
+    if lenv == "CPU":
         return cpu.single_knn(gids, R, Q, k)
 
 def batched_knn(gidsList, RList, QList, k):
@@ -238,7 +268,7 @@ def merge_neighbors(a, b, k):
         return cpu.merge_neighbors(a, b, k, cores)
 
     if env == "GPU":
-        out = gpu.merge_neighbors(a, b, k)
+        out = gpu.merge_neighbors(a, b, k, device)
 
     if env == "PYTHON":
         # This is currently very wasteful/suboptimal
@@ -317,12 +347,14 @@ def neighbor_dist(a, b):
     changes = 0
     nn_dist = lib.zeros(Na)
     first_diff = lib.zeros(Na)
+    knndist = 0
     for i in range(Na):
-        changes += np.sum([1 if a_list[i, k] in b_list[i] else 0 for k in range(k)])
+        changes += np.sum([1 if a_list[i, k] in b_list[i] else 0 for k in range(ka)])
+        knndist = max(knndist, np.abs(a_dist[i, ka-1] - b_dist[i, kb-1])/a_dist[i, ka-1])
 
     perc = changes/(Na*ka)
 
-    return perc
+    return perc, knndist
 
 
 def dist_select(k, data, ids, comm):

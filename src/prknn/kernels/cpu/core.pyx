@@ -17,6 +17,7 @@ from mpi4py import MPI
 
 import time
 
+"""
 cpdef KNNLowMem(gids, R, Q, k):
     cdef int cn = R.shape[0];
     cdef int cm = Q.shape[0];
@@ -267,7 +268,7 @@ cpdef merge_neighbors(a, b, k, cores):
 
     return (I1, D1)
 
-
+"""
 
 cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
 
@@ -339,13 +340,13 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     comm.Allreduce(local_split_info, global_split_info, op=MPI.SUM)
 
     #print(rank, "prev", prev)
-    #print(rank, "local_n, global_n", (nlocal, N))
-    #print(rank, "local_local_splits", [nleft, nright])
-    #print(rank, "local_splits", np.asarray(local_split_info))
-    #print(rank, "local total", np.sum(local_split_info))
-    #print(rank, "Global split", np.asarray(global_split_info))
-    #print(rank, "global total", np.sum(global_split_info))
-    #print(rank, "k", k)
+    print(rank, "local_n, global_n", (nlocal, N))
+    print(rank, "local_local_splits", [nleft, nright])
+    print(rank, "local_splits", np.asarray(local_split_info))
+    print(rank, "local total", np.sum(local_split_info))
+    print(rank, "Global split", np.asarray(global_split_info))
+    print(rank, "global total", np.sum(global_split_info))
+    print(rank, "k", k)
     #print(rank, "mean", mean)
     #print(rank, "X", np.array(X))
 
@@ -364,7 +365,8 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
 
-    if (k-1 <= global_nleft <= k+1) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN) or (gmax - gmin < 0.00001):
+    #if (k-1 <= global_nleft <= k+1) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN) or (gmax - gmin < 0.00001):
+    if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN) or (gmax - gmin < 0.00001):
         #print(rank, "Mean", mean)
         #print(rank, "NLEFT", nL)
         return (mean, nL)
@@ -377,7 +379,7 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
         #print(rank, "right")
         return dist_select(k, X[nleft:], ID[nleft:], comm, prev=(prev[0]+nleft, prev[1], globalN))
 
-    
+""" 
 
 def scan(l):
     if type(l) is not np.ndarray:
@@ -431,3 +433,6 @@ def select(l, size_t k):
         return Select[float](k,l)
     elif l.dtype == np.dtype('float64'):
         return Select[double](k,l)
+
+"""
+

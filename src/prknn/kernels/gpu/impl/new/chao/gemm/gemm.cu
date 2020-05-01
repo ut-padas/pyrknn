@@ -1,6 +1,7 @@
 #include "util_gpu.hpp"
 #include "knn_handle.hpp"
-
+#include "timer_gpu.hpp"
+#include "cuda_profiler_api.h"
 
 // (dense) A * (dense) B = (dense) C
 void GEMM(int m, int n, int k, const fvec &A, const fvec &B, fvec &C) {
@@ -184,7 +185,8 @@ void GEMM_SSS(int m, int n, int k, float alpha,
     int *csrRowPtrA, int *csrColIndA, float *csrValA, int nnzA,
     int *csrRowPtrB, int *csrColIndB, float *csrValB, int nnzB,
     int* &csrRowPtrC, int* &csrColIndC, float* &csrValC, int &nnzC,
-    csrgemm2Info_t &info, cusparseHandle_t &handle, cusparseMatDescr_t &descr) {
+    csrgemm2Info_t &info, cusparseHandle_t &handle, cusparseMatDescr_t &descr,
+    float &t_gemm, float &t_nnz) {
   
   // dummy matrix D
   int nnzD = 0, *csrRowPtrD = 0, *csrColIndD = 0;
@@ -204,9 +206,11 @@ void GEMM_SSS(int m, int n, int k, float alpha,
   CHECK_CUDA( cudaMalloc(&buffer, bufferSize) )
 
   // step 3: compute csrRowPtrC
+  TimerGPU t; t.start();
   CHECK_CUDA( cudaMalloc((void**)&csrRowPtrC, sizeof(int)*(m+1)) )
   int *nnzTotalDevHostPtr = &nnzC;
   cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST);
+  
   CHECK_CUSPARSE( cusparseXcsrgemm2Nnz(handle, m, n, k,
           descr, nnzA, csrRowPtrA, csrColIndA,
           descr, nnzB, csrRowPtrB, csrColIndB,
@@ -222,13 +226,17 @@ void GEMM_SSS(int m, int n, int k, float alpha,
       nnzC -= baseC;
   }  
   
-  std::cout<<"[GEMM_SSS] buffersize: "<<bufferSize/1.e9<<" GB"
-           <<", C: "<<(m+1)/1.e9*4+nnzC/1.e9*4*2<<" GB"<<std::endl;
+  //std::cout<<"[GEMM_SSS] buffersize: "<<bufferSize/1.e9<<" GB"
+  //         <<", C: "<<(m+1)/1.e9*4+nnzC/1.e9*4*2<<" GB"<<std::endl;
 
   // step 4: finish sparsity pattern and value of C
   // Remark: set csrValC to null if only sparsity pattern is required 
   CHECK_CUDA( cudaMalloc((void**)&csrColIndC, sizeof(int)*nnzC) )
   CHECK_CUDA( cudaMalloc((void**)&csrValC, sizeof(float)*nnzC) )
+  t.stop(); t_nnz += t.elapsed_time();
+
+  cudaProfilerStart();
+  t.start();
   CHECK_CUSPARSE( cusparseScsrgemm2(handle, m, n, k, &alpha,
           descr, nnzA, csrValA, csrRowPtrA, csrColIndA,
           descr, nnzB, csrValB, csrRowPtrB, csrColIndB,
@@ -236,6 +244,8 @@ void GEMM_SSS(int m, int n, int k, float alpha,
           descr, nnzD, csrValD, csrRowPtrD, csrColIndD,
           descr,       csrValC, csrRowPtrC, csrColIndC,
           info, buffer) )
+  t.stop(); t_gemm += t.elapsed_time();
+  cudaProfilerStop();
 
   // step 5: clean up
   if (buffer != NULL) CHECK_CUDA( cudaFree(buffer) )

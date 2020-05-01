@@ -1,6 +1,5 @@
 #include "util_gpu.hpp"
 #include <cusolverDn.h>
-#include <algorithm>
 
 #define CHECK_SOLVER(func) {                \
   cusolverStatus_t stat = (func);           \
@@ -9,7 +8,7 @@
 
 
 void orthogonal(fvec &A, int m, int n) {
-  n = std::min(m, n);
+
   assert(n <= m);
   float *d_A = thrust::raw_pointer_cast(A.data());
 

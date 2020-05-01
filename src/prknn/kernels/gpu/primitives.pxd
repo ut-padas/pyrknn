@@ -1,9 +1,12 @@
 from libcpp cimport bool
 
+"""
 cdef extern from "impl/primitives.hpp" nogil:
     cdef void vector_add(float *out, float *a, float* b, size_t n)
     cdef void device_reduce_warp_atomic(float *, float *, size_t)
     cdef float device_kelley_cutting(float *arr, const size_t n)
+"""
+
 
 cdef extern from "impl/chao/merge/merge_gpu.hpp" namespace "old" nogil:
     cdef void merge_neighbors_gpu(float *nborD1, int *nborI1, const float *nborD2, const int *nborI2, int m, int n, int k, int device)
@@ -15,6 +18,7 @@ cdef extern from "impl/chao/knn_gpu.hpp" nogil:
 
 cdef extern from "impl/new/chao/dense/denknn.hpp" nogil:
     cdef void denknn(int*, float*, int, int, int, int, int*, float*, int, int, int)
+    cdef void merge_neighbors_python(float*, int*, float*, int*, int, int, int, int)
 
 cdef extern from "impl/new/chao/sparse/spknn.hpp" nogil:
     cdef void spknn(int*, int*, int*, float*, int, int, int, int, int, int*, float*, int, int, int, int)

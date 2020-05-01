@@ -1,7 +1,7 @@
 # distutils: language = c++
 
 from libcpp.vector cimport vector
-
+"""
 cdef extern from "impl/primitives_shared.hpp" nogil:
     cdef vector[T] sampleWithoutReplacement[T](int l, vector[T] v) except + 
     cdef vector[T] Sum[T,Allocator]( size_t d, size_t n, vector[T, Allocator] & X, vector[size_t] & gids ) except +
@@ -21,3 +21,4 @@ cdef extern from "impl/primitives_shared.hpp" nogil:
     cdef void choose2(int *out, int N) except +
     cdef void quickselect[T](T *array, int N, int k) except +
     cdef void merge_neighbor_cpu[T](T* D1, int* I1, T* D2, int* I2, int n, int k, int cores) except +
+"""

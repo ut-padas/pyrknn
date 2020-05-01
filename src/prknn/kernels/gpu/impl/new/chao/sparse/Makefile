@@ -33,6 +33,9 @@ endif
 KERNEL=spknn.o build_tree.o leaf_knn.o find_nbor.o
 OBJS=driver.o
 
+PROF=nvprof --metrics flop_count_sp --metrics dram_read_throughput --metrics dram_write_throughput \
+		 --profile-from-start off
+
 default: $(EXE)
 
 $(EXE): $(OBJS) $(LIB) $(DEP) 
@@ -81,13 +84,14 @@ run: $(EXE)
 	$(EXE) 
 
 debug: $(EXE)
-	$(EXE) -n 10 -d 5 -l 2 -k 3 -bt 1 -t 5 -bl 1
+	$(PROF) $(EXE) -n 10 -d 5 -l 2 -k 3 -bt 1 -t 5 -bl 1
 
 benchmark: $(EXE)
 	#$(EXE) -dataset avazu_app_t -l 10 -k 5 -t 3 -bl 512 -bp 256 -bt 1
 	#$(EXE) -dataset avazu_app -l 13 -k 16 -t 200 -bl 512 -bp 256 -bt 1
-	time $(EXE) -dataset avazu -l 17 -k 5 -t 200 -bl 1024 -bp 256 -bt 1
-	#$(EXE) -dataset url -l 15 -k 10 -t 2 -bl 512 -bp 64 -bt 1
+	#time $(EXE) -dataset avazu -l 17 -k 5 -t 200 -bl 1024 -bp 256 -bt 1
+	$(EXE) -dataset url -l 11 -k 10 -t 3 -bl 512 -bp 64 -bt 1
+	#$(PROF) $(EXE) -dataset avazu -l 15 -k 5 -t 2 -bl 1024 -bp 64 -bt 1
 
 clean:
 	rm -f *.o $(EXE) $(LIB)

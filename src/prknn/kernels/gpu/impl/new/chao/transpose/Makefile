@@ -6,7 +6,8 @@ default: $(EXE)
 
 CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart \
-			-L./ -ltranspose_new
+			-L./ -ltranspose_new -L../util -lutil_new
+
 
 KERNEL=transpose.o
 OBJS=driver.o 
