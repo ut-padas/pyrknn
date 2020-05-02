@@ -24,15 +24,24 @@ int current_time_nanoseconds() {
 void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
     int *hNborID, float *hNborDist, int k, int blkPoint, int device) {
   
-  cudaSetDevice(device);
+  // -----------------------
+  // timing
+  // -----------------------
+  float t_alloc = 0., t_copy1 = 0., t_copy2 = 0.;
+  float t_tree = 0., t_knn = 0., t_merge = 0.;
+  float t_tsort = 0.;
+  float t_dist = 0., t_lsort = 0.;
+  float t_msort = 0., t_mcopy = 0., t_unique = 0.;
+  TimerGPU t, t0, t2; t2.start();
+
+  // pick GPU
+  cudaSetDevice(device); 
 
   const int nLeaf = 1<<level;
   const int nPoint = (n+nLeaf-1)/nLeaf; // # points per leaf node
   const int nExtra = nPoint*nLeaf - n;
   const int N = n + nExtra;
 
-  TimerGPU t0; 
-  float t_alloc = 0., t_copy1 = 0., t_copy2 = 0.;
 
   // copy data to GPU
   t0.start();
@@ -68,37 +77,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   
   //tprint(N, d, dP, "Points on GPU");
 
-  std::cout<<"\n========================"
-           <<"\nPoints"
-           <<"\n------------------------"
-           <<"\n# points: "<<N
-           <<"\n# dimensions: "<<d
-           <<"\n# artificial points: "<<nExtra
-           <<"\n# points/leaf: "<<nPoint
-           <<"\n# leaf nodes: "<<nLeaf
-           <<"\n------------------------"
-           <<"\nmem points: "<<N/1.e9*d*4<<" GB"
-           <<"\nmem output: "<<N/1.e9*k*4*4<<" GB"
-           <<"\nmem distance: "<<N/1.e9*blkPoint*2*4<<" GB"
-           <<"\nmem orthogonal bases: "<<d/1.e9*level*4<<" GB"
-           <<"\nmem projection: "<<N/1.e9*level*4<<" GB"
-           <<"\n------------------------"
-           <<"\nmalloc time: "<<t_alloc<<" s"
-           <<"\ncopy data time: "<<t_copy1<<" s"
-           <<"\ncopy neighbor time: "<<t_copy2<<" s"
-           <<"\n========================\n"
-           <<std::endl;
-
   
-  // -----------------------
-  // timing
-  // -----------------------
-  float t_tree = 0., t_knn = 0., t_merge = 0.;
-  float t_tsort = 0.;
-  float t_dist = 0., t_lsort = 0.;
-  float t_msort = 0., t_mcopy = 0., t_unique;
-  TimerGPU t, t2; t2.start();
-
   // local ordering
   dvec<int> order(N);
   thrust::sequence(order.begin(), order.end(), 0);
@@ -163,13 +142,46 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
     merge_neighbors(dNborDist, dNborID, n, 2*k, k, t_msort, t_mcopy, t_unique);
     t.stop(); t_merge += t.elapsed_time();
   }
-  t2.stop();
-  float t_kernel = t2.elapsed_time();
+
+  // -----------------------
+  // Copy results back to CPU
+  // -----------------------
+  t0.start();
+  {
+    dvec<int> tmpNborID(n*k);
+    dvec<float> tmpNborDist(n*k);
+    thrust::copy_n(leftKColsID, n*k, tmpNborID.begin());
+    thrust::copy_n(leftKColsDist, n*k, tmpNborDist.begin());
+    thrust::copy_n(tmpNborID.begin(), n*k, hNborID);
+    thrust::copy_n(tmpNborDist.begin(), n*k, hNborDist);
+  }
+  t0.stop(); float t_copy3 = t.elapsed_time();
+  t2.stop(); float t_kernel = t2.elapsed_time();
   float t_sort = t_tsort+t_lsort+t_msort;
+  
+  std::cout<<"\n========================"
+           <<"\nPoints"
+           <<"\n------------------------"
+           <<"\n# points: "<<N
+           <<"\n# dimensions: "<<d
+           <<"\n# artificial points: "<<nExtra
+           <<"\n# points/leaf: "<<nPoint
+           <<"\n# leaf nodes: "<<nLeaf
+           <<"\n------------------------"
+           <<"\nmem points: "<<N/1.e9*d*4<<" GB"
+           <<"\nmem output: "<<N/1.e9*k*4*4<<" GB"
+           <<"\nmem distance: "<<N/1.e9*blkPoint*2*4<<" GB"
+           <<"\nmem orthogonal bases: "<<d/1.e9*level*4<<" GB"
+           <<"\nmem projection: "<<N/1.e9*level*4<<" GB"
+           <<"\n========================\n"
+           <<std::endl;
 
   printf("\n===========================");
   printf("\n    Dense KNN Timing");
   printf("\n---------------------------");
+  printf("\n* Malloc: %.2e s (%.0f %%)", t_alloc, 100.*t_alloc/t_kernel);
+  printf("\n* Copy points: %.2e s (%.0f %%)", t_copy1, 100.*t_copy1/t_kernel);
+  printf("\n* Copy neighbors: %.2e s (%.0f %%)", t_copy2, 100.*t_copy2/t_kernel);
   printf("\n* Build tree: %.2e s (%.0f %%)", t_tree, 100.*t_tree/t_kernel);
   printf("\n  - sort: %.2e s (%.0f %%)", t_tsort, 100.*t_tsort/t_tree);
   printf("\n* Leaf KNN: %.2e s (%.0f %%)", t_knn, 100.*t_knn/t_kernel);
@@ -179,22 +191,11 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   printf("\n  - sort: %.2e s (%.0f %%)", t_msort, 100.*t_msort/t_merge);
   printf("\n  - copy: %.2e s (%.0f %%)", t_mcopy, 100.*t_mcopy/t_merge);
   printf("\n  - unique: %.2e s (%.0f %%)", t_unique, 100.*t_unique/t_merge);
+  printf("\n* Copy neighbors: %.2e s (%.0f %%)", t_copy3, 100.*t_copy3/t_kernel);
   printf("\n---------------------------");
   printf("\n! Sorting: %.2e s (%.0f %%)", t_sort, 100.*t_sort/t_kernel);
   printf("\n===========================\n");
-  
 
-  // -----------------------
-  // Copy results back to CPU
-  // -----------------------
-  {
-    dvec<int> tmpNborID(n*k);
-    dvec<float> tmpNborDist(n*k);
-    thrust::copy_n(leftKColsID, n*k, tmpNborID.begin());
-    thrust::copy_n(leftKColsDist, n*k, tmpNborDist.begin());
-    thrust::copy_n(tmpNborID.begin(), n*k, hNborID);
-    thrust::copy_n(tmpNborDist.begin(), n*k, hNborDist);
-  }
 }
 
 

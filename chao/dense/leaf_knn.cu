@@ -123,6 +123,7 @@ void leaf_knn(const ivec &ID, const fvec &P, int N, int d, int nLeaf,
   }
   t0.stop(); t_kernel = t0.elapsed_time();
   
+  /*
   printf("\n===========================");
   printf("\n    Leaf Kernel Timing");
   printf("\n---------------------------");
@@ -133,6 +134,7 @@ void leaf_knn(const ivec &ID, const fvec &P, int N, int d, int nLeaf,
   printf("\n* Neighbors: %.2e s (%.0f %%)", t_nbor, 100.*t_nbor/t_kernel);
   printf("\n  -  sort: %.2e s (%.0f %%)", t_sort, 100.*t_sort/t_nbor);
   printf("\n===========================\n");
+  */
 }
 
 

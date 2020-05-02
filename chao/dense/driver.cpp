@@ -48,9 +48,20 @@ int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const
 
 Mat read_dataset(const std::string &dataset) {
 
-  assert(!dataset.compare("mnist"));
+  Mat P;
   Timer t; t.start();
-  Mat P = read_mnist();
+  if (!dataset.compare("mnist"))
+    P = read_mnist();
+  else if (!dataset.compare("sphere")) {
+    int m = 1<<21;
+    int n = 200;
+    std::vector<float> val(m*n);
+    std::string filename("/scratch/06108/chaochen/will/sphere/sphere_set_0.bin");
+    std::ifstream ifile(filename.c_str(), std::ios::in | std::ios::binary);
+    ifile.read((char *)val.data(), m*n*sizeof(float));
+    ifile.close();
+    P = Eigen::Map<Mat>(val.data(), m, n);
+  }
   t.stop();
 
   std::cout<<"\n======================\n"
@@ -59,6 +70,7 @@ Mat read_dataset(const std::string &dataset) {
            <<"dataset: "<<dataset<<"\n"
            <<"# rows: "<<P.rows()<<"\n"
            <<"# columns: "<<P.cols()<<"\n"
+           <<"norm: "<<P.norm()<<"\n"
            <<"time: "<<t.elapsed_time()<<" s\n";
   std::cout<<"======================\n";
   return P;
@@ -99,7 +111,6 @@ int main(int argc, char *argv[]) {
   int L = 3; // tree level
   int T = 1; // number of trees
   int blkTree = 10;
-  int blkLeaf = 512;
   int blkPoint = 64;
   for (int i=1; i<argc; i++) {
     if (!strcmp(argv[i],"-dataset"))
@@ -112,8 +123,6 @@ int main(int argc, char *argv[]) {
       T = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-bt"))
       blkTree = atoi(argv[i+1]);
-    if (!strcmp(argv[i],"-bl"))
-      blkLeaf = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-bp"))
       blkPoint = atoi(argv[i+1]);
   }
@@ -140,7 +149,6 @@ int main(int argc, char *argv[]) {
            <<"trees: "<<T<<std::endl
            <<"----------------------\n"
            <<"block tree: "<<blkTree<<std::endl
-           <<"block leaf: "<<blkLeaf<<std::endl
            <<"block point: "<<blkPoint<<std::endl
            <<"======================\n\n";
 

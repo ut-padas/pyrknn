@@ -78,22 +78,25 @@ SpMat read_dataset(std::string dataset) {
     int m = 524288; 
     int n = 10000;
     int nnz = 52428800;
-    
-    std::ifstream ifile("/scratch/06108/chaochen/will/test_sparse_ptr.bin", 
-        std::ios::in | std::ios::binary);
+   
+    //std::string dir("/scratch/06108/chaochen/will/"); 
+    std::string dir("/scratch1/06081/wlruys/shared/");
+    std::string ptrFile = dir + "test_sparse_ptr.bin";
+    std::string idxFile = dir + "test_sparse_idx.bin";
+    std::string dataFile = dir + "test_sparse_data.bin";
+      
+    std::ifstream ifile(ptrFile.c_str(), std::ios::in | std::ios::binary);
     assert(ifile.good());
     
     std::vector<int> rowPtr(m+1);
     ifile.read((char *)rowPtr.data(), (m+1)*sizeof(int));
     ifile.close();
     std::vector<int> colIdx(nnz);
-    ifile.open("/scratch/06108/chaochen/will/test_sparse_idx.bin", 
-        std::ios::in | std::ios::binary);
+    ifile.open(idxFile.c_str(), std::ios::in | std::ios::binary);
     ifile.read((char *)colIdx.data(), nnz*sizeof(int));
     ifile.close();
     std::vector<float> val(nnz);
-    ifile.open("/scratch/06108/chaochen/will/test_sparse_data.bin", 
-        std::ios::in | std::ios::binary);
+    ifile.open(dataFile.c_str(), std::ios::in | std::ios::binary);
     ifile.read((char *)val.data(), nnz*sizeof(float));
     ifile.close();
     P = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>
@@ -149,7 +152,7 @@ SpMat create_random_points(int argc, char *argv[]) {
 }
 
 
-int compute_error_bak(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const Mat &dist_cpu, 
+int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const Mat &dist_cpu, 
     int n, int k) {
 
   int miss = 0;
@@ -179,7 +182,7 @@ struct almost_equal {
   }
 };
 
-int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &dist_cpu, 
+int compute_error_bak(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &dist_cpu, 
     int n, int k) {
   
   int miss = 0;

@@ -122,8 +122,20 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
     int *hNborID, float *hNborDist, int k, 
     int blkLeaf, int blkPoint, int device) {
  
+  // -----------------------
+  // timing
+  // -----------------------
+  float t_copy = 0.;
+  float t_tree = 0., t_knn = 0., t_merge = 0.;
+  float t_sdd = 0., t_tsort = 0.;
+  float t_msort = 0., t_mcopy = 0., t_unique = 0.;
+  float t_trans = 0., t_dist = 0., t_gemm = 0., t_sort = 0.;
+  float t_sss = 0., t_den = 0., t_nnz = 0.;
+  float sparse = 0.;
+  TimerGPU t, t0, t2; 
+  t2.start(); t0.start();
+
   //print(n, d, nnz, hRowPtr, hColIdx, hVal, "host P");
-  TimerGPU t0; t0.start();
 
   const int nLeaf = 1<<level;
   const int maxPoint = (n+nLeaf-1)/nLeaf;
@@ -163,7 +175,7 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
   thrust::sequence(dRowPtr.begin()+n, dRowPtr.end(), hRowPtr[n]);
   thrust::fill(dColIdx.begin()+nnz, dColIdx.end(), 0); // the first coordinate is infinity
   thrust::fill(dVal.begin()+nnz, dVal.end(), std::numeric_limits<float>::max()); 
-  t0.stop();
+  t0.stop(); t_copy = t0.elapsed_time();
 
   // update # points and # nonzeros
   n += nExtra;
@@ -193,16 +205,6 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
            <<std::endl;
 
 
-  // -----------------------
-  // timing
-  // -----------------------
-  float t_tree = 0., t_knn = 0., t_merge = 0.;
-  float t_sdd = 0., t_tsort = 0.;
-  float t_msort = 0., t_mcopy = 0., t_unique = 0.;
-  float t_trans = 0., t_dist = 0., t_gemm = 0., t_sort = 0.;
-  float t_sss = 0., t_den = 0., t_nnz = 0.;
-  float sparse = 0.;
-  TimerGPU t, t2; t2.start();
   
   // local ordering
   dvec<int> order(n);
@@ -319,6 +321,20 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
     //tprint(n, 2*k, dNborDist, "[After merge] Dist");
     //tprint(n, 2*k, dNborID, "[After merge] ID");
   }
+  
+  // -----------------------
+  // Copy to CPU
+  // -----------------------
+  t0.start();
+  {
+    dvec<int> tmpNborID(n*k);
+    dvec<float> tmpNborDist(n*k);
+    thrust::copy_n(permI, (n-nExtra)*k, tmpNborID.begin());
+    thrust::copy_n(permD, (n-nExtra)*k, tmpNborDist.begin());
+    thrust::copy_n(tmpNborID.begin(), (n-nExtra)*k, hNborID);
+    thrust::copy_n(tmpNborDist.begin(), (n-nExtra)*k, hNborDist);
+  }
+  t0.stop(); t_copy += t0.elapsed_time();
   t2.stop(); float t_kernel = t2.elapsed_time();
   
   printf("\n===========================");
@@ -336,23 +352,12 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
   printf("\n    ^ den: %.2e s (%.0f %%)", t_den, 100.*t_den/t_dist);
   printf("\n  - sort: %.2e s (%.0f %%)", t_sort, 100.*t_sort/t_knn);
   printf("\n* Merge: %.2e s (%.0f %%)", t_merge, 100.*t_merge/t_kernel);
-  //printf("\n  - sort: %.2e s (%.0f %%)", t_msort, 100.*t_msort/t_merge);
+  printf("\n* Copy: %.2e s (%.0f %%)", t_copy, 100.*t_copy/t_kernel);
   //printf("\n  - copy: %.2e s (%.0f %%)", t_mcopy, 100.*t_mcopy/t_merge);
   //printf("\n  - unique: %.2e s (%.0f %%)", t_unique, 100.*t_unique/t_merge);
   //printf("\n---------------------------");
   //printf("\n! Sorting: %.2e s (%.0f %%)", t_sort, 100.*t_sort/t_kernel);
   printf("\n===========================\n");
 
-  // -----------------------
-  // Copy to CPU
-  // -----------------------
-  {
-    dvec<int> tmpNborID(n*k);
-    dvec<float> tmpNborDist(n*k);
-    thrust::copy_n(permI, (n-nExtra)*k, tmpNborID.begin());
-    thrust::copy_n(permD, (n-nExtra)*k, tmpNborDist.begin());
-    thrust::copy_n(tmpNborID.begin(), (n-nExtra)*k, hNborID);
-    thrust::copy_n(tmpNborDist.begin(), (n-nExtra)*k, hNborDist);
-  }
 }
 

@@ -6,7 +6,7 @@ DEBUG?=0
 
 default: $(LIB) $(EXE)
 
-CFLAG=-Wall -I $(EIGEN_ROOT)
+CFLAG=-Wall -I $(EIGEN_ROOT) -std=c++11
 LFLAG=-L. -lreadSVM_new
 
 ifeq ($(DEBUG), 1)
