@@ -354,9 +354,9 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
         maxX = np.max(X)
     else:
         minX = 3.4e38
-        maxX = 0
+        maxX = -3.4e38
 
-    gmax = comm.allreduce(minX, op=MPI.MAX)
+    gmax = comm.allreduce(maxX, op=MPI.MAX)
     gmin = comm.allreduce(minX, op=MPI.MIN)
     #print(rank, "minX", gmin)
     #print(rank, "maxX", gmax)
@@ -364,7 +364,10 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
 
-    if (k-1 <= global_nleft <= k+1) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN) or (gmax - gmin < 0.00001):
+    if (gmax - gmin < 0.00001):
+        X = X + np.array(np.random.rand(nlocal), dtype=np.float32)*(1e-3)
+
+    if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
         #print(rank, "Mean", mean)
         #print(rank, "NLEFT", nL)
         return (mean, nL)
@@ -376,8 +379,6 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     elif (global_nright > k):
         #print(rank, "right")
         return dist_select(k, X[nleft:], ID[nleft:], comm, prev=(prev[0]+nleft, prev[1], globalN))
-
-    
 
 def scan(l):
     if type(l) is not np.ndarray:

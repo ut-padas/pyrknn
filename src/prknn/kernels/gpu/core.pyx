@@ -190,14 +190,6 @@ def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     cdef int[:] ptr = X.indptr
     cdef int nnz = X.nnz
 
-    print("len(d)", len(data))
-    print("len(idx)", len(idx))
-    print("len(ptr)", len(ptr))
-
-    print("nnz", nnz)
-    print("n", n)
-    print("d", d) 
-
     cdef int[:, :] nID = np.zeros([n, k], dtype=np.int32) + -1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + 1e38
 

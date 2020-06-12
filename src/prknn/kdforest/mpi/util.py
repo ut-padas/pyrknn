@@ -15,6 +15,40 @@ import time
 
 """File that contains key kernels to be replaced with high performance implementations"""
 
+class Profiler:
+
+    output_times  = dict()
+    current_times = dict()
+
+    def push(self, string):
+        if string in self.current_times and self.current_times[string] != 0:
+            print("Warning: Resetting currently running timer")
+        self.current_times[string] = time.time()
+
+    def pop(self, string):
+        if string not in self.current_times:
+            raise Exception("Error: Trying to pop Time Region that does not exist")
+        if string in self.current_times and self.current_times[string] == 0:
+            raise Exception("Error: Trying to pop Time Region that is not running")
+
+        if string in self.output_times:
+            self.output_times[string] += ( time.time() - self.current_times[string] )
+        else:
+            self.output_times[string] = ( time.time() - self.current_times[string] )
+
+        #Reset
+        self.current_times[string] = 0
+
+    def reset(self, string):
+        self.current_times[string] = 0
+        self.output_times[string] = 0
+
+    def print(self):
+        print("Region Time(s)")
+        for n, t in self.output_times.items():
+            print('{} {}'.format(n, t))
+
+
 #Note: Data movement should be done on the python layer BEFORE this one
 #      All functions can assume all data is local to their device (should this be asserted and checked here? for debugging yes)
 
@@ -22,7 +56,6 @@ import time
 #TODO: 1 Add all C++ functions from Hongru (that wrap kernels from Chenhan's GOFMM and Bo Xiao's RKDT)
 #TODO: 2 Add all CUDA function from Hongru and my own
 #TODO: 3 Add switching mechanism based on: Task Context? Where the data is? etc...
-
 
 dist_build_t = 0
 total_t = 0
@@ -33,6 +66,24 @@ accuracy = []
 diff=[]
 copy_gpu_t = 0
 check_t = 0
+comm_t = 0
+scatter_t = 0
+collect_t = 0
+infer_t = 0
+
+
+select_t = 0
+reorder_t = 0
+setup_t = 0
+project_t = 0
+send_t = 0
+recv_t = 0
+
+merge_list = []
+redist_list = []
+dist_build_list = []
+aknn_list = []
+
 
 def reset_timing():
     global dist_build_t
@@ -42,12 +93,28 @@ def reset_timing():
     global merge_t
     global accuracy
     global copy_gpu_t
+    global select_t
+    global reorder_t
+    global setup_t
+    global send_t
+    global recv_t
+    global collect_t
+    global infer_t
+
+    select_t = 0
+    reorder_t = 0
+    setup_t = 0
+    project_t = 0
+    send_t = 0
+    recv_t = 0
 
     dist_build_t = 0
     total_t = 0
     aknn_t = 0
     redistribute_t = 0
     merge_t = 0
+    infer_t = 0
+    collect_t = 0
     accuracy = []
     copy_gpu_t = 0
 
@@ -59,8 +126,27 @@ def timing():
     print("merge_t", merge_t)
     print("total_t", total_t)
     print("check_t", check_t)
+    print("comm_t", comm_t)
+    print("scatter_t", scatter_t)
+    print("collect_t", collect_t)
+    print("infer_t", infer_t)
+    print("project_t", project_t)
+    print("reorder_t", reorder_t)
+    print("send_t", send_t)
+    print("setup_t", setup_t)
+    print("select_t", select_t)
+
     print(accuracy)
     print(diff)
+
+    print(dist_build_list)
+    print("Total Dist Build Time", np.sum(dist_build_list))
+    print("Total AKNN Time", np.sum(aknn_list))
+    print(aknn_list)
+    print("Total Merge Time", np.sum(merge_list))
+    print("Total Redist Time", np.sum(redist_list))
+
+
 
 env = "CPU" #Coarse kernel context switching mechanism for debugging (this is a bad pattern, to be replace in #TODO 3)
 lib = np

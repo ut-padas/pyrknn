@@ -1,6 +1,17 @@
 #!/bin/bash
 #file: set_env.sh
 
+
+
+
+
+
+
+
+
+
+
+
 module load intel/18
 
 export CUDA_LIB=$TACC_CUDA_LIB
@@ -13,5 +24,4 @@ export EIGEN_ROOT=$STOCKYARD/maverick2/eigen
 
 export PRKNN_USE_CUDA=1
 export PROD=1
-
 

@@ -204,8 +204,7 @@ class RKDForest:
             #TODO: Delay merge until after all searches (increase storage to O(|Q| x k ) x ntrees but increase potential task parallelism ?
         return result
 
-    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False):
-        print("starting search...", flush=True)
+    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, diff_flag=False, until_max=50):
         total_t = time.time()
 
         Primitives.set_cores(cores)
@@ -214,7 +213,12 @@ class RKDForest:
         v = (self.verbose or verbose)
         result = None
         rank = self.comm.Get_rank()
+        size = self.comm.Get_size()
+
         #TODO: Key Area for PARLA Tasks
+
+        if rank ==0:
+            print("starting search...", flush=True)
 
         test = None
         if truth:
@@ -224,11 +228,9 @@ class RKDForest:
             prev = None
 
         if until:
-            self.ntrees = 100
+            self.ntrees = until_max
 
-        print("...entering loop", flush=True)
         for it in range(self.ntrees):
-            print(rank, "Begin tree", flush=True)
             #X = np.copy(self.data)
             X = self.data
             tree = RKDT(pointset=X, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
@@ -237,36 +239,40 @@ class RKDForest:
                 build_t = time.time()
                 tree.build()
                 build_t = time.time() - build_t
-                print(rank, "Build_t CPU Tree", build_t, flush=True)
+                if rank == 0:
+                    print(rank, "Build_t CPU Tree", build_t, flush=True)
  
                 search_t = time.time()
                 neighbors = tree.aknn_all(k)
                 search_t = time.time() - search_t
-                print(rank, "Search_t CPU", search_t, flush=True)
+                if rank == 0:
+                    print(rank, "Search_t CPU", search_t, flush=True)
 
                 Primitives.aknn_t += (search_t) + (build_t)
+                Primitives.aknn_list.append( (search_t) + (build_t) )
 
             else:
                 dist_t = time.time()
                 tree.dist_build()
                 dist_t = time.time() - dist_t
-                print(rank, "Build_Dist_t", dist_t, flush=True)
+                if rank == 0:
+                    print(rank, "Build_Dist_t", dist_t, flush=True)
+
                 Primitives.dist_build_t += dist_t
+
+                Primitives.dist_build_list.append(dist_t)
 
                 aknn_t = time.time()
                 if self.sparse:
-                    print("data", (tree.data.data))
-                    print("ptr", (tree.data.indptr))
-                    print("idx", (tree.data.indices))
                     neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
                 else:
                     neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device) 
-                #[0, 1, 2, 3, 4, 5]
-                #[2, 3, 5, 10, 3, 6]               
  
                 aknn_t = time.time() - aknn_t
-                print("aknn_t", aknn_t)
+                if rank ==0 :
+                    print("aknn_t", aknn_t)
                 Primitives.aknn_t += aknn_t
+                Primitives.aknn_list.append( aknn_t)
 
                 #print("gids", tree.host_gids)
                 #print("rids", tree.host_real_gids)
@@ -312,11 +318,13 @@ class RKDForest:
             #    print("zero", neighbors[1][loc, ...])
 
             dist_t = time.time()
-            gids, neighbors = tree.redist(neighbors)
+            if size > 1:
+                gids, neighbors = tree.redist(neighbors)
             dist_t = time.time() - dist_t
             #print(rank, "redistribute_t", dist_t, flush=True)
 
             Primitives.redistribute_t += dist_t
+            Primitives.redist_list.append(dist_t)
 
             #print("New GIDS", rank, gids, flush=True)
 
@@ -354,6 +362,7 @@ class RKDForest:
                 merge_t = time.time() - merge_t
                 #print(rank, "merge_t", merge_t, flush=True)
                 Primitives.merge_t += merge_t
+                Primitives.merge_list.append(merge_t)
                 #print("after merge", result)
             """
             #Copy results back to host to save room on gpu
@@ -375,7 +384,7 @@ class RKDForest:
 
             gap = 5
             check_t = time.time()
-            if truth:
+            if truth and rank == 0:
                 flag = False
                 tlist, tdist = truth
                 nq = tlist.shape[0]
@@ -383,9 +392,9 @@ class RKDForest:
 
                 test = (rlist[:nq, ...], rdist[:nq, ...])
 
-                if it>gap:
-                    print("test", test)
-                    print("temp", prev)
+                #if it>gap:
+                #    print("test", test)
+                #    print("temp", prev)
 
                 if prev is not None:
                     diff = nq*k - np.sum(test[0] == prev)
@@ -398,11 +407,14 @@ class RKDForest:
                 prev = np.copy(test[0])
     
                 acc = Primitives.neighbor_dist(truth, test)
-                Primitives.accuracy.append(acc)
-                print("Iteration:", it, "Checking acc:", acc)
+                dump = (acc, time.time() - total_t)
+                Primitives.accuracy.append(dump)
 
-                if it > gap:
-                    diff = abs(diff - Primitives.diff[it-gap]) < 1 and diff < 0.05*nq*k
+                if rank == 0:
+                    print("Iteration:", it, "Checking acc:", acc)
+
+                if it > gap and diff_flag:
+                    diff = abs(diff - Primitives.diff[it-gap]) < 100 and diff < 0.05*nq*k
                 else:
                     diff = False
 
@@ -417,8 +429,8 @@ class RKDForest:
                 flag = self.comm.bcast(flag, root=0)
             check_t = time.time() - check_t 
             Primitives.check_t += check_t
-
-            print("check_t", check_t)
+            if rank == 0:
+                print("check_t", check_t)
 
             if flag:
                 break
@@ -427,8 +439,8 @@ class RKDForest:
 
         total_t = time.time() - total_t
         Primitives.total_t = total_t
-
-        Primitives.timing()
+        if rank ==0:
+            Primitives.timing()
 
         return result
 
