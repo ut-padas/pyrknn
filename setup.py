@@ -117,6 +117,9 @@ gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/orthogonal']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/util']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/']
 
+print(gpu_lib_dirs)
+print(gpu_inc_dirs)
+
 #Grab all the required pyx files to compile
 def scandir(directory, files=[]):
     for f in os.listdir(directory):
@@ -144,7 +147,7 @@ def makeExtension(extName):
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
                 extra_objects=args.gpu_obj,
-                libraries=["cuda", "cudart", "cublas", "cusparse", "cusolver", "util", "sortgpu", "mergegpu"] +["gemm_new", "util_new", "sort_new", "merge_new", "denknngpu_new", "spknngpu_new", "transpose_new", "orthogonal_new", "reorder_new", "sort_new"], 
+                libraries=["cuda", "cudart", "cublas", "cusparse", "cusolver", "util", "sortgpu", "mergegpu", "gemm_new", "util_new", "sort_new", "merge_new", "denknngpu_new", "spknngpu_new", "transpose_new", "orthogonal_new", "reorder_new", "sort_new"], 
                 extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-DPROD"],
                 extra_link_args=["-ldl", "-lpthread", "-qopenmp"]
                 )
@@ -157,7 +160,7 @@ def makeExtension(extName):
             runtime_library_dirs = cpu_lib_dirs,
             extra_objects=args.cpu_obj,
             #libraries=["gsknn"],
-            extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp","-qopenmp-report 2", "-Wno-sign-compare"],
+            extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp", "-Wno-sign-compare"],
             extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn"]
             )
 
