@@ -1,17 +1,6 @@
 #!/bin/bash
 #file: set_env.sh
 
-
-
-
-
-
-
-
-
-
-
-
 module load intel/18
 
 export CUDA_LIB=$TACC_CUDA_LIB

@@ -69,7 +69,7 @@ Mat create_random_points(int argc, char *argv[]) {
 
   int n = 1024;
   int d = 64;
-  int leaf = 1;
+  int leaf = 16384;
   for (int i=1; i<argc; i++) {
     if (!strcmp(argv[i],"-n"))
       n = atoi(argv[i+1]);
@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
   Mat P;
   std::string dataset;
   int K = 5;
-  int L = 3; // tree level
-  int T = 1; // number of trees
+  int L = 14; // tree level
+  int T = 2; // number of trees
   int blkTree = 10;
   int blkLeaf = 512;
   int blkPoint = 64;
