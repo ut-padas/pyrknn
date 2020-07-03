@@ -153,12 +153,15 @@ int main(int argc, char *argv[]) {
   MatInt nborIDCPU(n, K);
   
   std::string filename;
+
   if (dataset.empty())
-    exact_knn(P.topRows(n), P, ID, nborDistCPU, nborIDCPU);
+    int dummy = 0;
+    //exact_knn(P.topRows(n), P, ID, nborDistCPU, nborIDCPU);
   else {
     filename = "ref_"+dataset+".txt";
-    exact_knn(P.topRows(n), P, ID, nborDistCPU, nborIDCPU, filename);
+    //exact_knn(P.topRows(n), P, ID, nborDistCPU, nborIDCPU, filename);
   }
+
   t.stop(); t_exact = t.elapsed_time();
 
 

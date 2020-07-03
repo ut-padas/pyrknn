@@ -88,6 +88,7 @@ gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/singleton']
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/dense']
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/orthogonal']
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/util']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/readSVM']
 gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/']
 
 #setup the shared library directories
@@ -115,6 +116,7 @@ gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/singleton']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/dense']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/orthogonal']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/util']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/readSVM']
 gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/']
 
 #Grab all the required pyx files to compile
@@ -144,7 +146,7 @@ def makeExtension(extName):
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
                 extra_objects=args.gpu_obj,
-                libraries=["cuda", "cudart", "cublas", "cusparse", "cusolver", "util", "sortgpu", "mergegpu"] +["gemm_new", "util_new", "sort_new", "merge_new", "denknngpu_new", "spknngpu_new", "transpose_new", "orthogonal_new", "reorder_new", "sort_new"], 
+                libraries=["cusparse", "cusolver", "cublas", "cudart", "sortgpu", "mergegpu", "util"] +["denknngpu_new", "merge_new", "gemm_new", "reorder_new", "sort_new", "orthogonal_new", "readSVM_new", "transpose_new", "util_new"]+["spknngpu_new", "merge_new", "gemm_new", "reorder_new", "transpose_new", "orthogonal_new", "reorder_new", "sort_new", "readSVM_new"], 
                 extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-DPROD"],
                 extra_link_args=["-ldl", "-lpthread", "-qopenmp"]
                 )
@@ -183,8 +185,3 @@ setup(
         include_package_data=True,
         cmdclass = {'build_ext': build_ext}
         )
-
-
-
-
-

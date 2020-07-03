@@ -6,11 +6,11 @@ DEP=../util/libutil_new.so ../readSVM/libreadSVM_new.so ../transpose/libtranspos
 		../reorder/libreorder_new.so ../orthogonal/liborthogonal_new.so ../merge/libmerge_new.so \
 		../gemm/libgemm_new.so
 
-DEBUG?=0
+DEBUG=0
 
 CC=g++
 CFLAG=-Wall -I $(EIGEN_ROOT)
-VFLAG=-gencode arch=compute_70,code=sm_70 -shared -Xcompiler -fPIC
+VFLAG= -Xptxas -v, -O0 -DTHRUST_DEBUG -DTHRUST_DEBUG_SYNC -gencode arch=compute_70,code=sm_70 --verbose -shared -Xcompiler -fPIC
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcusolver -lcudart \
 		-L./ -ldenknngpu_new -L../merge -lmerge_new -L../util/ -lutil_new -L../gemm -lgemm_new \
 		-L../readSVM/ -lreadSVM_new -L../reorder -lreorder_new \

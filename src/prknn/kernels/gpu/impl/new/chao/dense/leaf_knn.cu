@@ -3,14 +3,88 @@
 #include "knn_handle.hpp"
 #include "sort.hpp"
 #include "timer_gpu.hpp"
+#include <typeinfo>
+
+#define CUDA_ERROR_CHECK_WILL(fun)                                                                   \
+do{                                                                                             \
+    cudaError_t err = fun;                                                                      \
+    if(err != cudaSuccess)                                                                      \
+    {                                                                                           \
+      fprintf(stderr, "Cuda error %d %s:: %s\n", __LINE__, __func__, cudaGetErrorString(err));  \
+      exit(EXIT_FAILURE);                                                                       \
+    }                                                                                           \
+}while(0);
+
+int is_device_pointer(const void *ptr)
+{
+  int is_device_ptr = 0;
+  cudaPointerAttributes attributes;
+
+  CUDA_ERROR_CHECK_WILL(cudaPointerGetAttributes(&attributes, ptr));
+
+  if(attributes.devicePointer != NULL)
+  {
+    is_device_ptr = 1;
+  }
+
+  return is_device_ptr;
+}
 
 
 void compute_row_norms(const fvec &P, fvec &P_norm, int m, int n) {
   ivec P_row(m);
+
+  std::cout<<"Starting Compute Row Norms"<<std::endl;
+  std::cout<<"M:"<<m<<std::endl;
+  std::cout<<"N:"<<n<<std::endl;
+  std::cout<<"P_row:"<<P_row.size()<<std::endl;
+  std::cout<<"P:"<<P.size()<<std::endl;
+  std::cout<<"P_norm:"<<P_norm.size()<<std::endl;
+  
+  //auto zero = thrust::make_counting_iterator<int>(0);
+  
   auto zero = thrust::make_counting_iterator<int>(0);
   auto iter = thrust::make_transform_iterator(zero, rowIdx(n));
   auto P_square = thrust::make_transform_iterator(P.begin(), thrust::square<float>());
-  thrust::reduce_by_key(iter, iter+m*n, P_square, P_row.begin(), P_norm.begin());
+
+
+  std::cout << "P: "<< typeid(P).name() << std::endl;
+
+  std::cout << "Iter:" << typeid(iter).name() << std::endl;
+  std::cout << "Zero:" << typeid(zero).name() << std::endl;
+  std::cout << "P_square:" << typeid(P_square).name() << std::endl;
+  std::cout << "P_row: " << typeid(P_row).name() << std::endl;
+  std::cout << "P_norm: " << typeid(P_norm).name() << std::endl;
+
+  std::cout << "P_row is device: " << is_device_pointer(thrust::raw_pointer_cast(&P_row[0])) << std::endl;
+  std::cout << "P_norm is device: " << is_device_pointer(thrust::raw_pointer_cast(&P_norm[0])) << std::endl;
+
+  std::cout<<"Printing Iter..."<<std::endl;
+  std::cout<<zero[0]<<std::endl;
+  std::cout<<zero[1]<<std::endl;
+  std::cout<<zero[10]<<std::endl;
+
+  std::cout<<"Printing Iter..."<<std::endl;
+  std::cout<<iter[0]<<std::endl;
+  std::cout<<iter[1]<<std::endl;
+  std::cout<<iter[10]<<std::endl;
+
+  std::cout<<"Printing P..."<<std::endl;
+  std::cout<<P[0]<<std::endl;
+  std::cout<<P[1]<<std::endl;
+  std::cout<<P[10]<<std::endl;
+
+  std::cout<<"Printing P_square..."<<std::endl;
+  std::cout<<P_square[0]<<std::endl;
+  std::cout<<P_square[1]<<std::endl;
+  std::cout<<P_square[10]<<std::endl;
+
+  std::cout<<"Starting Reduce By Key"<<std::endl;
+
+  thrust::reduce_by_key(thrust::device, iter, iter+m*n, P_square, P_row.begin(), P_norm.begin());
+
+  std::cout<<"Finished Reduce By Key"<<std::endl;
+
 }
 
 

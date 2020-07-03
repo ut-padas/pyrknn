@@ -115,7 +115,6 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   thrust::fill(dP.begin()+n*d, dP.end(), -std::numeric_limits<float>::max());
   
   //tprint(N, d, dP, "Points on GPU");
-
   std::cout<<"\n========================"
            <<"\nPoints"
            <<"\n------------------------"
@@ -137,14 +136,13 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
            <<"\n========================\n"
            <<std::endl;
 
-  
   // -----------------------
   // timing
   // -----------------------
   float t_tree = 0., t_knn = 0., t_merge = 0.;
   float t_tsort = 0.;
   float t_dist = 0., t_lsort = 0.;
-  float t_msort = 0., t_mcopy = 0., t_unique;
+  float t_msort = 0., t_mcopy = 0., t_unique = 0.;
   TimerGPU t, t2; t2.start();
 
   // local ordering
@@ -160,7 +158,8 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   // random seed
   // -----------------------
   int seed = current_time_nanoseconds();
-
+  seed = 341732199;
+  std::cout<<"Current Random Seed:" << seed << std::endl; 
   // -----------------------
   // Start KNN
   // -----------------------
@@ -198,7 +197,13 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
     // compute neighbors at leaf level
     t.start();
     int *curNborID = thrust::raw_pointer_cast(dNborID.data()+k);
-    float *curNborDist = thrust::raw_pointer_cast(dNborDist.data()+k);    
+    float *curNborDist = thrust::raw_pointer_cast(dNborDist.data()+k);
+
+    //print(dID, "dID");
+    //print(dNborID, "dNborID");
+    //print(dNborDist, "dNborDist");
+    
+    
     leaf_knn(dID, dP, nPoint, d, nLeaf, curNborID, curNborDist, k, 2*k, blkPoint, t_dist, t_lsort);
     t.stop(); t_knn += t.elapsed_time();
 
@@ -214,7 +219,6 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   t2.stop();
   float t_kernel = t2.elapsed_time();
   float t_sort = t_tsort+t_lsort+t_msort;
-
   printf("\n===========================");
   printf("\n    Dense KNN Timing");
   printf("\n---------------------------");
@@ -230,7 +234,6 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   printf("\n---------------------------");
   printf("\n! Sorting: %.2e s (%.0f %%)", t_sort, 100.*t_sort/t_kernel);
   printf("\n===========================\n");
-  
 
   // -----------------------
   // Copy results back to CPU
