@@ -1,13 +1,15 @@
 
+CC=mpicxx
+
 EXE=driver
-LIB=libreadSVM_new.so
+LIB=libexact.so
 
 DEBUG?=0
 
 default: $(LIB) $(EXE)
 
 CFLAG=-Wall -I $(EIGEN_ROOT) -std=c++11
-LFLAG=-L. -lreadSVM_new
+LFLAG=-L. -lexact
 
 ifeq ($(DEBUG), 1)
   $(info ----------------------)
@@ -18,26 +20,23 @@ else
 	CFLAG+=-O3
 endif
 
-KERNEL=readSVM.o
-OBJS= driver.o timer.o
+KERNEL=exact.o
+OBJS= driver.o
 
-readSVM.o: readSVM.cpp
-	g++ -c $< $(CFLAG) -shared -fPIC
-
-timer.o: timer.cpp
-	g++ -c $< $(CFLAG)
+exact.o: exact.cpp
+	$(CC) -c $< $(CFLAG) -shared -fPIC
 
 driver.o: driver.cpp
-	g++ -c $< $(CFLAG)
+	$(CC) -c $< $(CFLAG)
 
 $(LIB): $(KERNEL)
-	g++ -shared $^ -o $@
+	$(CC) -shared $^ -o $@
 
 $(EXE): $(OBJS) $(LIB)
-	g++ $(OBJS) -o $@ $(LFLAG)
+	$(CC) $(OBJS) -o $@ $(LFLAG)
 
 run: $(EXE)
-	$(EXE)
+	ibrun -np 16 $(EXE) -d 64 -q 100 -r 90 -k 16
 
 clean:
 	rm -rf *.o *.so $(EXE)

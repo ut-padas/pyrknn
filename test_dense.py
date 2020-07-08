@@ -1,16 +1,17 @@
-from prknn.kdforest.mpi.util import *
-from prknn.kdforest.mpi.forest import *
+from pyrknn.kdforest.mpi.util import *
+from pyrknn.kdforest.mpi.forest import *
 
 import numpy as np
 import time
 
-N = 2**22
+N = 2**21
 d = 10
 k = 64
 levels=10
 blocksize=32
 ntrees = 2
 
+np.random.seed(10)
 X = np.random.rand(N, d)
 Z = np.array(X, dtype=np.float32)
 device = 0

@@ -4,9 +4,9 @@
 #include <vector>
 #include <numeric> // std::iota
 #include <string>
+#include <cstdlib>
 
 #include "spknn.hpp"
-#include "rand.hpp"
 #include "timer.hpp"
 #include "readSVM.hpp"
 
@@ -16,48 +16,18 @@ typedef Eigen::Triplet<float> T;
 
 #include <Eigen/Dense>
 typedef Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> Mat;
-typedef Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> MatInt;
+typedef Eigen::Matrix<unsigned,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> MatInt;
 typedef Eigen::VectorXf Vec;
-typedef Eigen::VectorXi VecInt;
+typedef Eigen::Matrix<unsigned,Eigen::Dynamic,1> VecInt;
 
+#include "util_eigen.hpp"
 
-void exact_knn(const VecInt &ID, const SpMat &P, Mat &nborDist, MatInt &nborID);
 
 void exact_knn(const SpMat &Q, const SpMat &R, const VecInt &ID, Mat &nborDist, MatInt &nborID);
 
 void exact_knn(const SpMat &Q, const SpMat &R, const VecInt &ID, Mat &nborDist, MatInt &nborID, 
     const std::string&);
 
-
-std::default_random_engine gen;
-void init_random(SpMat &A, int M, int N, float sparsity) {
-  std::uniform_real_distribution<float> dist(0.0,1.0);
-  //float *val = new float[M*N];
-  //init_random_gpu(val, M*N);
-  std::vector<T> tripletList;
-  for(int i=0; i<M; ++i) {
-    for(int j=0; j<N; ++j) {
-       //auto x = val[i*N+j];
-       auto x = dist(gen);
-       if (x < sparsity) {
-           tripletList.push_back( T(i,j,x) );
-       }
-    }
-  }
-  A.setFromTriplets(tripletList.begin(), tripletList.end());
-  A.makeCompressed();
-  //delete[] val;
-}
-
-
-void write_matrix(const MatInt &nborID, const Mat &nborDist, const std::string &filename) {
-  std::ofstream fout(filename.c_str());
-  assert(fout.good());
-  fout << nborID.rows() << " " << nborID.cols() << std::endl;
-  fout << nborID << std::endl;
-  fout << nborDist << std::endl;
-  fout.close();
-}
 
 
 SpMat read_dataset(std::string dataset) {
@@ -67,13 +37,25 @@ SpMat read_dataset(std::string dataset) {
   if (dataset.compare("url")==0)
     //P = read_csr_binary("/scratch/06108/chaochen/url_1day_csr.bin");
     //P = read_csr_binary("/scratch/06108/chaochen/url_10day_csr.bin");
-    P = read_csr_binary("/scratch/06108/chaochen/url_csr.bin");
+    //P = read_csr_binary("/scratch/06108/chaochen/url_csr.bin");
+    // frontera machine
+    //P = read_csr_binary("/work/06108/chaochen/shared/url_10day_csr.bin");
+    P = read_csr_binary("/work/06108/chaochen/shared/url_csr.bin");
   else if (dataset.compare("avazu")==0)
-    P = read_csr_binary("/scratch/06108/chaochen/avazu_csr.bin");
+    //P = read_csr_binary("/scratch/06108/chaochen/avazu_csr.bin");
+    P = read_csr_binary("/work/06108/chaochen/shared/avazu_csr.bin");
+  else if (dataset.compare("criteo")==0)
+    P = read_csr_binary("/work/06108/chaochen/shared/criteo_csr.bin");
+  else if (dataset.compare("kdd")==0)
+    P = read_csr_binary("/work/06108/chaochen/shared/kdd12_csr.bin");
   else if (dataset.compare("avazu_app")==0)
     P = read_csr_binary("/scratch/06108/chaochen/avazu_app_csr.bin");
   else if (dataset.compare("avazu_app_t")==0)
     P = read_csr_binary("/scratch/06108/chaochen/avazu_app_t_csr.bin");
+  else if (dataset.compare("kdd")==0)
+    P = read_csr_binary("/scratch/06108/chaochen/kdd12_csr.bin");
+  else if (dataset.compare("criteo")==0)
+    P = read_csr_binary("/scratch/06108/chaochen/criteo_csr.bin");
   else if (dataset.compare("test")==0) {
     int m = 524288; 
     int n = 10000;
@@ -120,6 +102,27 @@ SpMat read_dataset(std::string dataset) {
 }
 
 
+std::default_random_engine gen;
+void init_random(SpMat &A, unsigned M, int N, float sparsity) {
+  std::uniform_real_distribution<float> dist(0.0,1.0);
+  //float *val = new float[M*N];
+  //init_random_gpu(val, M*N);
+  std::vector<T> tripletList;
+  for(unsigned i=0; i<M; ++i) {
+    for(int j=0; j<N; ++j) {
+       //auto x = val[i*N+j];
+       auto x = dist(gen);
+       if (x < sparsity) {
+           tripletList.push_back( T(i,j,x) );
+       }
+    }
+  }
+  A.setFromTriplets(tripletList.begin(), tripletList.end());
+  A.makeCompressed();
+  //delete[] val;
+}
+
+
 SpMat create_random_points(int argc, char *argv[]) {
 
   int n = 1024; // points per leaf node
@@ -146,62 +149,54 @@ SpMat create_random_points(int argc, char *argv[]) {
   Timer t; t.start();
   init_random(P, N, d, sparsity);
   t.stop(); t0 = t.elapsed_time();
-  std::cout<<"\nTime for generating points: "<<t0<<" s\n";
+  std::cout<<"\nTime for generating random points: "<<t0<<" s\n";
   
   return P;
 }
 
 
-int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const Mat &dist_cpu, 
-    int n, int k) {
-
-  int miss = 0;
-  for (int i=0; i<n; i++) {
-    const int *start = id_cpu.data()+i*k;
-    const float farthest = dist_cpu(i,k-1);
-    for (int j=0; j<k; j++) {
-      if (std::find(start, start+k, id(i,j)) == start+k // ID not found
-          && dist(i,j) > farthest*(1+std::numeric_limits<float>::epsilon())
-          ) 
-      {
-        miss++;
-      }
-    }
-  }  
-  return miss;
-}
-
-
-template <typename T>
 struct almost_equal {
-  T x;
-  almost_equal(T x_): x(x_) {}
-  bool operator()(T y) {
-    return std::fabs(x-y) <= std::numeric_limits<T>::epsilon() * (10+std::fabs(x+y))
-      || std::fabs(x-y) < std::numeric_limits<T>::min();
+  float x;
+  almost_equal(float x_): x(x_) {}
+  bool operator()(float y) {
+    return std::fabs(x-y) < 1e-4;
   }
 };
 
-int compute_error_bak(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &dist_cpu, 
+
+int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &dist_cpu, 
     int n, int k) {
   
   int miss = 0;
   for (int i=0; i<n; i++) {
     float *start = dist_cpu.data()+i*k;
     float *end = dist_cpu.data()+(i+1)*k;
+    // dist may not be sorted
+    std::vector<float> sdist(dist.data()+i*k, dist.data()+(i+1)*k);
+    std::sort(sdist.begin(), sdist.end());
     for (int j=0; j<k; j++) {
-      start = std::find_if(start, end, almost_equal<float>(dist(i,j)));
+      start = std::find_if(start, end, almost_equal(sdist[j]));
       if ( start != end ) {
         //std::cout<<"Found "<<j<<": "<<dist(i,j)<<" at "<<*start<<std::endl;
         start++;  
       } else { // not found
-        //std::cout<<"\n[row "<<i<<"]: Gave up at "<<j<<", missed "<<k-j<<std::endl;
+        //std::cout<<"\n[i="<<i<<"]: Gave up at "<<j<<", missed "<<k-j<<std::endl;
         miss += k-j;
         break; // no need to search for the rest
       }
     }
   }
   return miss;
+}
+
+
+void write_matrix(const MatInt &nborID, const Mat &nborDist, const std::string &filename) {
+  std::ofstream fout(filename.c_str());
+  assert(fout.good());
+  fout << nborID.rows() << " " << nborID.cols() << std::endl;
+  fout << nborID << std::endl;
+  fout << nborDist << std::endl;
+  fout.close();
 }
 
 
@@ -212,8 +207,8 @@ int main(int argc, char *argv[]) {
   int K = 5;
   int L = 3; // tree level
   int T = 1; // number of trees
-  int blkTree = 10;
-  int blkLeaf = 512;
+  int blkTree = 1;
+  //int blkLeaf = 512;
   int blkPoint = 64;
   for (int i=1; i<argc; i++) {
     if (!strcmp(argv[i],"-dataset"))
@@ -226,8 +221,8 @@ int main(int argc, char *argv[]) {
       T = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-bt"))
       blkTree = atoi(argv[i+1]);
-    if (!strcmp(argv[i],"-bl"))
-      blkLeaf = atoi(argv[i+1]);
+    //if (!strcmp(argv[i],"-bl"))
+      //blkLeaf = atoi(argv[i+1]);
     if (!strcmp(argv[i],"-bp"))
       blkPoint = atoi(argv[i+1]);
   }
@@ -236,8 +231,10 @@ int main(int argc, char *argv[]) {
   } else {
     P = read_dataset(dataset);
   }
-  int N = P.rows();
-  int d = P.cols();
+  //P = P.topRows(1<<26);
+
+  unsigned N = P.rows();
+  unsigned d = P.cols();
   VecInt ID = VecInt::LinSpaced(N, 0, N-1);
   assert(ID.size() == P.rows());
 
@@ -253,19 +250,20 @@ int main(int argc, char *argv[]) {
            <<"trees: "<<T<<std::endl
            <<"----------------------\n"
            <<"block tree: "<<blkTree<<std::endl
-           <<"block leaf: "<<blkLeaf<<std::endl
+           //<<"block leaf: "<<blkLeaf<<std::endl
            <<"block point: "<<blkPoint<<std::endl
-           //<<"repeat: "<<repeat<<std::endl
-           //<<"debug: "<<debug<<std::endl
-           //<<"benchmark: "<<benchmark<<std::endl
-           //<<"Mem (output): "<<4.*N*k*2/1.e9<<" GB"<<std::endl
+           <<"----------------------\n"
+           <<"sizeof(# points): "<<sizeof(N)<<std::endl
+           <<"sizeof(size_t): "<<sizeof(size_t)<<std::endl
+           <<"sizeof(Eigen::Index): "<<sizeof(P.rows())<<std::endl
+           <<"sizeof(StorageIndex) (signed): "<<sizeof(SpMat::StorageIndex)<<std::endl
            <<"======================\n\n";
 
   Timer t;
   float t_exact = 0., t_spknn = 0.;
 
   t.start();
-  int n = std::min(N, 100);
+  int n = std::min(N, unsigned(100));
   Mat nborDistCPU(n, K);
   MatInt nborIDCPU(n, K);
   
@@ -279,22 +277,25 @@ int main(int argc, char *argv[]) {
   t.stop(); t_exact = t.elapsed_time();
 
 
+  //std::cout<<"Points:\n"<<P<<std::endl;
   Mat nborDist = Mat::Constant(N, K, std::numeric_limits<float>::max());
-  MatInt nborID = MatInt::Constant(N, K, std::numeric_limits<int>::max());
-  int device = 0;
+  MatInt nborID = MatInt::Constant(N, K, std::numeric_limits<unsigned>::max());
+  int cores = atoi(std::getenv("OMP_NUM_THREADS"));
   int niter = (T+blkTree-1) / blkTree;
   std::vector<int> miss;
   for (int i=0; i<niter; i++) {
     t.start();
     int ntree = std::min(blkTree, T-i*blkTree);
-    spknn(ID.data(), P.outerIndexPtr(), P.innerIndexPtr(), P.valuePtr(), 
-        N, d, P.nonZeros(), L, ntree, nborID.data(), nborDist.data(), K, blkLeaf, blkPoint, device);
+    spknn(ID.data(), P.outerIndexPtr(), P.innerIndexPtr(), P.valuePtr(), N, d, P.nonZeros(), 
+        nborID.data(), nborDist.data(), K, L, ntree, blkPoint, cores);
     t.stop(); t_spknn += t.elapsed_time();
+    //std::cout<<"Points:\n"<<P<<std::endl;
     
     // compute error
     int err = compute_error(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
     double acc = 100. - 1.*err/n/K*100;
-    std::cout<<"iter "<<i<<":\tmissed: "<<err<<"\t"<<"accuracy: "<<acc<<" %\n";
+    //std::cout<<"iter "<<i<<":\tmissed: "<<err<<"\t"<<"accuracy: "<<acc<<" %\n";
+    printf("iter %d:\tmissed: %d\taccuracy: %.2f %\n", i, err, acc);
     miss.push_back(err);
     if (acc > 95.) break;
   }
@@ -321,38 +322,14 @@ int main(int argc, char *argv[]) {
   std::cout<<std::endl;
 
   if (!dataset.empty()) {
-    filename[0]='g';
+    filename[0]='c';
     filename[1]='p';
     filename[2]='u';
     write_matrix(nborID.topRows(n), nborDist.topRows(n), filename);
-    std::cout<<"Finished computing results on GPU and writing them to "<<filename<<std::endl;
+    std::cout<<"Finished randomized KNN and writing them to "<<filename<<std::endl;
   }
 
   return 0;
-}
-
-
-void compute_distance(const SpMat &A, Mat &D) {
-  Mat X = A;
-  D = -2*X*X.transpose();
-  Vec nrm = X.rowwise().squaredNorm();
-  D.rowwise() += nrm.transpose();
-  D.colwise() += nrm;
-  //std::cout<<"point norm:\n"<<nrm<<std::endl;
-}
-
-
-Vec rowNorm(const SpMat &A) {
-  //Timer t; t.start();
-  //SpMat copy = A.cwiseProduct(A);
-  SpMat copy = A;
-  float *val = copy.valuePtr();
-  for (int i=0; i<copy.nonZeros(); i++)
-    val[i] = val[i]*val[i];
-  //t.stop(); std::cout<<"[CPU] row norm: "<<t.elapsed_time()<<" s\n";
-  
-  Vec A2 = copy * Vec::Constant(A.cols(), 1.0);
-  return A2;
 }
 
 
@@ -362,20 +339,25 @@ Mat compute_distance(const SpMat& Q, const SpMat& R) {
   
   Timer t; t.start();
   Mat D2 = -2*Q*R.transpose();
-  t.stop(); std::cout<<"[CPU] inner product: "<<t.elapsed_time()<<" s\n";
+  t.stop(); std::cout<<"[CPU exact] inner product: "<<t.elapsed_time()<<" s\n";
   
   D2.colwise() += Q2;
   D2.rowwise() += R2.transpose();
+  //std::cout<<"Q norm:\n"<<Q2<<"\nR norm:\n"<<R2<<std::endl;
   
   return D2;
 }
 
  
-void kselect(const float *value, const int *ID, int n, float *kval, int *kID, int k) {
-  std::vector<int> idx(n);
+void kselect(const float *value, const unsigned *ID, unsigned n, float *kval, unsigned *kID, int k) {
+  std::vector<unsigned> idx(n);
   std::iota(idx.begin(), idx.end(), 0);
-  std::stable_sort(idx.begin(), idx.end(),
-      [&value](int i, int j) {return value[i]<value[j];});
+  // find the large k items
+  std::nth_element(idx.begin(), idx.begin()+k, idx.end(),
+      [&value](unsigned i, unsigned j) {return value[i]<value[j];});
+  // sort the largest k
+  std::stable_sort(idx.begin(), idx.begin()+k,
+      [&value](unsigned i, unsigned j) {return value[i]<value[j];});
   for (int i=0; i<k; i++) {
     int j = idx[i];
     kval[i] = value[j];
@@ -385,22 +367,23 @@ void kselect(const float *value, const int *ID, int n, float *kval, int *kID, in
 
 
 void exact_knn(const SpMat &Q, const SpMat &R, const VecInt &ID, Mat &nborDist, MatInt &nborID) {
-  int M = Q.rows();
-  int N = R.rows();
+  unsigned M = Q.rows();
+  unsigned N = R.rows();
   int k = nborDist.cols();
   assert(Q.cols() == R.cols());
   assert(ID.size() == N);
   assert(nborID.cols() == k);
 
-  Timer t; t.start();
+  //Timer t; t.start();
   Mat D = compute_distance(Q, R);
-  t.stop(); std::cout<<"[CPU] compute distance: "<<t.elapsed_time()<<" s\n";
+  //t.stop(); std::cout<<"[CPU exact] compute distance: "<<t.elapsed_time()<<" s\n";
+  //std::cout<<"exact distance:\n"<<D<<std::endl;
 
-  t.start();
-  for (int i=0; i<M; i++) {
-    kselect(D.data()+i*N, ID.data(), N, nborDist.data()+i*k, nborID.data()+i*k, k);
+  Timer t; t.start();
+  for (unsigned i=0; i<M; i++) {
+    kselect(&D(i,0), ID.data(), N, nborDist.data()+i*k, nborID.data()+i*k, k);
   }
-  t.stop(); std::cout<<"[CPU] kselect: "<<t.elapsed_time()<<" s\n";
+  t.stop(); std::cout<<"[CPU exact] kselect: "<<t.elapsed_time()<<" s\n";
 }
 
 
@@ -434,23 +417,6 @@ void exact_knn(const SpMat &Q, const SpMat &R, const VecInt &ID, Mat &nborDist, 
 
   write_matrix(nborID, nborDist, filename);
   std::cout<<"Finished computing results on CPU and writing them to "<<filename<<std::endl;
-}
-
-
-void exact_knn(const VecInt &ID, const SpMat &P, Mat &nborDist, MatInt &nborID) {
-  int N = P.rows();
-  int k = nborDist.cols();
-  assert(ID.size() == N);
-  assert(nborDist.rows() == N);
-  assert(nborID.rows() == N);
-  assert(nborID.cols() == k);
-
-  Mat D(N, N);
-  compute_distance(P, D);
-
-  for (int i=0; i<N; i++) {
-    kselect(D.data()+i*N, ID.data(), N, nborDist.data()+i*k, nborID.data()+i*k, k);
-  }
 }
 
 

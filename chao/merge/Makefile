@@ -7,7 +7,8 @@ DEBUG?=0
 
 default: $(EXE)
 
-CFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC
+CC=g++ -std=c++11
+CFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++11
 
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart \
 			-L../util -lutil
@@ -30,10 +31,10 @@ $(EXE): $(OBJS) $(LIB)
 	g++ $^ -o $@ $(LFLAG) -L./ -lmerge_new
 
 driver.o: driver.cpp
-	g++ -c $< -Wall -O3 -I $(EIGEN_ROOT)
+	$(CC) -c $< -Wall -O3 -I $(EIGEN_ROOT)
 
 timer.o: timer.cpp timer.hpp
-	g++ -c $< -Wall -O3
+	$(CC) -c $< -Wall -O3
 
 $(LIB): $(KERNEL)
 	g++ -shared $^ -o $@

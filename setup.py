@@ -7,7 +7,6 @@ import sys, os
 
 import numpy as np
 
-
 #Check is Cython is installed
 try:
     from Cython.Build import cythonize
@@ -15,31 +14,29 @@ try:
 except:
     raise Exception('Cython is not installed or could not be found by your PYTHON_PATH')
 
-#TODO(p3)[Will] Make these not TACC specific. Set these in source script from base makefile
-
-#ensure that we're using Intel compilers
-#os.environ["CC"] = "icc"
-#os.environ["CXX"] = "icpc"
 os.environ["CC"] = "mpicc"
 os.environ["CXX"] = "mpicxx"
+
+#Compile GPU Kernels?
 use_cuda = False
 try:
-    use_cuda = os.environ["PRKNN_USE_CUDA"]
+    use_cuda = os.environ["PYRKNN_USE_CUDA"]
     if use_cuda == 0:
         use_cuda = False
     else:
         use_cuda = True
     print(use_cuda)
 except:
-    print("Enviornment varibale PRKNN_USE_CUDA is not set. Assuming CUDA is not being used.")
+    print("Environment variable PYRKNN_USE_CUDA is not set. Assuming CUDA is not being used.")
 
+#The location of the CUDA_LIB should be set. This can be important for cupy. 
 CUDA_LIB = ""
 try:
     CUDA_LIB = os.environ["CUDA_LIB"]
 except:
     raise Exception("Enviornment variable CUDA_LIB is not set. Please set this to your CUDA library path.")
 
-#TODO: Make this optional
+#We currently require GSKNN for CPU Dense Distance Kernel evaluation.   TODO: Make this optional
 GSKNN_DIR = ""
 try:
     GSKNN_DIR = os.environ["GSKNN_DIR"]
@@ -47,20 +44,17 @@ except:
     raise Exception("Enviornment variable GSKNN_DIR is not set. Please set this to link against the GSKNN Library")
 
 
-GPU_IMPL_DIR = "prknn/kernels/gpu/impl/"
+GPU_IMPL_DIR = "pyrknn/kernels/gpu/impl/"
 
-#Parse command line arguments to get learn required object files
-parser = argparse.ArgumentParser(description='Cython setup script to link against compiled object files')
-parser.add_argument('--gpu_obj', '--cuda_obj', nargs="+", help='Pass a list of file names to link as cuda objects to the cython script', required=False, dest="gpu_obj", default=[])
-parser.add_argument('--cpu_obj', nargs="+", help='Pass a list of file names to link as cuda objects to the cython script', required=False, dest="cpu_obj", default=[])
-parser.add_argument("--setup", nargs="+", help="Pass setuptools arguments into setup.py (Required)", required=True, dest="setup")
-args, unknown = parser.parse_known_args()
+#Parse command line arguments to get required files
+#TODO: Remove this, I don't believe its currently necessary
+#parser = argparse.ArgumentParser(description='Cython setup script to link against compiled object files')
+#parser.add_argument('--gpu_obj', '--cuda_obj', nargs="+", help='Pass a list of file names to link as cuda objects to the cython script', required=False, dest="gpu_obj", default=[])
+#parser.add_argument('--cpu_obj', nargs="+", help='Pass a list of file names to link as cuda objects to the cython script', required=False, dest="cpu_obj", default=[])
+#parser.add_argument("--setup", nargs="+", help="Pass setuptools arguments into setup.py (Required)", required=True, dest="setup")
+#args, unknown = parser.parse_known_args()
 
-sys.argv = ['setup.py'] + args.setup + unknown
-
-print(args.gpu_obj)
-
-#TODO(p3)[Will] One of these includes/libraries doesn't need CUDA. Which way is it again?
+#sys.argv = ['setup.py'] + args.setup + unknown
 
 #setup the shared include directories
 inc_dirs = []
@@ -73,23 +67,19 @@ cpu_inc_dirs = cpu_inc_dirs + [GSKNN_DIR+'build/include']
 #setup the gpu include directories
 gpu_inc_dirs = inc_dirs + [CUDA_LIB]
 gpu_inc_dirs = gpu_inc_dirs + [CUDA_LIB+'/stubs/']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/sort']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/merge']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/util']
-#gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'chao/']
 
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/gemm']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/merge']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/transpose']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/reorder']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/sort']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/sparse']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/singleton']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/dense']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/orthogonal']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/util']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/readSVM']
-gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'new/chao/']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/gemm']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/merge']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/transpose']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/reorder']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/sort']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/sparse']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/singleton']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/dense']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/orthogonal']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/util']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/readSVM']
+gpu_inc_dirs = gpu_inc_dirs + [GPU_IMPL_DIR+'/']
 
 #setup the shared library directories
 lib_dirs = []
@@ -101,23 +91,19 @@ cpu_lib_dirs = cpu_lib_dirs + [GSKNN_DIR+'build/lib']
 #setup the gpu library directories
 gpu_lib_dirs = lib_dirs + [CUDA_LIB]
 gpu_lib_dirs = gpu_lib_dirs + [CUDA_LIB+'/stubs/']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/sort']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/merge']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/util']
-#gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'chao/']
 
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/gemm']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/merge']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/transpose']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/reorder']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/sort']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/sparse']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/singleton']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/dense']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/orthogonal']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/util']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/readSVM']
-gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'new/chao/']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/gemm']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/merge']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/transpose']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/reorder']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/sort']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/sparse']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/singleton']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/dense']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/orthogonal']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/util']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/readSVM']
+gpu_lib_dirs = gpu_lib_dirs + [GPU_IMPL_DIR+'/']
 
 #Grab all the required pyx files to compile
 def scandir(directory, files=[]):
@@ -125,6 +111,7 @@ def scandir(directory, files=[]):
         path = os.path.join(directory, f)
         if os.path.isfile(path) and path.endswith(".pyx"):
             f_to_add = path.replace(os.path.sep, ".")[:-4]
+            #if gpu is in the path, it is a wrapper for a GPU kernel. Compile it differently. 
             if 'gpu' in f_to_add:
                 if use_cuda:
                     files.append(f_to_add)
@@ -145,8 +132,8 @@ def makeExtension(extName):
                 language="c++",
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
-                extra_objects=args.gpu_obj,
-                libraries=["cusparse", "cusolver", "cublas", "cudart", "sortgpu", "mergegpu", "util"] +["denknngpu_new", "merge_new", "gemm_new", "reorder_new", "sort_new", "orthogonal_new", "readSVM_new", "transpose_new", "util_new"]+["spknngpu_new", "merge_new", "gemm_new", "reorder_new", "transpose_new", "orthogonal_new", "reorder_new", "sort_new", "readSVM_new"], 
+                #extra_objects=args.gpu_obj,
+                libraries=["cusparse", "cusolver", "cublas", "cudart"] +["denknngpu", "merge", "gemm", "reorder", "sort", "orthogonal", "readSVM", "transpose", "util"]+["spknngpu", "merge", "gemm", "reorder", "transpose", "orthogonal", "reorder", "sort", "readSVM"], 
                 extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-DPROD"],
                 extra_link_args=["-ldl", "-lpthread", "-qopenmp"]
                 )
@@ -157,14 +144,13 @@ def makeExtension(extName):
             language="c++",
             library_dirs = cpu_lib_dirs,
             runtime_library_dirs = cpu_lib_dirs,
-            extra_objects=args.cpu_obj,
-            #libraries=["gsknn"],
-            extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp","-qopenmp-report 2", "-Wno-sign-compare"],
+            #extra_objects=args.cpu_obj,
+            extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp", "-Wno-sign-compare", "-xSSE4.2", "-ip", "-unroll-aggressive", "-no-prec-div", "-simd", "-qopt-prefetch", "-mkl=parallel", "-qopenmp"],
             extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn"]
             )
 
 
-extNames = scandir("prknn")
+extNames = scandir("pyrknn")
 print("Found the following cython extensions (to be built): ")
 
 extensions = [makeExtension(name) for name in reversed(extNames) if name is not None]
@@ -172,11 +158,9 @@ extensions = [makeExtension(name) for name in reversed(extNames) if name is not 
 for e in extensions:
     print(e)
 
-print("Linking against", args.gpu_obj)
-
 setup(
-        name="prknn",
-        packages=["prknn", "prknn.kernels", "prknn.kernels.gpu", "prknn.kernels.cpu", "prknn.kdforest", "prknn.kdforest.reference"],
+        name="pyrknn",
+        packages=["pyrknn", "pyrknn.kernels", "pyrknn.kernels.gpu", "pyrknn.kernels.cpu", "pyrknn.kdforest", "pyrknn.kdforest.reference"],
         ext_modules=extensions,
         package_data={
                 '':['*.pxd', '.pyx']
