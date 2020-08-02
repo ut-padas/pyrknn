@@ -41,10 +41,17 @@ GSKNN_DIR = ""
 try:
     GSKNN_DIR = os.environ["GSKNN_DIR"]
 except:
-    raise Exception("Enviornment variable GSKNN_DIR is not set. Please set this to link against the GSKNN Library")
+    raise Exception("Environment variable GSKNN_DIR is not set. Please set this to link against the GSKNN Library")
 
+#We require Eigen for the computation of Sparse exact knn solution of the GPU
+EIGEN_DIR = ""
+try:
+    EIGEN_DIR = os.environ["EIGEN_ROOT"]
+except:
+    raise Exception("Environment variable EIGEN_ROOT is not set. Please set this to link against the Eigen header library")
 
-GPU_IMPL_DIR = "pyrknn/kernels/gpu/impl/"
+GPU_IMPL_DIR = "pyrknn/kernels/gpu/impl"
+CPU_IMPL_DIR = "pyrknn/kernels/cpu/impl"
 
 #Parse command line arguments to get required files
 #TODO: Remove this, I don't believe its currently necessary
@@ -63,7 +70,13 @@ inc_dirs = inc_dirs + [np.get_include()]
 #setup the cpu include directories
 cpu_inc_dirs = inc_dirs
 cpu_inc_dirs = cpu_inc_dirs + [GSKNN_DIR+'build/include']
-
+cpu_inc_dirs = cpu_inc_dirs + [EIGEN_DIR]
+cpu_inc_dirs = cpu_inc_dirs + [CPU_IMPL_DIR+'/sparse']
+cpu_inc_dirs = cpu_inc_dirs + [CPU_IMPL_DIR+'/exact']
+cpu_inc_dirs = cpu_inc_dirs + [GPU_IMPL_DIR+'/readSVM']
+cpu_inc_dirs = cpu_inc_dirs + [GPU_IMPL_DIR+'/util']
+cpu_inc_dirs = cpu_inc_dirs + [CUDA_LIB]
+cpu_inc_dirs = cpu_inc_dirs + [CUDA_LIB+'/stubs']
 #setup the gpu include directories
 gpu_inc_dirs = inc_dirs + [CUDA_LIB]
 gpu_inc_dirs = gpu_inc_dirs + [CUDA_LIB+'/stubs/']
@@ -87,7 +100,15 @@ lib_dirs = []
 #setup the cpu library directories
 cpu_lib_dirs = lib_dirs
 cpu_lib_dirs = cpu_lib_dirs + [GSKNN_DIR+'build/lib']
+cpu_lib_dirs = cpu_lib_dirs + [EIGEN_DIR]
+cpu_lib_dirs = cpu_lib_dirs + [CPU_IMPL_DIR+'/sparse']
+cpu_lib_dirs = cpu_lib_dirs + [CPU_IMPL_DIR+'/exact']
+cpu_lib_dirs = cpu_lib_dirs + [GPU_IMPL_DIR+'/readSVM']
+cpu_lib_dirs = cpu_lib_dirs + [GPU_IMPL_DIR+'/util']
+cpu_lib_dirs = cpu_lib_dirs + [CUDA_LIB]
+cpu_lib_dirs = cpu_lib_dirs + [CUDA_LIB+'/stubs']
 
+#setup the gpu include directories
 #setup the gpu library directories
 gpu_lib_dirs = lib_dirs + [CUDA_LIB]
 gpu_lib_dirs = gpu_lib_dirs + [CUDA_LIB+'/stubs/']
@@ -133,9 +154,18 @@ def makeExtension(extName):
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
                 #extra_objects=args.gpu_obj,
-                libraries=["cusparse", "cusolver", "cublas", "cudart"] +["denknngpu", "merge", "gemm", "reorder", "sort", "orthogonal", "readSVM", "transpose", "util"]+["spknngpu", "merge", "gemm", "reorder", "transpose", "orthogonal", "reorder", "sort", "readSVM"], 
-                extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-DPROD"],
-                extra_link_args=["-ldl", "-lpthread", "-qopenmp"]
+                #libraries=["cusparse", "cusolver", "cublas", "cudart"] +["denknngpu", "merge", "gemm", "reorder", "sort", "orthogonal", "readSVM", "transpose", "util"]+["spknngpu", "merge", "gemm", "reorder", "transpose", "orthogonal", "reorder", "sort", "readSVM", "util"], 
+                #libraries=["cuda", "cudart", "cublas", "cusparse", "cusolver", "util"] +["gemm", "util", "sort", "merge", "spknngpu", "transpose", "orthogonal", "reorder", "denknngpu"],
+
+                libraries=["cusparse", "cusolver", "cublas", "cudart", "denknngpu","merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal", "spknngpu"],
+
+                #libraries=["cusparse", "cusolver", "cublas", "cudart", "spknngpu","merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal", "denknngpu"],
+
+                #libraries=["cusparse", "cusolver", "cublas", "cudart", "spknngpu","cusparse", "cusolver", "cublas", "cudart", "denknngpu", "merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal"],
+
+
+                extra_compile_args=["-g", "-std=c++11", "-O3", "-fPIC", "-DPROD"],
+                extra_link_args=["-ldl", "-lpthread", "-qopenmp"]#+["-Wl,--start-group", "-lcusparse", "-lcusolver", "-lcublas", "-lcudart", "-lspknngpu", "-ldenknngpu", "-lmerge", "-lutil", "-lreadSVM", "-ltranspose", "-lgemm", "-lreorder", "-lorthogonal", "-Wl,--end-group"]
                 )
     return Extension(
             extName,
@@ -145,8 +175,8 @@ def makeExtension(extName):
             library_dirs = cpu_lib_dirs,
             runtime_library_dirs = cpu_lib_dirs,
             #extra_objects=args.cpu_obj,
-            extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp", "-Wno-sign-compare", "-xSSE4.2", "-ip", "-unroll-aggressive", "-no-prec-div", "-simd", "-qopt-prefetch", "-mkl=parallel", "-qopenmp"],
-            extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn"]
+            extra_compile_args=["-g", "-std=c++11", "-O3", "-fPIC", "-qopenmp", "-Wno-sign-compare"],#, "-mkl", "-xCORE-AVX512"],
+            extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn", "-lspknncpu", "-lreadSVM", "-lexact"]
             )
 
 
