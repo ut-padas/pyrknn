@@ -205,8 +205,6 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
   // random seed
   // -----------------------
   int seed = current_time_nanoseconds();
-  thrust::minstd_rand rng(seed);
-  thrust::random::normal_distribution<float> dist(0.0f, 1.0f); 
  
   // -----------------------
   // Start SPKNN
@@ -224,8 +222,8 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
       
         // generate random bases
         thrust::counting_iterator<int> start(tree*d*level);
-        //thrust::transform(start, stard+d*level, R.begin(), prg(seed));
-        thrust::transform(start, start+d*level, R.begin(), dist(rng));
+        thrust::transform(start, stard+d*level, R.begin(), prg(seed));
+        //thrust::transform(start, start+d*level, R.begin(), dist(rng));
         //thrust::counting_iterator<int> zero(0);
         //thrust::transform(zero, zero+d*level, R.begin(), prg(current_time_nanoseconds()));
 

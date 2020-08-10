@@ -162,9 +162,6 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   //seed = 341732199;
   std::cout<<"Current Random Seed:" << seed << std::endl; 
 
-  thrust::minstd_rand rng(seed);
-  thrust::random::normal_distribution<float> dist(0.0f, 1.0f);
-
   // -----------------------
   // Start KNN
   // -----------------------
@@ -177,8 +174,8 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
       {
         // generate random bases
         thrust::counting_iterator<int> start(tree*R.size());
-        thrust::transform(start, start+R.size(), R.begin(), dist(rng));
-        //thrust::transform(start, start+R.size(), R.begin(), prg(seed));
+        //thrust::transform(start, start+R.size(), R.begin(), dist(rng));
+        thrust::transform(start, start+R.size(), R.begin(), prg(seed));
 
         orthogonal(R, d, nBases);
         //tprint(level, d, R, "random projection");
