@@ -7,8 +7,8 @@
 #include "timer_gpu.hpp"
 #include "util_gpu.hpp"
 #include "print.hpp"
-//#include <thrust/random/linear_congruential_engine.h>
-//#include <thrust/random/normal_distribution.h>
+#include <thrust/random/linear_congruential_engine.h>
+#include <thrust/random/normal_distribution.h>
 
 void build_tree(fvec&, int, int, ivec&, int, float&);
 
@@ -162,8 +162,8 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   //seed = 341732199;
   std::cout<<"Current Random Seed:" << seed << std::endl; 
 
-  //thrust::minstd_rand rng(seed);
-  //thrust::random::normal_distribution<float> dist(0.0f, 1.0f);
+  thrust::minstd_rand rng(seed);
+  thrust::random::normal_distribution<float> dist(0.0f, 1.0f);
 
   // -----------------------
   // Start KNN
@@ -177,8 +177,8 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
       {
         // generate random bases
         thrust::counting_iterator<int> start(tree*R.size());
-        //thrust::transform(start, start+R.size(), R.begin(), dist(rng));
-        thrust::transform(start, start+R.size(), R.begin(), prg(seed));
+        thrust::transform(start, start+R.size(), R.begin(), dist(rng));
+        //thrust::transform(start, start+R.size(), R.begin(), prg(seed));
 
         orthogonal(R, d, nBases);
         //tprint(level, d, R, "random projection");

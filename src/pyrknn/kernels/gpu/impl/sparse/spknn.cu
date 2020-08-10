@@ -10,8 +10,8 @@
 #include "matrix.hpp"
 
 #include <thrust/random.h>
-//#include <thrust/random/linear_congruential_engine.h>
-//#include <thrust/random/normal_distribution.h>
+#include <thrust/random/linear_congruential_engine.h>
+#include <thrust/random/normal_distribution.h>
 
 #include <limits>       // std::numeric_limits
 
@@ -224,8 +224,8 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
       
         // generate random bases
         thrust::counting_iterator<int> start(tree*d*level);
-        thrust::transform(start, stard+d*level, R.begin(), prg(seed));
-        //thrust::transform(start, start+d*level, R.begin(), dist(rng));
+        //thrust::transform(start, stard+d*level, R.begin(), prg(seed));
+        thrust::transform(start, start+d*level, R.begin(), dist(rng));
         //thrust::counting_iterator<int> zero(0);
         //thrust::transform(zero, zero+d*level, R.begin(), prg(current_time_nanoseconds()));
 
