@@ -6,6 +6,8 @@
 #include "util_eigen.hpp"
 #include "util.hpp"
 
+#include <random>
+#include <string>
 #include <iostream>
 
 
@@ -252,6 +254,7 @@ void spknn
 
   omp_set_num_threads(cores);
 
+
   double t_kernel, t_merge = 0.;
   dvec t_tree(10, 0);
   dvec t_leaf(10, 0);
@@ -281,7 +284,21 @@ void spknn
         // random arrays and projections
         t1.start();
         fMatrix R(d, level);
-        R.rand();
+        
+        #pragma omp parallel
+        {
+            std::mt19937_64 generator;
+            std::normal_distribution<float> distribution(0.0, 1.0);
+
+            #pragma omp for collapse(2)
+            for(int a=0; a<d; ++a){
+                for(int b=0; b<level; ++b){
+                    float sample = distribution(generator);
+                    R(a, b) = sample;
+                }
+            }
+        }
+
         t1.stop(); t_tree[5] += t1.elapsed_time();
         //print(R, "R");
         
