@@ -1,7 +1,8 @@
 #!/bin/bash
-#file: set_env.sh
+#file: set_env_cpu.sh
 
 module load intel/18
+module unload python2/2.7.15
 
 export CUDA_LIB=$TACC_CUDA_LIB
 export CUDA_HOME=$TACC_CUDA_LIB

@@ -46,10 +46,16 @@ class RKDForest:
         else:
             self.lib = np
 
+
         if N is not None:
             self.N = N
+        else:
+            self.N = None
+
         if d is not None:
             self.d = d
+        else:
+            self.d = None
 
         if (pointset is not None):
             self.size = pointset.shape[0]
@@ -231,9 +237,9 @@ class RKDForest:
             if (self.location == "CPU" or self.location == "PYTHON" ) and (not sparse):
                 neighbors = tree.aknn_all(k)
             elif self.location == "CPU" and sparse:
-                neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data)
+                neighbors = Primitives.cpu_sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blocksize)
             elif self.location =="GPU" and self.sparse:
-                neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
+                neighbors = Primitives.gpu_sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
             elif self.location == "GPU" and (not self.sparse):
                 neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device)
             else:

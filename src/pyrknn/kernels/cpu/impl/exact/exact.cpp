@@ -40,7 +40,8 @@ void exact_knn
   // compute distance
   Vec Q2 = row_norm(Q);
   Vec R2 = row_norm(R);
-  Mat D2 = -2*Q*R.transpose();    
+  //Mat D2 = -2*( Q*R.transpose() ).pruned();
+  Mat D2 = -2 * Q * R.transpose();
   D2.colwise() += Q2;
   D2.rowwise() += R2.transpose();
   // find neighbor

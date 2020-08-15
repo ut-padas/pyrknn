@@ -20,16 +20,17 @@ os.environ["CXX"] = "mpicxx"
 #Compile GPU Kernels?
 use_cuda = False
 try:
-    use_cuda = os.environ["PYRKNN_USE_CUDA"]
+    use_cuda = int(os.environ["PYRKNN_USE_CUDA"])
     if use_cuda == 0:
         use_cuda = False
     else:
         use_cuda = True
-    print(use_cuda)
+    print("PYRKNN_USE_CUDA is set to ", use_cuda)
+    print("LKJLJLKJLJKJLJ")
 except:
     print("Environment variable PYRKNN_USE_CUDA is not set. Assuming CUDA is not being used.")
 
-#The location of the CUDA_LIB should be set. This can be important for cupy. 
+#The location of the CUDA_LIB should be set. This can be important for cupy.
 CUDA_LIB = ""
 try:
     CUDA_LIB = os.environ["CUDA_LIB"]
@@ -132,7 +133,7 @@ def scandir(directory, files=[]):
         path = os.path.join(directory, f)
         if os.path.isfile(path) and path.endswith(".pyx"):
             f_to_add = path.replace(os.path.sep, ".")[:-4]
-            #if gpu is in the path, it is a wrapper for a GPU kernel. Compile it differently. 
+            #if gpu is in the path, it is a wrapper for a GPU kernel. Compile it differently.
             if 'gpu' in f_to_add:
                 if use_cuda:
                     files.append(f_to_add)
@@ -154,7 +155,7 @@ def makeExtension(extName):
                 library_dirs = gpu_lib_dirs,
                 runtime_library_dirs = gpu_lib_dirs,
                 #extra_objects=args.gpu_obj,
-                #libraries=["cusparse", "cusolver", "cublas", "cudart"] +["denknngpu", "merge", "gemm", "reorder", "sort", "orthogonal", "readSVM", "transpose", "util"]+["spknngpu", "merge", "gemm", "reorder", "transpose", "orthogonal", "reorder", "sort", "readSVM", "util"], 
+                #libraries=["cusparse", "cusolver", "cublas", "cudart"] +["denknngpu", "merge", "gemm", "reorder", "sort", "orthogonal", "readSVM", "transpose", "util"]+["spknngpu", "merge", "gemm", "reorder", "transpose", "orthogonal", "reorder", "sort", "readSVM", "util"],
                 #libraries=["cuda", "cudart", "cublas", "cusparse", "cusolver", "util"] +["gemm", "util", "sort", "merge", "spknngpu", "transpose", "orthogonal", "reorder", "denknngpu"],
 
                 libraries=["cusparse", "cusolver", "cublas", "cudart", "denknngpu","merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal", "spknngpu"],
@@ -174,9 +175,8 @@ def makeExtension(extName):
             language="c++",
             library_dirs = cpu_lib_dirs,
             runtime_library_dirs = cpu_lib_dirs,
-            #extra_objects=args.cpu_obj,
-            extra_compile_args=["-g", "-std=c++11", "-O3", "-fPIC", "-qopenmp", "-Wno-sign-compare"],#, "-mkl", "-xCORE-AVX512"],
-            extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn", "-lspknncpu", "-lreadSVM", "-lexact"]
+            extra_compile_args=["-std=c++11", "-O3", "-fPIC", "-qopenmp", "-Wno-sign-compare","-xCORE-AVX2","-axCORE-AVX512", "-DEIGEN_USE_MKL_ALL", "-mkl"],
+            extra_link_args=["-ldl", "-lpthread", "-qopenmp", "-lm", "-lgsknn", "-lspknncpu", "-lreadSVM", "-lexact", "-mkl"]
             )
 
 
@@ -185,12 +185,18 @@ print("Found the following cython extensions (to be built): ")
 
 extensions = [makeExtension(name) for name in reversed(extNames) if name is not None]
 
-for e in extensions:
+print("Extension Names:")
+for e in extNames:
     print(e)
+
+
+package_list=["pyrknn", "pyrknn.kernels", "pyrknn.kernels.cpu", "pyrknn.kdforest", "pyrknn.kdforest.reference"]
+if use_cuda:
+    package_list += ["pyrknn.kernels.gpu"]
 
 setup(
         name="pyrknn",
-        packages=["pyrknn", "pyrknn.kernels", "pyrknn.kernels.gpu", "pyrknn.kernels.cpu", "pyrknn.kdforest", "pyrknn.kdforest.reference"],
+        packages=package_list,
         ext_modules=extensions,
         package_data={
                 '':['*.pxd', '.pyx']

@@ -1,5 +1,5 @@
 import numpy as np
-import numba 
+import numba
 import os
 
 from ...kernels.cpu import core as cpu
@@ -72,7 +72,7 @@ cores = 0
 def set_env(loc, sp):
     global env
     env = loc
-    
+
     global sparse
     sparse = sp
 
@@ -84,7 +84,7 @@ def set_env(loc, sp):
         lib = cp
     else:
         raise Exception("Not a valid enviorment target. Specify CPU or GPU")
-    
+
 def set_cores(c):
     global cores
     cores = c
@@ -168,6 +168,7 @@ def single_knn(gids, R, Q, k):
     elif not sparse:
         return cpu.single_knn(gids, R, Q, k, cores)
     else:
+        print("Running Sparse Exact")
         return cpu.sparse_exact(gids, R, Q, k, cores)
 
 def batched_knn(gidsList, RList, QList, k):
@@ -347,10 +348,10 @@ def neighbor_dist(a, b):
 def dist_select(k, data, ids, comm):
     return cpu.dist_select(k, data, ids, comm)
 
-def sparse_knn(gids, X, levels, ntrees, k, blocksize):
+def cpu_sparse_knn(gids, X, levels, ntrees, k, blocksize):
     return cpu.sparse_knn(gids, X, levels, ntrees, k, blocksize, cores)
 
-def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
+def gpu_sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     return gpu.sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device)
 
 def dense_knn(gids, X, levels, ntrees, k, blocksize, device):

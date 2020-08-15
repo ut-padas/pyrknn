@@ -209,6 +209,23 @@ void compute_distance(const Points &P, const fvec &norm, fMatrix &D, dvec &t) {
   // free resource 
   CHECKS( mkl_sparse_destroy(A) );
 }
+/*
+void compute_distance(const Points &Q, const Points &R, const fvec &norm, fMatrix &D, dvec &t){
+   sparse_matrix_t A;
+    CHECKS(mkl_sparse_s_create_csr(&A, SPARSE_INDEX_BASE_ZERO, Q.rows(), Q.cols(), Q.rowPtr, Q.rowPtr+1, Q.colIdx, Q.val) );
+
+   sparse_matrix_t B;
+
+   CHECKS( mkl_sparse_s_create_csr(&B, SPARSE_INDEX_BASE_ZERO, R.rows(), R.cols(), R.rowPtr, R.rowPtr+1, R.colIdx, R.val) );
+
+   Timer timer; timer.start();
+
+   sparse_matrix_t* C;
+
+   CHECKS( mkl_sparse_sp2m(SPARSE_OPERATION_NON_TRANSPOSE,SPARSE_MATRIX_TYPE_GENERAL, A, SPARSE_OPERATION_TRANSPOSE, SPARSE_MATRIX_TYPE_GENERAL, B, SPARSE_STAGE_FULL_MULT, C);
+
+}
+*/
 
 
 void inner_product(const Points &Q, const Points &R, float *D) {

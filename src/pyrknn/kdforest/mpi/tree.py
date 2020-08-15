@@ -938,12 +938,19 @@ class RKDT:
                 k -- number of nearest neighbors
             """
             R = self.get_reference()
+            print("R shape", R.shape)
 
             lids = np.arange(self.size, dtype=np.int32)
+            print("lids", lids)
+
             results =  Primitives.single_knn(self.gids, R, Q, k)
+
+            print("Finished Search")
 
             #Merge with itself to sort output
             results = Primitives.merge_neighbors(results, results, k)
+
+            print("Finished Merge")
 
             return results
 
@@ -1206,7 +1213,6 @@ class RKDT:
                 del ND
                 j += 1
 
-
             timer.pop("AKNN: Copy")
             #Clean up
             del NLL
@@ -1227,7 +1233,12 @@ class RKDT:
 
         query_size = Q.shape[0]
         root = self.nodelist[0]
+
+        print("Query_size", Q.shape)
+
         result =  root.knn(Q, k)
+
+        print("result", result)
 
         recvbuff_list = np.empty([size, query_size, k], dtype=np.int32)
         recvbuff_dist = np.empty([size, query_size, k], dtype=np.float32)
@@ -1248,4 +1259,5 @@ class RKDT:
                     result = Primitives.merge_neighbors(result, neighbors, k)
                 else:
                     result = neighbors
+
         return result

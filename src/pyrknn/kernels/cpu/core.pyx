@@ -60,7 +60,7 @@ cpdef sparse_knn(gids, X, levels, ntrees, k, blocksize, cores):
     n, d = X.shape
     assert(n == len(gids))
 
-    cdef unsigned int[:] hID = gids;
+    cdef unsigned int[:] hID = np.asarray(gids, dtype=np.uint32);
     cdef float[:] data = X.data
     cdef int[:] idx = X.indices
     cdef int[:] ptr = X.indptr
