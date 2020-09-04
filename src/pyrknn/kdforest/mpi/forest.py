@@ -194,9 +194,11 @@ class RKDForest:
 
         return result
 
-    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, until_max=100, nq=1000, gap=5):
+    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, until_max=100, nq=1000, gap=5, threshold=0.95):
         timer = Primitives.Profiler()
+        timer.push("Forest: AKNN All")
 
+        timer.push("Forest: Setup")
         Primitives.set_cores(cores)
 
         v = (self.verbose or verbose)
@@ -221,22 +223,29 @@ class RKDForest:
         if until:
             self.ntrees = until_max
 
+        timer.pop("Forest: Setup")
+
         #Iterate over the tree set.
         for it in range(self.ntrees):
 
             #Build Tree
-            X = self.data
+
+            timer.push("Forest: Build Tree")
+            if not sparse:
+                X = np.copy(self.data)
+            else:
+                X = self.data.copy()
             tree = RKDT(pointset=X, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse, N=self.N, d=self.d)
             tree.build()
+            timer.pop("Forest: Build Tree")
 
-            print("GIDS", tree.gids)
-            print("RGIDS", tree.real_gids)
-
-
+            print("Searching Neighbors")
             #Compute Neighbors
+            timer.push("Forest: Compute Neighbors")
             if (self.location == "CPU" or self.location == "PYTHON" ) and (not sparse):
                 neighbors = tree.aknn_all(k)
             elif self.location == "CPU" and sparse:
+                print("Starting Sparse Search")
                 neighbors = Primitives.cpu_sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blocksize)
             elif self.location =="GPU" and self.sparse:
                 neighbors = Primitives.gpu_sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
@@ -244,25 +253,32 @@ class RKDForest:
                 neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device)
             else:
                 raise Exception("Your compute location is not valid. Select GPU or CPU Runtime")
+            timer.pop("Forest: Compute Neighbors")
 
+            timer.push("Forest: Redistribute")
             #Redistribute
             if size > 1:
                 gids, neighbors = tree.redist(neighbors)
+            timer.pop("Forest: Redistribute")
+
+            del X
+            del tree
 
             #Merge
-            """
+            timer.push("Forest: Merge")
             if result is None:
                 result = Primitives.merge_neighbors(neighbors, neighbors, k)
             else:
                 result = Primitives.merge_neighbors(result, neighbors, k)
-            """
+            timer.pop("Forest: Merge")
 
-            print("Result", result)
-            print("Truth", truth)
+            #print("Result", result)
+            #print("Truth", truth)
 
             break_flag = False
 
             #Compare against true NN
+            timer.push("Forest: Compare")
             if ( truth is not None ) and ( rank == 0 ) :
                 rlist, rdist = result
                 test = (rlist[:nq, ...], rdist[:nq, ...])
@@ -299,10 +315,13 @@ class RKDForest:
                     break_flag = True
 
             break_flag = self.comm.bcast(break_flag, root=0)
-
+            
             if break_flag:
                 break
 
+            timer.pop("Forest: Compare")
+
+        timer.pop("Forest: AKNN All")
         return result
 
 

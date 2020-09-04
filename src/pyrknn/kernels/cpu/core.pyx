@@ -319,28 +319,31 @@ cpdef merge_neighbors(a, b, k, cores):
     I2 = b[0]
     D2 = b[1]
 
+    old_type = I1.dtype
     cdef float[:, :] cD1 = D1;
     cdef float[:, :] cD2 = D2;
 
-    cdef int[:, :] cI1 = I1;
-    cdef int[:, :] cI2 = I2;
+    #print("before", I1)
+    cdef unsigned int[:, :] cI1 = np.asarray(I1, dtype=np.uint32);
+    cdef unsigned int[:, :] cI2 = np.asarray(I2, dtype=np.uint32);
+    #print("after", np.asarray(cI1))
 
-    cdef int cn = I1.shape[0]
+    cdef unsigned int cn = I1.shape[0]
     cdef int ck = k
     cdef int ccores = cores
     with nogil:
         merge_neighbor_cpu[float](&cD1[0, 0], &cI1[0, 0], &cD2[0, 0], &cI2[0, 0], cn, ck, <int> ccores)
 
     merge_t = time.time() - merge_t
-    print("Merge time:", merge_t)
+
+    I1 = np.asarray(cI1, dtype=old_type)
+    I2 = np.asarray(cI2, dtype=old_type)
 
     return (I1, D1)
 
 
 
 cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
-
-    
 
     rank = comm.Get_rank()
     cdef int nlocal = len(X)
@@ -434,6 +437,8 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     cdef int global_nright = global_split_info[1]
 
     if (gmax - gmin < 0.00001):
+        print("Warning: Up to precision ", N, " points are the same.")  
+        print("Performing random split on remaining points.")
         X = X + np.array(np.random.rand(nlocal), dtype=np.float32)*(1e-3)
 
     if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):

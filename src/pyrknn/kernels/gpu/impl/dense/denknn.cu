@@ -116,6 +116,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   thrust::fill(dP.begin()+n*d, dP.end(), -std::numeric_limits<float>::max());
   
   //tprint(N, d, dP, "Points on GPU");
+    /*
   std::cout<<"\n========================"
            <<"\nPoints"
            <<"\n------------------------"
@@ -136,7 +137,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
            <<"\ncopy neighbor time: "<<t_copy2<<" s"
            <<"\n========================\n"
            <<std::endl;
-
+    */
   // -----------------------
   // timing
   // -----------------------
@@ -160,7 +161,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   // -----------------------
   int seed = current_time_nanoseconds();
   //seed = 341732199;
-  std::cout<<"Current Random Seed:" << seed << std::endl; 
+  //std::cout<<"Current Random Seed:" << seed << std::endl; 
 
   // -----------------------
   // Start KNN
@@ -222,6 +223,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   t2.stop();
   float t_kernel = t2.elapsed_time();
   float t_sort = t_tsort+t_lsort+t_msort;
+/*
   printf("\n===========================");
   printf("\n    Dense KNN Timing");
   printf("\n---------------------------");
@@ -238,7 +240,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   printf("\n! Sorting: %.2e s (%.0f %%)", t_sort, 100.*t_sort/t_kernel);
   printf("\n Ran on GPU w/ dev id: (%d)", device);
   printf("\n===========================\n");
-
+*/
   // -----------------------
   // Copy results back to CPU
   // -----------------------

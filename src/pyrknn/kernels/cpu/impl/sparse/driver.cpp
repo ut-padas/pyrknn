@@ -189,6 +189,25 @@ int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &
   return miss;
 }
 
+int compute_error_bak(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const Mat &dist_cpu, 
+    int n, int k) {
+
+  int miss = 0;
+  for (int i=0; i<n; i++) {
+    const unsigned int *start = id_cpu.data()+i*k;
+    const float farthest = dist_cpu(i,k-1);
+    for (int j=0; j<k; j++) {
+      if (std::find(start, start+k, id(i,j)) == start+k // ID not found
+          && dist(i,j) > farthest*(1+std::numeric_limits<float>::epsilon())
+          ) 
+      {
+        miss++;
+      }
+    }
+  }  
+  return miss;
+}
+
 
 void write_matrix(const MatInt &nborID, const Mat &nborDist, const std::string &filename) {
   std::ofstream fout(filename.c_str());
@@ -292,7 +311,7 @@ int main(int argc, char *argv[]) {
     //std::cout<<"Points:\n"<<P<<std::endl;
     
     // compute error
-    int err = compute_error(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
+    int err = compute_error_bak(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
     double acc = 100. - 1.*err/n/K*100;
     //std::cout<<"iter "<<i<<":\tmissed: "<<err<<"\t"<<"accuracy: "<<acc<<" %\n";
     printf("iter %d:\tmissed: %d\taccuracy: %.2f %\n", i, err, acc);

@@ -100,8 +100,8 @@ class matrix {
         par::compute_range(m*n, from, to);
         //std::default_random_engine eng(seed);
         std::minstd_rand eng(seed); eng.discard(from);
-        std::uniform_real_distribution<float> dist;
         //std::normal_distribution<float> dist;
+        std::uniform_real_distribution<float> dist;
         generate(val+from, val+to, bind(dist, eng)); 
       }
     }

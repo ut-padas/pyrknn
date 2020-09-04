@@ -166,7 +166,7 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
 
   //tprint(dID, "device ID");
   //dprint(n, d, nnz, dRowPtr, dColIdx, dVal, "device P");
-  
+ /* 
   std::cout<<"\n========================"
            <<"\nPoints"
            <<"\n------------------------"
@@ -185,7 +185,7 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
            <<"\n========================\n"
            <<std::endl;
 
-
+*/
   // -----------------------
   // timing
   // -----------------------
@@ -222,7 +222,7 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
       
         // generate random bases
         thrust::counting_iterator<int> start(tree*d*level);
-        thrust::transform(start, stard+d*level, R.begin(), prg(seed));
+        thrust::transform(start, start+d*level, R.begin(), prg(seed));
         //thrust::transform(start, start+d*level, R.begin(), dist(rng));
         //thrust::counting_iterator<int> zero(0);
         //thrust::transform(zero, zero+d*level, R.begin(), prg(current_time_nanoseconds()));
@@ -314,7 +314,7 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
     //tprint(n, 2*k, dNborID, "[After merge] ID");
   }
   t2.stop(); float t_kernel = t2.elapsed_time();
-  
+ /* 
   printf("\n===========================");
   printf("\n    Sparse KNN Timing");
   printf("\n---------------------------");
@@ -336,7 +336,7 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
   //printf("\n---------------------------");
   //printf("\n! Sorting: %.2e s (%.0f %%)", t_sort, 100.*t_sort/t_kernel);
   printf("\n===========================\n");
-
+*/
   // -----------------------
   // Copy to CPU
   // -----------------------

@@ -1147,13 +1147,13 @@ inline bool equal_value(const pair<key_t, value_t> &a, const pair<key_t, value_t
 
 
 template<typename T>
-void merge_neighbor_cpu(T* D1, int* I1, T* D2, int* I2, const int n, const int k, const int cores){
+void merge_neighbor_cpu(T* D1, unsigned int* I1, T* D2, unsigned int* I2, const unsigned int n, const int k, const int cores){
     omp_set_num_threads(cores);
 
     #pragma omp parallel
     {
 
-        std::vector<std::pair<int, T>> aux(2*k);
+        std::vector<std::pair<unsigned int, T>> aux(2*k);
 
         #pragma omp for
         for(size_t i = 0; i < n; ++i){
@@ -1165,9 +1165,9 @@ void merge_neighbor_cpu(T* D1, int* I1, T* D2, int* I2, const int n, const int k
             }
 
             //Sort according to index
-            std::sort(aux.begin(), aux.end(), less_key<int, T>);
-            auto last = std::unique(aux.begin(), aux.end(), equal_key<int, T> );
-            std::sort(aux.begin(), last, less_value<int, T>);
+            std::sort(aux.begin(), aux.end(), less_key<unsigned int, T>);
+            auto last = std::unique(aux.begin(), aux.end(), equal_key<unsigned int, T> );
+            std::sort(aux.begin(), last, less_value<unsigned int, T>);
 
             //Copy Results back to output
             for(size_t j = 0; j < k; ++j){

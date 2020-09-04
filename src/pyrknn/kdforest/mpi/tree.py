@@ -411,7 +411,7 @@ class RKDT:
                 if i >= self.dim:
                     a = int(spill[i-self.dim])
 
-                vector = self.dist_vectors[a, :]
+                vector = self.vectors[a, :]
                 proj_data = self.host_data @ vector
                 timer.pop("Dist Build: Compute Projection")
 
@@ -538,6 +538,7 @@ class RKDT:
                 timer.push("Dist Build: Update Sparse Matrix")
                 self.host_real_gids = recv_gids
                 self.host_data = sp.coo_matrix( (recv_data, (recv_row, recv_col)), shape=(self.local_size, self.dim) )
+                self.host_data.has_canonical_format = True
                 timer.pop("Dist Build: Update Sparse Matrix")
 
                 median_list.append(median)
@@ -558,10 +559,8 @@ class RKDT:
         ind = np.asarray(ind, dtype=np.int32)
         ptr = np.asarray(ptr, dtype=np.int32)
 
-        del temp
-
         self.data = sp.csr_matrix((data, ind, ptr), shape=(self.local_size, self.dim))
-
+        self.data.has_sorted_indices = True
         self.gids = np.asarray(self.host_gids, dtype=np.int32)
         self.real_gids = np.asarray(self.host_real_gids, dtype=np.int32)
 
@@ -832,9 +831,9 @@ class RKDT:
 
         def select_hyperplane(self):
             a = self.level
-            if a >= self.tree.dim:
+            if a+self.tree.dist_levels >= self.tree.dim:
                 a = random.randint(0, self.tree.dim-1)
-            self.vector = self.tree.vectors[a, :]
+            self.vector = self.tree.vectors[a+self.tree.dist_levels, :]
             self.vector = self.vector / np.linalg.norm(self.vector)
             self.local_ = self.tree.data[self.offset:self.offset+self.size, ...] @ self.vector
             del a
@@ -1181,6 +1180,8 @@ class RKDT:
 
         for i in range(iters):
 
+
+            timer.push("AKNN: Setup")
             start = batchsize*(i)
             stop  = batchsize*(i+1) if i < iters-1 else n_leaves
 
@@ -1191,6 +1192,8 @@ class RKDT:
             for leaf in leaf_nodes[start:stop]:
                 gidsList.append(leaf.gids)
                 RList.append(leaf.get_reference())
+
+            timer.pop("AKNN: Setup")
 
             timer.push("AKNN: Compute")
             NLL, NDL, out = Primitives.multileaf_knn(gidsList, RList, RList, k)
@@ -1214,6 +1217,8 @@ class RKDT:
                 j += 1
 
             timer.pop("AKNN: Copy")
+
+            timer.push("AKNN: Cleanup")
             #Clean up
             del NLL
             del NDL
@@ -1221,7 +1226,8 @@ class RKDT:
             del gidsList
             del RList
 
-            gc.collect()
+            #gc.collect()
+            timer.pop("AKNN: Cleanup")
 
         timer.pop("AKNN")
 
