@@ -12,11 +12,37 @@ if os.environ["PYRKNN_USE_CUDA"] == '1':
 else:
     import numpy as cp
     from ...kernels.cpu import core as gpu
-    from ..kernels.cpu import core as gpu_sparse
+    from ...kernels.cpu import core as gpu_sparse
 
 import time
 
 """File that contains key kernels to be replaced with high performance implementations"""
+
+class Recorder:
+    record_book = dict()
+    
+    def push(self, string, value):
+        if string in self.record_book:
+            self.record_book[string].append(value)
+        else:
+            self.record_book[string] = [value]
+
+    def print(self, string=None):
+        if string == None:
+            print("Record Book")
+            for n, t in self.record_book.items():
+                print('{} {}'.format(n, t))
+        elif string in self.record_book:
+            print(self.record_book[string])
+
+    def write(self, filename):
+        with open(filename, 'w') as f:
+            for key in self.record_book.keys():
+                f.write("%s"%(key))
+                for item in self.record_book[key]:
+                    f.write(",%s"%(item))
+                f.write("\n")
+
 
 class Profiler:
 
@@ -55,6 +81,13 @@ class Profiler:
         for n, t in self.output_times.items():
             print('{} {}'.format(n, t))
 
+    def write(self, filename):
+        with open(filename, 'w') as f:
+            for key in self.output_times.keys():
+                f.write("%s,%s\n"%(key,self.output_times[key]))
+
+
+ 
 
 #Note: Data movement should be done on the python layer BEFORE this one
 #      All functions can assume all data is local to their device (should this be asserted and checked here? for debugging yes)

@@ -196,6 +196,8 @@ class RKDForest:
 
     def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, until_max=100, nq=1000, gap=5, threshold=0.95):
         timer = Primitives.Profiler()
+        record = Primitives.Recorder()
+
         timer.push("Forest: AKNN All")
 
         timer.push("Forest: Setup")
@@ -285,6 +287,8 @@ class RKDForest:
 
                 acc = Primitives.neighbor_dist(truth, test)
                 Primitives.accuracy.append( acc )
+                record.push("Recall", acc[0])
+                record.push("Distance", acc[1])
 
                 print("Iteration:", it, "Recall:", acc)
 

@@ -219,7 +219,7 @@ class RKDT:
 
         #Generate projection vectors on rank 0
         if rank == 0:
-            vectors = np.random.randn(self.dim, self.levels)
+            vectors = np.random.rand(self.dim, self.levels)
             vectors = np.array(vectors, dtype=np.float32, order='F')
 
             timer.push("Projection: QR")
