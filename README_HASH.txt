@@ -1,6 +1,11 @@
 Installation:
 
-Requires Eigen Headers and GSKNN 
+Dependencies:
+Python Libraries:
+    Requires parla, Kmodes (https://pypi.org/project/kmodes/), numba, numpy, cython, mpi4py
+C++ Libraries:
+    Requires Eigen Headers and GSKNN 
+
 Add these paths to set_env_cpu.sh 
 source set_env_cpu.sh
 run make
