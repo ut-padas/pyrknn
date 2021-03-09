@@ -194,7 +194,7 @@ class RKDForest:
 
         return result
 
-    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, until_max=100, nq=1000, gap=5, threshold=0.95):
+    def search(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, until_max=100, nq=1000, gap=5, threshold=0.95):
         timer = Primitives.Profiler()
         record = Primitives.Recorder()
 
@@ -245,9 +245,7 @@ class RKDForest:
             #Compute Neighbors
             timer.push("Forest: Compute Neighbors")
             if (self.location == "CPU" or self.location == "PYTHON" ) and (not sparse):
-                #neighbors = tree.aknn_all(k)
-                neighbors = None
-                #neighbors = np.zeros([X.shape[0], k])
+                neighbors = tree.aknn_all(k)
             elif self.location == "CPU" and sparse:
                 print("Starting Sparse Search")
                 neighbors = Primitives.cpu_sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blocksize)
@@ -258,10 +256,7 @@ class RKDForest:
             else:
                 raise Exception("Your compute location is not valid. Select GPU or CPU Runtime")
             timer.pop("Forest: Compute Neighbors")
-            global htable
-            tree.hash(it)
-            print(htable[:, :it])
-            print(np.sum(htable[:, it]== htable[1, it]))
+
             timer.push("Forest: Redistribute")
             #Redistribute
             if size > 1:
@@ -273,10 +268,10 @@ class RKDForest:
 
             #Merge
             timer.push("Forest: Merge")
-            #if result is None:
-            #    result = Primitives.merge_neighbors(neighbors, neighbors, k)
-            #else:
-            #    result = Primitives.merge_neighbors(result, neighbors, k)
+            if result is None:
+                result = Primitives.merge_neighbors(neighbors, neighbors, k)
+            else:
+                result = Primitives.merge_neighbors(result, neighbors, k)
             timer.pop("Forest: Merge")
 
             #print("Result", result)
@@ -286,47 +281,47 @@ class RKDForest:
 
             #Compare against true NN
             timer.push("Forest: Compare")
-            #if ( truth is not None ) and ( rank == 0 ) :
-                #rlist, rdist = result
-                #test = (rlist[:nq, ...], rdist[:nq, ...])
+            if ( truth is not None ) and ( rank == 0 ) :
+                rlist, rdist = result
+                test = (rlist[:nq, ...], rdist[:nq, ...])
 
-            #    acc = Primitives.neighbor_dist(truth, test)
-            #    Primitives.accuracy.append( acc )
-            #    record.push("Recall", acc[0])
-            #    record.push("Distance", acc[1])
+                acc = Primitives.neighbor_dist(truth, test)
+                Primitives.accuracy.append( acc )
+                record.push("Recall", acc[0])
+                record.push("Distance", acc[1])
 
-            #    print("Iteration:", it, "Recall:", acc)
+                print("Iteration:", it, "Recall:", acc)
 
-            #    if until and acc[0] > threshold:
-            #        break_flag = True
+                if until and acc[0] > threshold:
+                    break_flag = True
 
-            #f ( truth is None ) and until and ( rank == 0) :
+            if ( truth is None ) and until and ( rank == 0) :
 
-            #    idx = it % gap
+                idx = it % gap
 
-            #    rlist, rdist = result
-            #    test = (rlist[:nq, ...], rdist[:nq, ...])
+                rlist, rdist = result
+                test = (rlist[:nq, ...], rdist[:nq, ...])
 
-            #    if prev is not None:
-            #        diff = ( nq*k - np.sum(test[0] == prev[0]) ) / (nq*k)
-            #    else:
-            #        diff = 1
+                if prev is not None:
+                    diff = ( nq*k - np.sum(test[0] == prev[0]) ) / (nq*k)
+                else:
+                    diff = 1
 
-            #    print("Iteration:", it, "Change %:", diff)
+                print("Iteration:", it, "Change %:", diff)
 
-            #    Primitives.diff.append(diff)
+                Primitives.diff.append(diff)
 
-            #    prev = ( np.copy(test[0]), np.copy(test[1]) )
+                prev = ( np.copy(test[0]), np.copy(test[1]) )
 
-            #    converge_log[idx] = 1 if diff < 0.05 else 0
+                converge_log[idx] = 1 if diff < 0.05 else 0
 
-            #    if np.sum(converge_log) > gap - 1:
-            #        break_flag = True
+                if np.sum(converge_log) > gap - 1:
+                    break_flag = True
 
-            #break_flag = self.comm.bcast(break_flag, root=0)
+            break_flag = self.comm.bcast(break_flag, root=0)
             
-            #if break_flag:
-            #    break
+            if break_flag:
+                break
 
             timer.pop("Forest: Compare")
 

@@ -1,4 +1,5 @@
 import numpy as np
+from numba import jit, njit
 import numba
 import os
 
@@ -157,6 +158,125 @@ def distance(R, Q):
     if env == "CPU":
         return cpu.distance(R, Q);
     """
+
+@njit(fastmath=True)
+def jac(a, b):
+    eq = np.double(np.sum(np.equal(a, b)))
+    return eq
+
+@njit(fastmath=True)
+def jac_distance(R, Q):
+    N = R.shape[0]
+    M = Q.shape[0]
+    d = Q.shape[1]
+    out = np.zeros((M, N))
+    for i in range(M):
+        for j in range(N):
+            q = Q[i, :]
+            r = R[j, :]
+            out[i, j] = ( d-jac(q, r) )
+    return out 
+
+#@njit(fastmath=True)
+def jaccard_test(gids, R, Q, k):
+    N = R.shape[0]
+    M = Q.shape[0]
+    d = Q.shape[1]
+
+    #Store everything
+    NL = np.zeros([M, N])
+    ND = np.zeros([M, N])
+
+    dist = jac_distance(R, Q)
+
+    #For each query point,
+    #Sort all distances and ids. 
+
+    for q_idx in range(M):
+        #reorder ids
+        lids = np.argsort(dist[q_idx, ...])
+        
+        #reorder distance row
+        ND[q_idx, ...] = (dist[q_idx, lids])
+
+        #reorder ids (only really relevant if nonlocal)
+        NL[q_idx, ...] = lids  #gids[lids]
+
+    m = (int)(np.max(ND[:, N-1]))
+    print("Max distance: ", m)
+
+    return dist, NL, ND, m
+
+#@njit(fastmath=True)
+def jaccard_distribution(ND, m):
+    M = ND.shape[0]
+    N = ND.shape[1]
+
+    #allocate space to store distribution information
+    dstore = np.zeros([M, m+1])
+
+    for q_idx in range(M):
+        for l in range(m+1):
+            dstore[q_idx, l] = (ND[q_idx, ...] == l).sum()
+    
+    hist = np.sum(dstore, axis=0)
+
+    return dstore, hist 
+
+#@njit(fastmath=True)
+def jaccard_neighbor_check(TL, dist, d):
+    M = dist.shape[0]
+    N = dist.shape[1]
+
+    assert(TL.shape[0] == M)
+    k = TL.shape[1]
+
+    loc = np.zeros([M, k])
+
+    for q_idx in range(M):
+        for k_idx in range(k):
+            id = TL[q_idx, k_idx]
+            loc[q_idx, k_idx] = (dist[q_idx, id])
+
+    m = (int)(np.max(loc.ravel()))
+
+    dstore = np.zeros([M, m+1])
+
+    for q_idx in range(M):
+        for l in range(m+1):
+            dstore[q_idx, l] = (loc[q_idx, ...] == l).sum()
+    
+    hist = np.sum(dstore, axis=0)
+
+    return loc, dstore, hist
+
+def jaccard(gids, R, Q, k):
+    N = R.shape[0]
+    M = Q.shape[0]
+    d = Q.shape[1]
+
+    neighbor_list = lib.zeros([M, k])                #TODO: Change type to int
+    nd = lib.zeros([M, k])
+
+    dist = jac_distance(R, Q)
+    #print(dist.shape)
+
+    for q_idx in range(M):
+
+        #Perform k selection on distance list
+        #print(dist[q_idx, ...].shape, k)
+        neighbor_lids = lib.argpartition(dist[q_idx, ...], k)[:k]            #This performs a copy of dist and allocated lids
+        nd[q_idx, ...] = dist[q_idx, neighbor_lids]              #This performs a copy of dist
+        neighbor_gids = gids[neighbor_lids]                                 #This performs a copy of gids
+
+        #Sort and store the selected k neighbors
+        shuffle_idx = lib.argsort(nd[q_idx, ...])                 #This performs a copy of dist and allocates idx
+        nd[q_idx, ...] = nd[q_idx, shuffle_idx]       #This performs a copy of dist
+        neighbor_gids = neighbor_gids[shuffle_idx]                          #This performs a copy of gids
+
+        neighbor_list[q_idx, ...] = neighbor_gids 
+    return np.asarray(neighbor_list, dtype=np.int32), nd  
+    
 
 def single_knn(gids, R, Q, k):
     """Compute the k nearest neighbors from a query set Q (|Q| x d) in a reference set R (|R| x d).
@@ -346,8 +466,46 @@ def merge_neighbors(a, b, k):
 
     return out
 
+
+def accuracy_metric(truth, approx, k_list=[64], id_only=False,):
+    accuracy_list = []
+    truth_list = truth[0]
+    truth_dist = truth[1]
+
+    approx_list = approx[0]
+    approx_dist = approx[1]
+
+    for k in k_list:
+        k_truth = (truth_list[:, :k], truth_dist[:, :k])
+        k_approx = (approx_list[:, :k], approx_dist[:, :k])
+        accuracy = neighbor_dist(k_truth, k_approx, id_only)
+        accuracy_list.append(accuracy[0])
+    return accuracy_list 
+
+def rmetric(truth, approx):
+    truth_list = a[0]
+    truth_dist = a[1]
+
+    approx_list = b[0]
+    approx_dist = b[1] 
+
+    Na, ka = truth_list.shape
+    Nb, kb = approx_list.shape
+    assert(Na == Nb)
+    assert(ka == kb)
+
+    count = 0
+    for i in range(Na):
+        hit = 1 if ( truth_list[i, 1] in approx_list[i,:]) else 0
+        count += hit
+    count = count / Na
+
+    return count 
+
+
+
 #This isn't really an HPC kernel, just a useful utility function I didn't know where else to put
-def neighbor_dist(a, b):
+def neighbor_dist(a, b, id_only=False):
     """Compute how accurate the nearest neighbors are.
 
     Arguments:
@@ -380,14 +538,17 @@ def neighbor_dist(a, b):
     relative_distance = 0
 
     for i in range(Na):
-        miss_array_id   = [0 if a_list[i, j] in b_list[i] else 1 for j in range(k)]
-        miss_array_dist = [0 if b_dist[i, j] < knndist[i] else 1 for j in range(k)]
-        miss_array = np.logical_or(miss_array_id, miss_array_dist)
+        miss_array_id   = [1 if a_list[i, j] in b_list[i] else 0 for j in range(k)]
+        miss_array_dist = [1 if b_dist[i, j] <= knndist[i] else 0 for j in range(k)]
+        if id_only:
+            miss_array = miss_array_id
+        else:
+            miss_array = np.logical_or(miss_array_id, miss_array_dist)
         #miss_array = miss_array_id
         err+= np.sum(miss_array)
         relative_distance = max(relative_distance, np.abs(knndist[i] - b_dist[i, kb-1])/knndist[i])
 
-    perc = 1 - float(err)/(Na*ka)
+    perc = float(err)/(Na*ka)
 
     return perc, relative_distance
 

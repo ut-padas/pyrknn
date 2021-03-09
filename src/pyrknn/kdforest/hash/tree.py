@@ -28,18 +28,6 @@ from numba import njit, prange
 
 import gc
 
-htable = np.zeros([2**17, 300])
-
-
-Qlist = []
-for k in range(20):
-    v = np.random.rand(200, 200)
-    v = np.asarray(v, dtype=np.float32, order='F')
-    Q = np.linalg.qr(v)[0]
-    Qlist.append(Q)
-
-q_idx = 0
-ql_idx = 0
 
 @njit(parallel=False)
 def collect(lids, gids, mpi_size):
@@ -109,10 +97,10 @@ class RKDT:
 
     verbose = False
 
-    def __init__(self, levels=0, leafsize=512, pointset=None, location="CPU", sparse=False, comm=None, N=None, d=None):
+    def __init__(self, levels=0, leafsize=512, pointset=None, location="CPU", sparse=False, comm=None, N=None, d=None, forest=None):
 
         self.id = id(self)
-
+        self.forest = forest 
         self.levels = levels
         self.leafsize = leafsize
         self.location = location
@@ -228,21 +216,13 @@ class RKDT:
         comm = self.comm
         rank = comm.Get_rank()
         size = comm.Get_size()
-        global q_idx
-        global ql_idx 
+
         #Generate projection vectors on rank 0
         if rank == 0:
-            vectors = np.random.randn(self.dim, self.levels)
+            vectors = np.random.rand(self.dim, self.levels)
             vectors = np.array(vectors, dtype=np.float32, order='F')
 
             timer.push("Projection: QR")
-            #if q_idx < 200-self.levels:
-            #    vectors = Qlist[ql_idx][q_idx:q_idx+self.levels, :]
-            #    q_idx += self.levels
-            #else:
-            #    ql_idx += 1
-            #    q_idx = 0
-            #    vectors = Qlist[ql_idx][q_idx:q_idx+self.levels, :]
             vectors = np.linalg.qr(vectors)[0]
             timer.pop("Projection: QR")
 
@@ -613,17 +593,6 @@ class RKDT:
             data = data[lids, ...]
             return data
 
-    def hash(self, index, label="id"):
-        leaf_nodes = self.get_level(self.levels)
-        i = 1
-        global htable
-        for leaf in leaf_nodes:
-            if label == "id":
-                htable[leaf.gids, index] = np.ones(len(leaf.gids)) * i
-            elif label == "mean":
-                htable[leaf.gids, index] = np.ones(len(leaf.gids)) * leaf.center()
-            i += 1  
-
     def build(self, levels=None, leafsize=None):
         timer = Primitives.Profiler()
 
@@ -834,11 +803,6 @@ class RKDT:
 
         def get_gids(self):
             return self.gids
-
-        def center(self):
-            data = self.get_reference()
-            center = np.mean(data, axes=1)
-            return center 
 
         def get_reference(self):
             if self.tree.ordered:
