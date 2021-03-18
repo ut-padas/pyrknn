@@ -212,6 +212,9 @@ class RKDT:
 
         self.dist_levels = int(np.floor(np.log2(self.comm.Get_size())))
         self.levels = int(min(np.ceil(np.log2(np.ceil(self.size/self.leafsize))), self.levels))
+        self.levels = max(self.levels, self.dist_levels)
+
+        print("Generate vectors ", self.levels, self.dist_levels)
 
         comm = self.comm
         rank = comm.Get_rank()
@@ -219,7 +222,7 @@ class RKDT:
 
         #Generate projection vectors on rank 0
         if rank == 0:
-            vectors = np.random.rand(self.dim, self.levels)
+            vectors = np.random.randn(self.dim, self.levels)
             vectors = np.array(vectors, dtype=np.float32, order='F')
 
             timer.push("Projection: QR")
@@ -282,6 +285,7 @@ class RKDT:
                 a = i
                 if i >= self.dim:
                     a = int(spill[i-self.dim])
+                    print("using overspill pool...", a, self.levels, self.dist_levels)
 
                 vector = self.vectors[a, :]
                 proj_data = self.host_data @ vector
@@ -834,7 +838,7 @@ class RKDT:
             if a+self.tree.dist_levels >= self.tree.dim:
                 a = random.randint(0, self.tree.dim-1)
             self.vector = self.tree.vectors[a+self.tree.dist_levels, :]
-            self.vector = self.vector / np.linalg.norm(self.vector)
+            #self.vector = self.vector / np.linalg.norm(self.vector)
             self.local_ = self.tree.data[self.offset:self.offset+self.size, ...] @ self.vector
             del a
 

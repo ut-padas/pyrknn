@@ -380,14 +380,14 @@ def neighbor_dist(a, b):
     relative_distance = 0
 
     for i in range(Na):
-        miss_array_id   = [0 if a_list[i, j] in b_list[i] else 1 for j in range(k)]
-        miss_array_dist = [0 if b_dist[i, j] < knndist[i] else 1 for j in range(k)]
+        miss_array_id   = [1 if a_list[i, j] in b_list[i] else 0 for j in range(k)]
+        miss_array_dist = [1 if b_dist[i, j] < knndist[i] else 0 for j in range(k)]
         miss_array = np.logical_or(miss_array_id, miss_array_dist)
-        #miss_array = miss_array_id
+        miss_array = miss_array_id
         err+= np.sum(miss_array)
         relative_distance = max(relative_distance, np.abs(knndist[i] - b_dist[i, kb-1])/knndist[i])
 
-    perc = 1 - float(err)/(Na*ka)
+    perc = float(err)/(Na*ka)
 
     return perc, relative_distance
 

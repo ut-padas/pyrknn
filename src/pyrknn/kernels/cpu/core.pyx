@@ -437,8 +437,8 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     cdef int global_nright = global_split_info[1]
 
     if (gmax - gmin < 0.00001):
-        print("Warning: Up to precision ", N, " points are the same.")  
-        print("Performing random split on remaining points.")
+        #print("Warning: Up to precision ", N, " points are the same.")  
+        #print("Performing random split on remaining points.")
         X = X + np.array(np.random.rand(nlocal), dtype=np.float32)*(1e-3)
 
     if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):

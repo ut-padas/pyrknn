@@ -67,7 +67,7 @@ class RKDForest:
                 local_col = np.asarray(pointset.col, dtype=np.int32)
 
                 self.data = sp.coo_matrix( (local_data, (local_row, local_col) ), shape=(N, d))
-                print("Out of the Forest", self.data.shape)
+                #print("Out of the Forest", self.data.shape)
             else:
                 self.data = np.asarray(pointset, dtype=np.float32)
 
@@ -194,6 +194,18 @@ class RKDForest:
 
         return result
 
+    def all_search(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=56, truth=None, until=False, until_max=100, nq=1000, gap=5, threshold=0.95):
+        timer = Primitives.Profiler()
+        record = Primitives.Recorder()
+
+        Primitives.set_cores(cores)
+
+        result = None 
+
+        rank = self.comm.Get_rank()
+        mpi_size = self.comm.Get_size()
+        
+
     def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, until_max=100, nq=1000, gap=5, threshold=0.95):
         timer = Primitives.Profiler()
         record = Primitives.Recorder()
@@ -231,7 +243,7 @@ class RKDForest:
         for it in range(self.ntrees):
 
             #Build Tree
-
+            t = time.time()
             timer.push("Forest: Build Tree")
             if not sparse:
                 X = np.copy(self.data)
@@ -241,7 +253,7 @@ class RKDForest:
             tree.build()
             timer.pop("Forest: Build Tree")
 
-            print("Searching Neighbors")
+            #print("Searching Neighbors")
             #Compute Neighbors
             timer.push("Forest: Compute Neighbors")
             if (self.location == "CPU" or self.location == "PYTHON" ) and (not sparse):
@@ -274,6 +286,8 @@ class RKDForest:
                 result = Primitives.merge_neighbors(result, neighbors, k)
             timer.pop("Forest: Merge")
 
+            if rank == 0:
+                print("Elapsed:", time.time() - t, flush=True)
             #print("Result", result)
             #print("Truth", truth)
 
@@ -290,7 +304,7 @@ class RKDForest:
                 record.push("Recall", acc[0])
                 record.push("Distance", acc[1])
 
-                print("Iteration:", it, "Recall:", acc)
+                print("Iteration:", it, "Recall:", acc, flush=True)
 
                 if until and acc[0] > threshold:
                     break_flag = True
