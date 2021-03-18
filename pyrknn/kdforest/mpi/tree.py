@@ -19,7 +19,7 @@ else:
 
 import scipy.sparse as sp
 import random
- 
+
 from collections import defaultdict, deque
 from mpi4py import MPI
 
@@ -65,7 +65,7 @@ def process_row_before(row, starts, sizes):
 def process_row_after(row, starts, sizes):
     for l in range(len(starts)):
         if starts[l] != 0:
-            row[starts[l]:starts[l]+sizes[l]] =  row[starts[l]:starts[l]+sizes[l]] + row[starts[l]-1] + 1 
+            row[starts[l]:starts[l]+sizes[l]] =  row[starts[l]:starts[l]+sizes[l]] + row[starts[l]-1] + 1
     return row
 
 #@njit
@@ -75,7 +75,7 @@ def find_index(rows, idx, upper=True):
 
     if idx > rows[len(rows)-1]:
         return len(rows)
-    
+
     init = np.searchsorted(rows, idx-1)
 
     i = init
@@ -100,11 +100,11 @@ class RKDT:
     def __init__(self, levels=0, leafsize=512, pointset=None, location="CPU", sparse=False, comm=None, N=None, d=None):
 
         self.id = id(self)
-        
+
         self.levels = levels
         self.leafsize = leafsize
         self.location = location
-        self.sparse = sparse 
+        self.sparse = sparse
 
         self.ordered = False
 
@@ -130,11 +130,11 @@ class RKDT:
         if (pointset is not None):
             #the number of points in the dataset
             self.local_size = pointset.shape[0]
-            
+
             #Global IDs of the pointset (assigned in original ordering)
             self.real_gids = np.arange(rank*self.local_size, (rank+1)*self.local_size, dtype=np.int32)
             self.host_real_gids = np.copy(self.real_gids)
-            
+
             #Local IDs of the pointset (assigned in original ordering)
             self.gids = np.arange(self.local_size, dtype=np.int32)
             self.host_gids = np.copy(self.gids)
@@ -142,11 +142,16 @@ class RKDT:
             if( self.sparse ):
                 #(data, indices, indptr)
                 #Copy of data in CPU Memory
+
+                print("Into the Trees", pointset.shape)
+                print("N", self.N)
+                print("d", self.d)
+
                 local_data = np.asarray(pointset.data, dtype=np.float32)
                 local_row = np.asarray(pointset.row, dtype=np.int32)
                 local_col = np.asarray(pointset.col, dtype=np.int32)
 
-                self.host_data = sp.coo_matrix( (local_data, (local_row, local_col) ), shape=(N, d))
+                self.host_data = sp.coo_matrix( (local_data, (local_row, local_col) ), shape=(self.N, self.d))
 
             else:
                 self.host_data = np.asarray(pointset, dtype=np.float32)
@@ -168,12 +173,12 @@ class RKDT:
                 local_data = np.asarray([], dtype=np.float32)
                 local_row = np.asarray([], dtype=np.int32)
                 local_col = np.asarray([], dtype=np.float32)
-                
+
                 self.host_data = sp.coo_matrix( (local_data, (local_row, local_col) ))
             else:
                 self.host_data = np.asarray([], dtype=np.float32)
-        
-        #Assumes all trees have same location and sparsity. 
+
+        #Assumes all trees have same location and sparsity.
         Primitives.set_env(self.location, self.sparse)
 
         #Reduce global size of dataset
@@ -207,6 +212,9 @@ class RKDT:
 
         self.dist_levels = int(np.floor(np.log2(self.comm.Get_size())))
         self.levels = int(min(np.ceil(np.log2(np.ceil(self.size/self.leafsize))), self.levels))
+        self.levels = max(self.levels, self.dist_levels)
+
+        print("Generate vectors ", self.levels, self.dist_levels)
 
         comm = self.comm
         rank = comm.Get_rank()
@@ -245,7 +253,7 @@ class RKDT:
 
         timer.push("Build: Generate Projection")
         self.generate_projection_vectors()
-        timer.pop("Build: Generate Projection")       
+        timer.pop("Build: Generate Projection")
 
         if self.sparse:
             self.dist_build_sparse()
@@ -277,6 +285,7 @@ class RKDT:
                 a = i
                 if i >= self.dim:
                     a = int(spill[i-self.dim])
+                    print("using overspill pool...", a, self.levels, self.dist_levels)
 
                 vector = self.vectors[a, :]
                 proj_data = self.host_data @ vector
@@ -289,11 +298,11 @@ class RKDT:
 
 
                 timer.push("Dist Build: Reorder")
-                self.host_real_gids = self.host_real_gids[lids] 
+                self.host_real_gids = self.host_real_gids[lids]
                 self.host_data = self.reorder(lids, self.host_data)
                 timer.pop("Dist Build: Reorder")
 
-                #Redistribute 
+                #Redistribute
 
                 timer.push("Dist Build: Compute Targets")
                 #Pass local split to rank//2 if rank > comm.Get_size()
@@ -309,7 +318,7 @@ class RKDT:
                 keep_size = self.local_size - send_size
                 list_sizes = np.zeros(mpi_size, dtype=np.int32)
                 list_sizes = comm.allgather(send_size)
-               
+
                 half = mpi_size//2
                 send_dict = defaultdict(list)
                 arr = list_sizes
@@ -369,7 +378,7 @@ class RKDT:
                 self.host_real_gids = recv_gids
                 self.host_data = recv_data
 
-                median_list.append(median)           
+                median_list.append(median)
 
                 #Split communicator
                 comm = comm.Split(color, rank)
@@ -378,18 +387,22 @@ class RKDT:
         self.gids = self.host_gids
         self.real_gids = self.host_real_gids
 
+        self.nodelist = [None]
+        self.offset_list = None
+        self.nodelist[0] = self.Node(self, idx=0, level=0, size=self.local_size, gids=self.gids)
 
     def dist_build_sparse(self):
         timer = Primitives.Profiler()
 
         comm = self.comm
+        size = comm.Get_size()
         rank = comm.Get_rank()
 
         median_list = []
         if size > 1:
             for i in range(self.dist_levels):
 
-                timer.push("Dist Build: Get Global Size") 
+                timer.push("Dist Build: Get Global Size")
                 rank = comm.Get_rank()
                 mpi_size = comm.Get_size()
                 global_size = np.array(0, dtype=np.int32)
@@ -402,7 +415,7 @@ class RKDT:
                 if i >= self.dim:
                     a = int(spill[i-self.dim])
 
-                vector = self.dist_vectors[a, :]
+                vector = self.vectors[a, :]
                 proj_data = self.host_data @ vector
                 timer.pop("Dist Build: Compute Projection")
 
@@ -418,7 +431,7 @@ class RKDT:
 
                 #TODO: Replace this with something saner
                 timer.push("Dist Build: Compute Targets")
-     
+
                 #Pass local split to rank//2 if rank > comm.Get_size()
                 if(rank >= mpi_size//2): #sending small, recv large
                     send_size = local_split
@@ -433,7 +446,7 @@ class RKDT:
 
                 list_sizes = np.zeros(mpi_size, dtype=np.int32)
                 list_sizes = comm.allgather(send_size)
-               
+
                 half = mpi_size//2
                 send_dict = defaultdict(list)
                 arr = list_sizes
@@ -473,7 +486,7 @@ class RKDT:
                     rsizes[m[0]] = m[1]
 
                 rstarts = np.cumsum(rsizes) - np.array(rsizes)
-                timer.pop("Dist Build: Compute Targets") 
+                timer.pop("Dist Build: Compute Targets")
 
                 timer.push("Dist Build: AlltoAllv GIDS")
                 recv_gids = np.zeros(len(self.host_real_gids), dtype=np.int32)
@@ -493,14 +506,14 @@ class RKDT:
 
                 nnzsizes = list(np.array(nnzends) - np.array(nnzstarts))
                 all_nnz_sizes = comm.allgather(nnzsizes)
-              
-                nnz_recv_sizes = [0]*mpi_size 
+
+                nnz_recv_sizes = [0]*mpi_size
                 for l in range(mpi_size):
                     nnz_recv_sizes[l] = all_nnz_sizes[l][rank]
 
                 nnz_recv_starts = np.cumsum(nnz_recv_sizes) - np.array(nnz_recv_sizes)
                 timer.pop("Dist Build: Compute NNZ Sends")
-                
+
 
                 timer.push("Dist Build: Process Row (Send)")
                 rows = process_row_before(rows, np.array(nnzstarts), np.array(nnzsizes))
@@ -529,6 +542,7 @@ class RKDT:
                 timer.push("Dist Build: Update Sparse Matrix")
                 self.host_real_gids = recv_gids
                 self.host_data = sp.coo_matrix( (recv_data, (recv_row, recv_col)), shape=(self.local_size, self.dim) )
+                self.host_data.has_canonical_format = True
                 timer.pop("Dist Build: Update Sparse Matrix")
 
                 median_list.append(median)
@@ -542,26 +556,25 @@ class RKDT:
         temp = self.host_data.tocsr()
 
         data = temp.data
-        ind = temp.indicies
+        ind = temp.indices
         ptr = temp.indptr
 
         data = np.asarray(data, dtype=np.float32)
         ind = np.asarray(ind, dtype=np.int32)
         ptr = np.asarray(ptr, dtype=np.int32)
 
-        del temp
-
         self.data = sp.csr_matrix((data, ind, ptr), shape=(self.local_size, self.dim))
-
+        self.data.has_sorted_indices = True
         self.gids = np.asarray(self.host_gids, dtype=np.int32)
         self.real_gids = np.asarray(self.host_real_gids, dtype=np.int32)
 
         timer.pop("Dist Build: Finalize Sparse Matrix (CSR)")
 
         self.ordered = False
+        self.offset_list = None
         self.nodelist = [None]
         self.nodelist[0] = self.Node(self, idx=0, level=0, size=self.local_size, gids=self.gids)
-                            
+
 
     def reorder(self, lids, data):
         if self.sparse:
@@ -579,7 +592,7 @@ class RKDT:
             cols = cols[order]
             d = d[order]
 
-            return sp.coo_matrix((d, (rows, cols)))         
+            return sp.coo_matrix((d, (rows, cols)))
         else:
             data = data[lids, ...]
             return data
@@ -624,13 +637,13 @@ class RKDT:
         self.nodelist = [None] * (2**(self.levels - self.dist_levels + 1)-1)
 
         timer.pop("Build: Precompute Offsets")
-        
+
         timer.push("Build: Local Build")
         with Parla():
             @spawn(placement = cpu)
             async def build_tree():
                 T = TaskSpace()
-                
+
                 #Create the root node
                 @spawn(T[0], placement = cpu)
                 def create_root():
@@ -692,7 +705,7 @@ class RKDT:
 
         real_gids = self.host_real_gids
         lids = np.arange(self.local_size, dtype=np.int32)
-        
+
         timer.push("Redistribute: Compute Targets")
         starts, lengths, lids = collect(lids, real_gids, mpi_size)
         timer.pop("Redistribute: Compute Targets")
@@ -716,7 +729,7 @@ class RKDT:
 
         timer.push("Redistribute: Alltoall GIDS")
         comm.Alltoallv([sending_gids, tuple(ssizes), tuple(sstarts), MPI.INT], [result_gids, tuple(rsizes), tuple(rstarts), MPI.INT])
-        timer.pop("Redistribute: Alltoall GIDS")        
+        timer.pop("Redistribute: Alltoall GIDS")
 
         ssizes = ssizes * k
         sstarts = sstarts * k
@@ -735,14 +748,14 @@ class RKDT:
         timer.push("Redistribute: Sort")
         lids = np.argsort(result_gids)
         new_gids = result_gids[lids]
-        
+
         result_ids = result_ids[lids, ...]
         result_dist = result_dist[lids, ...]
         timer.pop("Redistribute: Sort")
         timer.pop("Redistribute")
 
         return new_gids, (result_ids, result_dist)
- 
+
     class Node:
 
         verbose = False
@@ -756,14 +769,18 @@ class RKDT:
 
             self.gids = gids
             self.vector = None
- 
+
             self.anchors = None
 
             self.isleaf = True
             self.parent = None
             self.children = [None, None]
-            
-            self.offset = int(self.tree.offset_list[self.level+1][idx - 2**self.level + 1])
+
+            if self.tree.offset_list is not None:
+                self.offset = int(self.tree.offset_list[self.level+1][idx - 2**self.level + 1])
+            else:
+                self.offset = 0
+
             self.lib = self.tree.lib
 
         def __del__(self):
@@ -818,10 +835,10 @@ class RKDT:
 
         def select_hyperplane(self):
             a = self.level
-            if a >= self.tree.dim:
+            if a+self.tree.dist_levels >= self.tree.dim:
                 a = random.randint(0, self.tree.dim-1)
-            self.vector = self.tree.vectors[a, :]
-            self.vector = self.vector / np.linalg.norm(self.vector)
+            self.vector = self.tree.vectors[a+self.tree.dist_levels, :]
+            #self.vector = self.vector / np.linalg.norm(self.vector)
             self.local_ = self.tree.data[self.offset:self.offset+self.size, ...] @ self.vector
             del a
 
@@ -840,18 +857,18 @@ class RKDT:
                 self.isleaf=True
                 return [None, None]
 
-            self.ordered = True            
+            self.ordered = True
             if self.tree.location != "GPU":
 
                 self.select_hyperplane()
-              
+
                 self.lids = self.lib.argpartition(self.local_, middle)  #parition the local ids
                 self.tree.gids[self.offset:self.offset+self.size] = self.gids[self.lids]                  #partition the global ids
                 self.gids = self.tree.gids[self.offset:self.offset+self.size]
                 self.plane = self.local_[self.lids[middle]]       #save the splitting line
 
                 self.cleanup()                                    #delete the local projection (it isn't required any more)
-             
+
 
                 #Initialize left and right nodes
                 left = self.tree.Node(self.tree, level = self.level+1, idx = 2*self.id+1, size=middle, gids=self.gids[:middle])
@@ -860,7 +877,7 @@ class RKDT:
                 right.set_parent(self)
                 children = [left, right]
                 self.set_children(children)
-                
+
                 local_data = self.tree.data[self.offset:self.offset+self.size]
                 self.tree.data[self.offset:self.offset+self.size] = local_data[self.lids]
 
@@ -924,15 +941,22 @@ class RKDT:
                 k -- number of nearest neighbors
             """
             R = self.get_reference()
+            print("R shape", R.shape)
 
             lids = np.arange(self.size, dtype=np.int32)
+            print("lids", lids)
+
             results =  Primitives.single_knn(self.gids, R, Q, k)
-            
+
+            print("Finished Search")
+
             #Merge with itself to sort output
             results = Primitives.merge_neighbors(results, results, k)
 
+            print("Finished Merge")
+
             return results
-            
+
 
         def knn_all(self, k):
             """
@@ -964,7 +988,7 @@ class RKDT:
             if not self.tree.sparse:
                 q = q.reshape((1, len(q)))
 
-            dist = q @ self.vector 
+            dist = q @ self.vector
 
             #compare against splitting plane
             return 2*self.id+1 if dist < self.plane else 2*self.id+2
@@ -1016,7 +1040,7 @@ class RKDT:
 
         N = Q.shape[0]
         d = self.dim
-        
+
         idx = self.lib.zeros(N)
 
         #TODO: Restructure this for a GPU kernel
@@ -1078,19 +1102,19 @@ class RKDT:
         #Allocate space to store results
         neighbor_list = self.lib.full([N, k], dtype=np.int32)
         neighbor_dist = self.lib.full([N, k], dtype=np.float32)
-        
+
         #compute batchsize
         MAXBATCH = 1024
         n_leaves = len(bins)
-        batchsize = n_leaves if n_leaves < MAXBATCH else MAXBATCH 
-        
-        #Loop over all batches 
+        batchsize = n_leaves if n_leaves < MAXBATCH else MAXBATCH
+
+        #Loop over all batches
         iters = int(np.ceil(n_leaves/batchsize))
 
         for i in range(iters):
             start = batchsize*(i-1)
             stop  = batchsize*(i) if i < iters-1 else n_leaves
- 
+
             gidsList = []
             RList = []
             QList = []
@@ -1102,7 +1126,7 @@ class RKDT:
                 gidsList.append(node.gids)
                 RList.append(node.get_reference())
                 QList.append(Q[idx, ...])
-                
+
             #call batch routine
             NLL, NDL = Primitives.multileaf_knn(gidsList, RList, QList, k)
 
@@ -1143,7 +1167,7 @@ class RKDT:
         #Allocate space to store results
         neighbor_list = self.lib.zeros([N, k], dtype=np.int32)
         neighbor_dist = self.lib.zeros([N, k], dtype=np.float32)
-        
+
         #get all leaf nodes
         leaf_nodes = self.get_level(max_level)
         n_leaves = len(leaf_nodes)
@@ -1153,16 +1177,18 @@ class RKDT:
         #compute batchsize
         MAXBATCH = 2**28
         n_leaves = len(leaf_nodes)
-        batchsize = n_leaves if n_leaves < MAXBATCH else MAXBATCH 
-       
-        #Loop over all batches 
+        batchsize = n_leaves if n_leaves < MAXBATCH else MAXBATCH
+
+        #Loop over all batches
         iters = int(np.ceil(n_leaves/batchsize))
 
         for i in range(iters):
 
+
+            timer.push("AKNN: Setup")
             start = batchsize*(i)
             stop  = batchsize*(i+1) if i < iters-1 else n_leaves
- 
+
             gidsList = []
             RList = []
 
@@ -1170,7 +1196,9 @@ class RKDT:
             for leaf in leaf_nodes[start:stop]:
                 gidsList.append(leaf.gids)
                 RList.append(leaf.get_reference())
-            
+
+            timer.pop("AKNN: Setup")
+
             timer.push("AKNN: Compute")
             NLL, NDL, out = Primitives.multileaf_knn(gidsList, RList, RList, k)
             timer.pop("AKNN: Compute")
@@ -1179,7 +1207,7 @@ class RKDT:
 
             #populate results from temporary local objects
             #TODO: This can be made much faster
-            
+
             j = 0;
             for leaf in leaf_nodes[start:stop]:
                 idx = leaf.get_gids()
@@ -1191,9 +1219,10 @@ class RKDT:
                 del NL
                 del ND
                 j += 1
-            
 
             timer.pop("AKNN: Copy")
+
+            timer.push("AKNN: Cleanup")
             #Clean up
             del NLL
             del NDL
@@ -1201,7 +1230,8 @@ class RKDT:
             del gidsList
             del RList
 
-            gc.collect()
+            #gc.collect()
+            timer.pop("AKNN: Cleanup")
 
         timer.pop("AKNN")
 
@@ -1213,7 +1243,12 @@ class RKDT:
 
         query_size = Q.shape[0]
         root = self.nodelist[0]
+
+        print("Query_size", Q.shape)
+
         result =  root.knn(Q, k)
+
+        print("result", result)
 
         recvbuff_list = np.empty([size, query_size, k], dtype=np.int32)
         recvbuff_dist = np.empty([size, query_size, k], dtype=np.float32)
@@ -1234,4 +1269,5 @@ class RKDT:
                     result = Primitives.merge_neighbors(result, neighbors, k)
                 else:
                     result = neighbors
-        return result 
+
+        return result

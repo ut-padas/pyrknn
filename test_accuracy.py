@@ -21,9 +21,12 @@ def test_build():
     size = comm.Get_size()
     rank = comm.Get_rank()
 
-    d = 10
-    N = 2**17
+    d = 15
+    N = 2**15
     data = None
+    global cores
+    core = 56
+    """
     filename = os.environ["SCRATCH"]+'/datasets/sphere_50/sphere_set_'+str(rank)+'.bin'
 
     tdata = np.fromfile(filename, dtype=np.float32)
@@ -37,26 +40,33 @@ def test_build():
     filename = os.environ["SCRATCH"]+'/datasets/sphere_50/sphere_set_'+str(0)+'.bin'
     tdata = np.fromfile(filename, dtype=np.float32)
     tdata = np.reshape(tdata, (len(tdata)//d, d))
-
-    data = np.random.rand(N, d)
+    """
+    np.random.seed(1001)
+    data = np.random.randn(N, d)
     data = np.asarray(data, dtype=np.float32)
     tdata = data
 
-    k = 32
+    k = 64
  
-    nq = 1000
+    nq = 100
     Q = tdata[:nq, ...]
+    prof = Profiler()
 
-    A = np.copy(data) 
+    A = np.copy(data)
     tree = RKDForest(pointset=A, levels=0, leafsize=256, location="CPU", ntrees=1, sparse=sparse)
     tree.build()
     tree = tree.forestlist[0]
+
+    t = time.time() 
     truth = tree.dist_exact(Q, k)
+    t = time.time() - t
+    print("Exact: ", t)
+    prof.reset()
 
     #truth = (np.zeros([nq, k], dtype=np.int32), np.zeros([nq, k], dtype=np.float32))
 
-    tree = RKDForest(pointset=data, levels=20, leafsize=256, comm=comm, location="CPU", ntrees=5, sparse=sparse)
-    approx = tree.aknn_all_build(k, ntrees=2, blockleaf=2, blocksize=32, cores=56, truth=truth, until=True)
+    tree = RKDForest(pointset=data, levels=20, leafsize=512*2, comm=comm, location="GPU", ntrees=5, sparse=sparse)
+    approx = tree.aknn_all_build(k, ntrees=2, blockleaf=2, blocksize=128, cores=56, truth=truth, until=True, threshold=0.98)
 
     """
     while True:
@@ -70,9 +80,9 @@ def test_build():
     if rank == 0:
         print("Final Solution", rank, approx, flush=True)
         print("Truth", rank, truth, flush=True)
-        print(Primitives.timing())
+        prof = Profiler()
+        prof.print()
 
 total_t = time.time()
 test_build()
 total_t = time.time() - total_t
-Primitives.timing()

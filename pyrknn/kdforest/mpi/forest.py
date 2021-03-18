@@ -23,7 +23,7 @@ class RKDForest:
 
     verbose = False
 
-    def __init__(self, ntrees=1, levels=0, leafsize=None, pointset=None, location="CPU", comm=MPI.COMM_WORLD, sparse=False):
+    def __init__(self, ntrees=1, levels=0, leafsize=None, pointset=None, location="CPU", comm=MPI.COMM_WORLD, sparse=False, N=None, d=None):
         if levels < 0:
             raise ErrorType.InitializationError('Invalid max levels parameter: Cannot build trees with '+str(levels)+' levels')
         if ntrees < 0:
@@ -45,7 +45,18 @@ class RKDForest:
             self.lib = cp
         else:
             self.lib = np
- 
+
+
+        if N is not None:
+            self.N = N
+        else:
+            self.N = None
+
+        if d is not None:
+            self.d = d
+        else:
+            self.d = None
+
         if (pointset is not None):
             self.size = pointset.shape[0]
             self.gids = np.arange(self.size)
@@ -55,7 +66,8 @@ class RKDForest:
                 local_row = np.asarray(pointset.row, dtype=np.int32)
                 local_col = np.asarray(pointset.col, dtype=np.int32)
 
-                self.data = sp.coo_matrix( (local_data, (local_row, local_col) ))
+                self.data = sp.coo_matrix( (local_data, (local_row, local_col) ), shape=(N, d))
+                #print("Out of the Forest", self.data.shape)
             else:
                 self.data = np.asarray(pointset, dtype=np.float32)
 
@@ -76,7 +88,7 @@ class RKDForest:
                 local_data = np.asarray([], dtype=np.float32)
                 local_row = np.asarray([], dtype=np.int32)
                 local_col = np.asarray([], dtype=np.float32)
-                
+
                 self.data = sp.coo_matrix( (local_data, (local_row, local_col) ))
             else:
                 self.data = np.asarray([], dtype=np.float32)
@@ -104,7 +116,8 @@ class RKDForest:
         self.forestlist = [None]*self.ntrees
 
         for i in range(self.ntrees):
-            tree = RKDT(pointset=self.data, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
+            X = self.data
+            tree = RKDT(pointset=X, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse, N=self.N, d=self.d)
             tree.build()
             self.forestlist[i] = tree
 
@@ -125,6 +138,11 @@ class RKDForest:
 
         first = self.forestlist[0]
         return first.knn(Q, k)
+
+    def dist_exact(self, Q, k):
+        first = self.forestlist[0]
+        return first.dist_exact(Q, k)
+
 
     def aknn(self, Q, k, verbose=False):
         """Perform an approximate knn search over all trees, merging results.
@@ -176,9 +194,25 @@ class RKDForest:
 
         return result
 
-    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, until_max=100, nq=1000, gap=5):
+    def all_search(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=56, truth=None, until=False, until_max=100, nq=1000, gap=5, threshold=0.95):
         timer = Primitives.Profiler()
+        record = Primitives.Recorder()
 
+        Primitives.set_cores(cores)
+
+        result = None 
+
+        rank = self.comm.Get_rank()
+        mpi_size = self.comm.Get_size()
+        
+
+    def aknn_all_build(self, k, verbose=False, blockleaf=10, blocksize=256, ntrees=1, cores=4, truth=None, until=False, until_max=100, nq=1000, gap=5, threshold=0.95):
+        timer = Primitives.Profiler()
+        record = Primitives.Recorder()
+
+        timer.push("Forest: AKNN All")
+
+        timer.push("Forest: Setup")
         Primitives.set_cores(cores)
 
         v = (self.verbose or verbose)
@@ -203,66 +237,84 @@ class RKDForest:
         if until:
             self.ntrees = until_max
 
-        #Iterate over the tree set. 
+        timer.pop("Forest: Setup")
+
+        #Iterate over the tree set.
         for it in range(self.ntrees):
 
             #Build Tree
-            X = self.data
-            tree = RKDT(pointset=X, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse)
+            t = time.time()
+            timer.push("Forest: Build Tree")
+            if not sparse:
+                X = np.copy(self.data)
+            else:
+                X = self.data.copy()
+            tree = RKDT(pointset=X, levels=self.levels, leafsize=self.leafsize, location=self.location, comm=self.comm, sparse=self.sparse, N=self.N, d=self.d)
             tree.build()
+            timer.pop("Forest: Build Tree")
 
-            print("GIDS", tree.gids)
-            print("RGIDS", tree.real_gids)
-
-
+            #print("Searching Neighbors")
             #Compute Neighbors
+            timer.push("Forest: Compute Neighbors")
             if (self.location == "CPU" or self.location == "PYTHON" ) and (not sparse):
                 neighbors = tree.aknn_all(k)
             elif self.location == "CPU" and sparse:
-                neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data)
+                print("Starting Sparse Search")
+                neighbors = Primitives.cpu_sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blocksize)
             elif self.location =="GPU" and self.sparse:
-                neighbors = Primitives.sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
+                neighbors = Primitives.gpu_sparse_knn(tree.host_real_gids, tree.data, tree.levels-tree.dist_levels, ntrees, k, blockleaf, blocksize, self.device)
             elif self.location == "GPU" and (not self.sparse):
-                neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device) 
+                neighbors = Primitives.dense_knn(tree.host_real_gids, tree.data, tree.levels - tree.dist_levels, ntrees, k, blocksize, self.device)
             else:
                 raise Exception("Your compute location is not valid. Select GPU or CPU Runtime")
+            timer.pop("Forest: Compute Neighbors")
 
+            timer.push("Forest: Redistribute")
             #Redistribute
             if size > 1:
                 gids, neighbors = tree.redist(neighbors)
+            timer.pop("Forest: Redistribute")
+
+            del X
+            del tree
 
             #Merge
-            """
+            timer.push("Forest: Merge")
             if result is None:
                 result = Primitives.merge_neighbors(neighbors, neighbors, k)
             else:
                 result = Primitives.merge_neighbors(result, neighbors, k)
-            """
+            timer.pop("Forest: Merge")
 
-            print("Result", result)
-            print("Truth", truth)
+            if rank == 0:
+                print("Elapsed:", time.time() - t, flush=True)
+            #print("Result", result)
+            #print("Truth", truth)
 
             break_flag = False
 
             #Compare against true NN
+            timer.push("Forest: Compare")
             if ( truth is not None ) and ( rank == 0 ) :
                 rlist, rdist = result
-                test = (rlist[:nq, ...], rdist[:nq, ...])                
+                test = (rlist[:nq, ...], rdist[:nq, ...])
 
                 acc = Primitives.neighbor_dist(truth, test)
                 Primitives.accuracy.append( acc )
+                record.push("Recall", acc[0])
+                record.push("Distance", acc[1])
 
-                print("Iteration:", it, "Recall:", acc)
-                
+                print("Iteration:", it, "Recall:", acc, flush=True)
+
                 if until and acc[0] > threshold:
                     break_flag = True
-          
+
             if ( truth is None ) and until and ( rank == 0) :
 
                 idx = it % gap
 
                 rlist, rdist = result
-                test = (rlist[:nq, ...], rdist[:nq, ...])                
+                test = (rlist[:nq, ...], rdist[:nq, ...])
 
                 if prev is not None:
                     diff = ( nq*k - np.sum(test[0] == prev[0]) ) / (nq*k)
@@ -276,15 +328,18 @@ class RKDForest:
                 prev = ( np.copy(test[0]), np.copy(test[1]) )
 
                 converge_log[idx] = 1 if diff < 0.05 else 0
-                
+
                 if np.sum(converge_log) > gap - 1:
                     break_flag = True
- 
-            break_flag = self.comm.bcast(break_flag, root=0)
 
+            break_flag = self.comm.bcast(break_flag, root=0)
+            
             if break_flag:
                 break
-                
+
+            timer.pop("Forest: Compare")
+
+        timer.pop("Forest: AKNN All")
         return result
 
 

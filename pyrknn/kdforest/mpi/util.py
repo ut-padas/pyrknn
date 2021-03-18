@@ -1,20 +1,48 @@
 import numpy as np
-import numba 
+import numba
 import os
 
 from ...kernels.cpu import core as cpu
 
 if os.environ["PYRKNN_USE_CUDA"] == '1':
     from ...kernels.gpu import core as gpu
+    from ...kernels.gpu import core_sparse as gpu_sparse
     from numba import cuda
     import cupy as cp
 else:
     import numpy as cp
     from ...kernels.cpu import core as gpu
+    from ...kernels.cpu import core as gpu_sparse
 
 import time
 
 """File that contains key kernels to be replaced with high performance implementations"""
+
+class Recorder:
+    record_book = dict()
+    
+    def push(self, string, value):
+        if string in self.record_book:
+            self.record_book[string].append(value)
+        else:
+            self.record_book[string] = [value]
+
+    def print(self, string=None):
+        if string == None:
+            print("Record Book")
+            for n, t in self.record_book.items():
+                print('{} {}'.format(n, t))
+        elif string in self.record_book:
+            print(self.record_book[string])
+
+    def write(self, filename):
+        with open(filename, 'w') as f:
+            for key in self.record_book.keys():
+                f.write("%s"%(key))
+                for item in self.record_book[key]:
+                    f.write(",%s"%(item))
+                f.write("\n")
+
 
 class Profiler:
 
@@ -40,15 +68,26 @@ class Profiler:
         #Reset
         self.current_times[string] = 0
 
-    def reset(self, string):
-        self.current_times[string] = 0
-        self.output_times[string] = 0
+    def reset(self, string=None):
+        if string is not None:
+            self.current_times[string] = 0
+            self.output_times[string] = 0
+        else:
+            self.current_times = dict()
+            self.output_times  = dict()
 
     def print(self):
         print("Region Time(s)")
         for n, t in self.output_times.items():
             print('{} {}'.format(n, t))
 
+    def write(self, filename):
+        with open(filename, 'w') as f:
+            for key in self.output_times.keys():
+                f.write("%s,%s\n"%(key,self.output_times[key]))
+
+
+ 
 
 #Note: Data movement should be done on the python layer BEFORE this one
 #      All functions can assume all data is local to their device (should this be asserted and checked here? for debugging yes)
@@ -72,7 +111,7 @@ cores = 0
 def set_env(loc, sp):
     global env
     env = loc
-    
+
     global sparse
     sparse = sp
 
@@ -84,7 +123,7 @@ def set_env(loc, sp):
         lib = cp
     else:
         raise Exception("Not a valid enviorment target. Specify CPU or GPU")
-    
+
 def set_cores(c):
     global cores
     cores = c
@@ -168,6 +207,7 @@ def single_knn(gids, R, Q, k):
     elif not sparse:
         return cpu.single_knn(gids, R, Q, k, cores)
     else:
+        print("Running Sparse Exact")
         return cpu.sparse_exact(gids, R, Q, k, cores)
 
 def batched_knn(gidsList, RList, QList, k):
@@ -326,32 +366,39 @@ def neighbor_dist(a, b):
     b_list = b[0]
     b_dist = b[1]
 
+
     Na, ka = a_list.shape
     Nb, kb = b_list.shape
     assert(Na == Nb)
     assert(ka == kb)
 
-    changes = 0
-    nn_dist = lib.zeros(Na)
-    first_diff = lib.zeros(Na)
-    knndist = 0
+    N = Na
+    k = ka
+
+    knndist = a_dist[:, k-1]
+    err = 0
+    relative_distance = 0
+
     for i in range(Na):
-        changes += np.sum([1 if a_list[i, k] in b_list[i] else 0 for k in range(ka)])
-        knndist = max(knndist, np.abs(a_dist[i, ka-1] - b_dist[i, kb-1])/a_dist[i, ka-1])
+        miss_array_id   = [1 if a_list[i, j] in b_list[i] else 0 for j in range(k)]
+        miss_array_dist = [1 if b_dist[i, j] < knndist[i] else 0 for j in range(k)]
+        miss_array = np.logical_or(miss_array_id, miss_array_dist)
+        miss_array = miss_array_id
+        err+= np.sum(miss_array)
+        relative_distance = max(relative_distance, np.abs(knndist[i] - b_dist[i, kb-1])/knndist[i])
 
-    perc = changes/(Na*ka)
+    perc = float(err)/(Na*ka)
 
-    return perc, knndist
-
+    return perc, relative_distance
 
 def dist_select(k, data, ids, comm):
     return cpu.dist_select(k, data, ids, comm)
 
-def sparse_knn(gids, X, levels, ntrees, k, blocksize):
+def cpu_sparse_knn(gids, X, levels, ntrees, k, blocksize):
     return cpu.sparse_knn(gids, X, levels, ntrees, k, blocksize, cores)
 
-def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
-    return gpu.sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device)
+def gpu_sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
+    return gpu_sparse.sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device)
 
 def dense_knn(gids, X, levels, ntrees, k, blocksize, device):
     return gpu.dense_knn(gids, X, levels, ntrees, k, blocksize, device)
