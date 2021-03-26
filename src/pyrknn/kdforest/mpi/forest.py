@@ -18,6 +18,22 @@ import scipy.sparse as sp
 
 from mpi4py import MPI
 
+import concurrent.futures 
+
+def distributed_tree_task(X, levels, leafsize):
+    #X = np.copy(self.host_data)
+    tree = RKDT(data=X, levels=levels, leafsize=leafsize)
+    tree.distributed_build()
+    tree.collect_data()
+
+    next_X = tree.host_data
+    next_gids = tree.global_ids
+    return next_X, next_gids
+
+def search_task(X, gids, k, local_levels, blocksize, device):
+    neighbors = Primitives.gpu_dense_knn(gids, X, local_levels, 2, k, blocksize,device)
+    return neighbors
+
 class RKDForest:
     """Class for a collection of RKD Trees for Nearest Neighbor searches"""
 
@@ -89,6 +105,86 @@ class RKDForest:
        
         self.dim = self.host_data.shape[1] 
 
+
+    def overlap_search(self, k ntrees=5, truth=None):
+        timer = Primitives.Profiler()
+        record = Primitives.Recorder()
+        blocksize = 64
+        cores = 4
+        Primitives.set_cores(cores)
+
+        result = None 
+
+        rank = self.comm.Get_rank()
+        mpi_size = self.comm.Get_size()
+
+        if truth is not None:
+            nq = truth[0].shape[0]
+            assert(nq == truth[1].shape[0])
+            assert(truth[0].shape[1] == truth[1].shape[1])
+            assert(truth[0].shape[1]>=k)
+        
+        current_tree = None
+
+        for it in range(ntrees):
+
+            if current_X is None:
+                timer.push("Build Dist Tree")
+                X = np.copy(self.host_data)
+                tree = RKDT(data=X, levels=self.levels, leafsize=self.leafsize)
+                tree.distributed_build()
+                timer.pop("Build Dist Tree")
+
+                timer.push("Distribute Coordinates")
+                tree.collect_data()
+                timer.pop("Distribute Coordinates")
+                current_tree = tree
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                tree_args = (self.host_data, self.levels, self.leafsize)
+                tree_future = executor.submit(distributed_tree_task, tree_args)
+
+                search_args = (current_tree.host_data, current_tree.global_ids, k, current_tree.local_levels, blocksize, self.device)
+                search_future = executor.submit(search_task, search_args)
+
+                current_tree = tree_future.result()
+                neighbors = search_future.result()
+
+            #Sort to check
+            #neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
+            print(rank, "Neighbors before merge: : ", neighbors, flush=True)
+
+            timer.push("Forest: Redistribute")
+            #Redistribute
+            gids, neighbors = tree.redistribute_results(neighbors)
+            timer.pop("Forest: Redistribute")
+
+            print(rank, "GIDS after redist", gids, flush=True)
+            print(rank, "Result after redistribute:", neighbors, flush=True)
+
+            timer.push("Forest: Merge")
+            if result is None:
+                result = Primitives.merge_neighbors(neighbors, neighbors, k)
+            else:
+                result = Primitives.merge_neighbors(result, neighbors, k)
+            timer.pop("Forest: Merge")
+
+            print(rank, "Result after merge:", result, flush=True)
+
+            timer.push("Forest: Compare")
+            if ( truth is not None ) and ( rank == 0 ) :
+                rlist, rdist = result
+                test = (rlist[:nq, ...], rdist[:nq, ...])
+
+                acc = Primitives.accuracy_check(truth, test)
+                Primitives.accuracy.append( acc )
+                record.push("Recall", acc[0])
+                record.push("Distance", acc[1])
+
+                print("Iteration:", it, "Recall:", acc, flush=True)
+            timer.pop("Forest: Compare")
+
+        return result        
 
     def all_search(self, k, ntrees=5, truth=None):
         timer = Primitives.Profiler()
