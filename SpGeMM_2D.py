@@ -39,6 +39,8 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
   nnz_i = ind1_i - ind0_i
 
 
+  if nnz_j==0 or nnz_i ==0 : return
+
   sj =J[ind0_j:ind1_j]
 
   '''
