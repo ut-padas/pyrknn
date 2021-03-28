@@ -189,6 +189,25 @@ int compute_error(const MatInt &id, const Mat &dist, const MatInt &id_cpu, Mat &
   return miss;
 }
 
+int compute_error_bak(const MatInt &id, const Mat &dist, const MatInt &id_cpu, const Mat &dist_cpu, 
+    int n, int k) {
+
+  int miss = 0;
+  for (int i=0; i<n; i++) {
+    const unsigned int *start = id_cpu.data()+i*k;
+    const float farthest = dist_cpu(i,k-1);
+    for (int j=0; j<k; j++) {
+      if (std::find(start, start+k, id(i,j)) == start+k // ID not found
+          && dist(i,j) > farthest*(1+std::numeric_limits<float>::epsilon())
+          ) 
+      {
+        miss++;
+      }
+    }
+  }  
+  return miss;
+}
+
 
 void write_matrix(const MatInt &nborID, const Mat &nborDist, const std::string &filename) {
   std::ofstream fout(filename.c_str());
@@ -292,7 +311,7 @@ int main(int argc, char *argv[]) {
     //std::cout<<"Points:\n"<<P<<std::endl;
     
     // compute error
-    int err = compute_error(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
+    int err = compute_error_bak(nborID, nborDist, nborIDCPU, nborDistCPU, n, K);
     double acc = 100. - 1.*err/n/K*100;
     //std::cout<<"iter "<<i<<":\tmissed: "<<err<<"\t"<<"accuracy: "<<acc<<" %\n";
     printf("iter %d:\tmissed: %d\taccuracy: %.2f %\n", i, err, acc);
@@ -365,6 +384,35 @@ void kselect(const float *value, const unsigned *ID, unsigned n, float *kval, un
   }
 }
 
+/*
+void exact_knn(int* q_rowPtr, int* q_colIdx, float* q_val, unsigned int m, unsigned int q_nnz, int* r_rowPtr, int* q_colIdx, float* r_val, unsigned int n, unsigned int r_nnz, unsigned int d, int k, unsigned int *nborID, float* nborDist){
+
+
+
+}
+*/
+/*
+void exact_knn
+(int nQ, int dQ, int nnzQ, int *rowPtrQ, int *colIdxQ, float *valQ,
+ int nR, int dR, int nnzR, int *rowPtrR, int *colIdxR, float *valR,
+ int *ID, int k, int *nborID, float *nborDist) {
+  assert(dQ==dR);
+  SpMat Q = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>
+              (nQ, dQ, nnzQ, rowPtrQ, colIdxQ, valQ);
+  SpMat R = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>
+              (nR, dR, nnzR, rowPtrR, colIdxR, valR);
+  // compute distance
+  Vec Q2 = row_norm(Q);
+  Vec R2 = row_norm(R);
+  Mat D2 = -2*Q*R.transpose();    
+  D2.colwise() += Q2;
+  D2.rowwise() += R2.transpose();
+  // find neighbor
+  for (int i=0; i<nQ; i++) {
+    kselect(D2.data()+i*nR, ID, nR, nborDist+i*k, nborID+i*k, k);
+  }
+}
+*/
 
 void exact_knn(const SpMat &Q, const SpMat &R, const VecInt &ID, Mat &nborDist, MatInt &nborID) {
   unsigned M = Q.rows();

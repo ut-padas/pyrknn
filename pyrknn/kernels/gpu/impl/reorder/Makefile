@@ -13,6 +13,12 @@ ifeq ($(findstring frontera,$(shell uname -n)),frontera)
 	CFLAG+=-DFRONTERA
 endif
 
+ifeq ($(findstring stampede,$(shell uname -n)), stampede)
+  $(info *** on stampede machine ***)
+	CFLAG+=-DFRONTERA
+endif
+
+
 KERNEL=reorder.o
 OBJS=driver.o 
 

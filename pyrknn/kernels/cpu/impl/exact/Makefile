@@ -8,7 +8,7 @@ DEBUG?=0
 
 default: $(LIB) $(EXE)
 
-CFLAG=-Wall -I$(EIGEN_ROOT) -std=c++11 -fPIC
+CFLAG=-Wall -I${MKLROOT}/include -DEIGEN_USE_MKL_ALL -I$(EIGEN_ROOT) -std=c++11 -fPIC -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_intel_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -liomp5 -lpthread -lm -ldl
 LFLAG=-L./ -lexact -L$(EIGEN_ROOT)
 
 ifeq ($(DEBUG), 1)

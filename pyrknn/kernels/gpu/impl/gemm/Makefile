@@ -14,6 +14,12 @@ ifeq ($(findstring frontera,$(shell uname -n)),frontera)
 	VFLAG+=-DFRONTERA
 endif
 
+ifeq ($(findstring stampede,$(shell uname -n)),stampede)
+  $(info *** on stampede machine ***)
+	VFLAG+=-DFRONTERA
+endif
+
+
 KERNEL=gemm.o
 OBJS=driver.o 
 

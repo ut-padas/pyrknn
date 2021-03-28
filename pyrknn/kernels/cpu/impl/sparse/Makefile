@@ -42,6 +42,18 @@ ifeq ($(findstring frontera,$(shell uname -n)),frontera)
 	LFLAG+=-mkl -qopenmp
 	BACKEND=backend_mkl.cpp
 else
+
+endif
+
+ifeq ($(findstring stampede, $(shell uname -n)), stampede)
+  $(info -------------------------)
+  $(info ***  Use MKL backend  ***)
+  $(info -------------------------)
+	CC=icc
+	CFLAG+=-mkl -qopenmp #-xCORE-AVX512
+	LFLAG+=-mkl -qopenmp
+	BACKEND=backend_mkl.cpp
+else
   $(info ---------------------------)
   $(info ***  Use Eigen backend  ***)
   $(info ---------------------------)

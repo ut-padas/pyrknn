@@ -6,6 +6,8 @@
 #include "util_eigen.hpp"
 #include "util.hpp"
 
+#include <random>
+#include <string>
 #include <iostream>
 
 
@@ -252,6 +254,7 @@ void spknn
 
   omp_set_num_threads(cores);
 
+
   double t_kernel, t_merge = 0.;
   dvec t_tree(10, 0);
   dvec t_leaf(10, 0);
@@ -282,6 +285,23 @@ void spknn
         t1.start();
         fMatrix R(d, level);
         R.rand();
+
+        /* 
+        #pragma omp parallel
+        {
+            std::mt19937_64 generator;
+            std::normal_distribution<float> distribution(0.0, 1.0);
+            //std::uniform_real_distribution<float> distribution(0.0, 1.0);
+            #pragma omp for collapse(2)
+            for(int a=0; a<d; ++a){
+                for(int b=0; b<level; ++b){
+                    float sample = distribution(generator);
+                    R(a, b) = sample;
+                }
+            }
+        }
+        */
+
         t1.stop(); t_tree[5] += t1.elapsed_time();
         //print(R, "R");
         
@@ -351,6 +371,7 @@ void spknn
   // stop timing
   t0.stop(); t_kernel = t0.elapsed_time();
 
+    /*
   std::cout<<"\n========================"
            <<"\nPoints"
            <<"\n------------------------"
@@ -367,7 +388,6 @@ void spknn
            <<"\nmem projection: "<<n/1.e9*level*4<<" GB"
            <<"\n========================\n"
            <<std::endl;
-
   printf("\n===========================");
   printf("\n    Sparse KNN Timing");
   printf("\n---------------------------");
@@ -397,7 +417,8 @@ void spknn
   printf("\n  - product: %.2e s (%.0f %%)", t_shuffle[6], 100.*t_shuffle[6]/t_shuffle[1]);
   printf("\n  - copy: %.2e s (%.0f %%)", t_shuffle[7], 100.*t_shuffle[7]/t_shuffle[1]);
   //printf("\n  - csr_create: %.2e s (%.0f %%)", t_shuffle[8], 100.*t_shuffle[8]/t_shuffle[1]);
-  printf("\n===========================\n\n");  
+  printf("\n===========================\n\n"); 
+    */ 
 }
 
 
