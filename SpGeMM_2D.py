@@ -37,11 +37,16 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
 
   nnz_j = ind1_j - ind0_j
   nnz_i = ind1_i - ind0_i
+
+
+  sj =J[ind0_j:ind1_j]
+
+  '''
   sj = cuda.shared.array(shape=(2000),dtype=int32)
   for l in range(nnz_j):
     sj[l] = J[ind0_j+l]
  
-
+  '''
  
   si = J[ind0_i:ind1_i]
   
@@ -82,7 +87,7 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
     c_tmp += c
 
   #c_tmp = max(-2*c_tmp + norm_ij, 0)
-  #print(i,j)
+  print(i,j)
   D[i,j] = c_tmp
 
 
@@ -128,17 +133,17 @@ def gen_SpData(m, d, nnz):
 
 def main():
   er = 0
-  d = 30000
-  m = 100
-  nnz = 50000
-  max_nnz = 1000   # per row
+  d = 5
+  m = 5
+  nnz = 2
+  max_nnz = 10   # per row
   L = 1
   cuda.select_device(0) 
   tot_t1 = 0
   tot_t2 = 0
   tot_t = 0
   tot_ti = 0
-  B = min(256, m)
+  B = min(128, m)
   blockpergrid = (m + B-1)//B
   blockpergrid = max(1, blockpergrid)
   blockdim = B, 1
@@ -148,10 +153,13 @@ def main():
   er = 0
   print('rows of D ', m)
   for l in range(L):
-    I1, J1, V1 = gen_SpData(d, m, nnz)
+    I1, J1, V1 = gen_SpData(m, d, nnz)
     D = np.zeros((m, m), dtype = np.float32)
-    _, D_true = rec(I1, J1, V1, m, d)
-
+    C, D_true = rec(I1, J1, V1, m, d)
+    print(C)
+    print(I1)
+    print(J1)
+    print(V1)
     d_I = cuda.to_device(I1)
     d_J = cuda.to_device(J1)
     d_V = cuda.to_device(V1)
