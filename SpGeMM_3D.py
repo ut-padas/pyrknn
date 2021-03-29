@@ -18,21 +18,24 @@ from scipy import sparse
 
 
 
-@cuda.jit('void(int32[:], int32[:], float32[:], float32[:,:], int32, int32)') 
-def SpGeMM_2D(I, J, V, D, m, max_nnz):
+@cuda.jit('void(int32[:,:], int32[:,:], float32[:,:], float32[:,:,:], int32, int32, int32)') 
+def SpGeMM_3D(I, J, V, D, m, max_nnz, Z):
   
 
   i = cuda.threadIdx.x + cuda.blockDim.x*cuda.blockIdx.x
   j = cuda.blockIdx.y
-  if i>= m or j>= m: return
-   
+  z = cuda.blockIdx.z
+ 
+  if i>= m or j>= m or z>= Z: return
+  
 
+  
 
-  ind0_i=I[i]
-  ind1_i=I[i+1]
+  ind0_i=I[i,z]
+  ind1_i=I[i+1,z]
 
-  ind0_j=I[j]
-  ind1_j=I[j+1]
+  ind0_j=I[j,z]
+  ind1_j=I[j+1,z]
 
 
   nnz_j = ind1_j - ind0_j
@@ -45,16 +48,16 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
 
   sj = cuda.shared.array(shape=(2000),dtype=int32)
   for l in range(nnz_j):
-    sj[l] = J[ind0_j+l]
+    sj[l] = J[ind0_j+l,z]
  
  
-  si = J[ind0_i:ind1_i]
+  si = J[ind0_i:ind1_i, z]
   
 
   
   norm_ij = 0  
-  v_i = V[ind0_i:ind1_i]
-  v_j = V[ind0_j:ind1_j]
+  v_i = V[ind0_i:ind1_i,z]
+  v_j = V[ind0_j:ind1_j,z]
   
   for n_i in range(nnz_i):
     norm_ij += v_i[n_i]**2
@@ -89,7 +92,7 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
 
   #c_tmp = max(-2*c_tmp + norm_ij, 0)
   #print(i,j)
-  D[i,j] = c_tmp
+  D[i,j, z] = c_tmp
 
 
 
@@ -129,6 +132,20 @@ def gen_SpData(m, d, nnz):
   return I, J, V
 
 
+def gen_SpData_2D(m, d, nnz, Z):
+  dens = nnz/(d*m)
+  I = np.zeros((m+1,Z), dtype=np.int32)
+  J = np.zeros((nnz, Z), dtype=np.int32)
+  V = np.zeros((nnz, Z), dtype=np.float32)
+
+  for z in range(Z):
+    S = sparse.random(m,d, density= dens, format='csr')
+    I[:, z] = np.array(list(S.indptr), dtype = np.int32)
+    J[:, z] = np.array(list(S.indices), dtype = np.int32)
+    V[:, z] = np.array(list(S.data), dtype = np.float32)
+    
+
+  return I, J, V
 
 
 
@@ -136,27 +153,29 @@ def main():
   er = 0
   d = 100000
   m = 300
-  nnz = 30000
+  nnz = 10000
   max_nnz = 100   # max nnz per row
-  L = 1
+  L = 150
+  Z = 20		  # num of simoltaneous AA^T
+
   cuda.select_device(0) 
   tot_t1 = 0
   tot_t2 = 0
   tot_t = 0
   tot_ti = 0
-  B = m
+  B = min(256, m)
   blockpergrid = (m + B-1)//B
   blockpergrid = max(1, blockpergrid)
-  blockdim = B, 1
-  griddim = blockpergrid, m
+  blockdim = B, 1, 1
+  griddim = blockpergrid, m, Z
   print(blockpergrid)
   print(B)
   er = 0
   print('rows of D ', m)
   for l in range(L):
-    I1, J1, V1 = gen_SpData(m, d, nnz)
-    D = np.zeros((m, m), dtype = np.float32)
-    _, D_true = rec(I1, J1, V1, m, d)
+    I1, J1, V1 = gen_SpData_2D(m, d, nnz, Z)
+    D = np.zeros((m, m, Z), dtype = np.float32)
+    #_, D_true = rec(I1, J1, V1, m, d)
     #print(C)
     #print(I1)
     #print(J1)
@@ -166,11 +185,15 @@ def main():
     d_V = cuda.to_device(V1)
     d_D = cuda.to_device(D)
     t0 = time.time()
-    SpGeMM_2D[griddim, blockdim](d_I,d_J,d_V,d_D, m, max_nnz)
+    SpGeMM_3D[griddim, blockdim](d_I,d_J,d_V,d_D, m, max_nnz, Z)
     t1 = time.time()
     D = d_D.copy_to_host()
-    #print(D)
-    #print(D_true)
+    D_true = np.zeros((m,m,Z), dtype = np.float32)
+    for i in range(Z):
+      _, D_true[:,:,i] = rec(I1[:,i], J1[:,i], V1[:,i], m, d)
+
+    #print(D[:,:,0])
+    #print(D_true[:,:,0])
     cuda.synchronize()
     er = max(er, np.linalg.norm((D-D_true).flatten()))
     del d_D
@@ -178,6 +201,7 @@ def main():
     del d_J
     del d_V
     del D
+    del D_true
     del I1
     del V1
     del J1
@@ -196,7 +220,8 @@ def main():
     print(l) 
   output = ''
   print(er)
-  output = "$\\num{%.1e}$ & $\\num{%.1e}$ & $\\num{%.1e}$ & $\\num{%.2e}$ & $\\num{%.3e}$ \\\ "%(nnz, m, d, L,tot_t1)
+  print(tot_t1)
+  output = "$\\num{%.1e}$ & $\\num{%.1e}$ & $\\num{%d}$ & $\\num{%d}$  &  $\\num{%.2e}$ & $\\num{%.3e}$ \\\ "%(nnz, m, d,Z, L,tot_t1)
   
 
   
