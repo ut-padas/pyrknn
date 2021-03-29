@@ -39,16 +39,14 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
   nnz_i = ind1_i - ind0_i
 
 
-  if nnz_j==0 or nnz_i ==0 : return
+  if nnz_j==0 or nnz_i == 0 : return
 
-  sj =J[ind0_j:ind1_j]
+  #sj =J[ind0_j:ind1_j]
 
-  '''
   sj = cuda.shared.array(shape=(2000),dtype=int32)
   for l in range(nnz_j):
     sj[l] = J[ind0_j+l]
  
-  '''
  
   si = J[ind0_i:ind1_i]
   
@@ -69,6 +67,7 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
   log_n_true = math.floor(math.log(nnz_j)/math.log(2)) 
   #log_n = math.floor(math.log(max_nnz)/math.log(2)) 
   log_n = math.floor(math.log(nnz_j)/math.log(2)) 
+  log_n1 = math.ceil(math.log(nnz_j)/math.log(2)) 
   for pos_k in range(0, ind1_i-ind0_i):
 
     k = si[pos_k]
@@ -76,20 +75,21 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
     # Binary_search
     ret = 0
     testInd = 0
-    for l in range(1, log_n+1):
-      if l > log_n_true: continue
-      testInd = ret + nnz_j//(2**l)
+    
+    for l in range(log_n, 0, -1):
+      #tmp = math.ceil(nnz_j/2**l)
+      testInd = min(ret + 2**l, nnz_j-1)
       ret = testInd if sj[testInd]<= k else ret 
-
     testInd = min(ret+1, nnz_j-1)
     ret = testInd if sj[testInd]<=k else ret
     ind_jk = ret if sj[ret] == k else -1
 
     c = v_i[pos_k]*v_j[ind_jk] if ind_jk != -1 else 0
+    #if i == 0 and j==1: print(i, j, k, ind_jk, c)
     c_tmp += c
 
   #c_tmp = max(-2*c_tmp + norm_ij, 0)
-  print(i,j)
+  #print(i,j)
   D[i,j] = c_tmp
 
 
@@ -135,17 +135,17 @@ def gen_SpData(m, d, nnz):
 
 def main():
   er = 0
-  d = 5
-  m = 5
-  nnz = 2
-  max_nnz = 10   # per row
+  d = 100000
+  m = 300
+  nnz = 30000
+  max_nnz = 1   # max nnz per row
   L = 1
   cuda.select_device(0) 
   tot_t1 = 0
   tot_t2 = 0
   tot_t = 0
   tot_ti = 0
-  B = min(128, m)
+  B = m
   blockpergrid = (m + B-1)//B
   blockpergrid = max(1, blockpergrid)
   blockdim = B, 1
@@ -158,10 +158,10 @@ def main():
     I1, J1, V1 = gen_SpData(m, d, nnz)
     D = np.zeros((m, m), dtype = np.float32)
     C, D_true = rec(I1, J1, V1, m, d)
-    print(C)
-    print(I1)
-    print(J1)
-    print(V1)
+    #print(C)
+    #print(I1)
+    #print(J1)
+    #print(V1)
     d_I = cuda.to_device(I1)
     d_J = cuda.to_device(J1)
     d_V = cuda.to_device(V1)
@@ -170,6 +170,8 @@ def main():
     SpGeMM_2D[griddim, blockdim](d_I,d_J,d_V,d_D, m, max_nnz)
     t1 = time.time()
     D = d_D.copy_to_host()
+    #print(D)
+    #print(D_true)
     cuda.synchronize()
     er = max(er, np.linalg.norm((D-D_true).flatten()))
     del d_D
