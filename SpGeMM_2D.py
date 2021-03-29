@@ -42,15 +42,11 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
   if nnz_j==0 or nnz_i == 0 : return
 
   #sj =J[ind0_j:ind1_j]
-
-  sj = cuda.shared.array(shape=(2000),dtype=int32)
+  sj = cuda.shared.array(shape=(1000),dtype=int32)
   for l in range(nnz_j):
     sj[l] = J[ind0_j+l]
  
- 
   si = J[ind0_i:ind1_i]
-  
-
   
   norm_ij = 0  
   v_i = V[ind0_i:ind1_i]
@@ -134,17 +130,17 @@ def gen_SpData(m, d, nnz):
 
 def main():
   er = 0
-  d = 100000
+  d = 10000
   m = 300
-  nnz = 30000
+  nnz = 150000
   max_nnz = 100   # max nnz per row
-  L = 1
+  L = 3000
   cuda.select_device(0) 
   tot_t1 = 0
   tot_t2 = 0
   tot_t = 0
   tot_ti = 0
-  B = m
+  B = min(256, m)
   blockpergrid = (m + B-1)//B
   blockpergrid = max(1, blockpergrid)
   blockdim = B, 1
