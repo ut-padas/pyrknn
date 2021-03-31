@@ -151,12 +151,12 @@ def gen_SpData_2D(m, d, nnz, Z):
 
 def main():
   er = 0
-  d = 100000
+  d = 10000
   m = 300
-  nnz = 10000
-  max_nnz = 100   # max nnz per row
-  L = 150
-  Z = 20		  # num of simoltaneous AA^T
+  nnz = 180000
+  max_nnz = 2000   # max nnz per row
+  L = 30
+  Z = 100		  # num of simoltaneous AA^T
 
   cuda.select_device(0) 
   tot_t1 = 0

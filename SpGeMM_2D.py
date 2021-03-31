@@ -9,7 +9,6 @@ import numba
 import time
 from scipy import sparse
 
-  
 
 
 
@@ -42,10 +41,9 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
   if nnz_j==0 or nnz_i == 0 : return
 
   #sj =J[ind0_j:ind1_j]
-  sj = cuda.shared.array(shape=(1000),dtype=int32)
+  sj = cuda.shared.array(shape=(2000),dtype=int32)
   for l in range(nnz_j):
     sj[l] = J[ind0_j+l]
- 
   si = J[ind0_i:ind1_i]
   
   norm_ij = 0  
@@ -60,7 +58,7 @@ def SpGeMM_2D(I, J, V, D, m, max_nnz):
 
   
   c_tmp = 0
-  log_n_true = math.floor(math.log(nnz_j)/math.log(2)) 
+  #log_n_true = math.floor(math.log(nnz_j)/math.log(2)) 
   #log_n = math.floor(math.log(max_nnz)/math.log(2)) 
   log_n = math.floor(math.log(nnz_j)/math.log(2)) 
   for pos_k in range(0, ind1_i-ind0_i):
@@ -128,13 +126,80 @@ def gen_SpData(m, d, nnz):
 
 
 
+def main_cuSparse():
+
+  er = 0
+  d = 10000
+  m = 300
+  nnz = 180000
+  max_nnz = 2000   # max nnz per row
+  L = 3000
+  cuda.select_device(0) 
+
+  tot_t1 = 0
+
+
+  #B = min(256, m)
+  #blockpergrid = (m + B-1)//B
+  #blockpergrid = max(1, blockpergrid)
+  #blockdim = B, 1
+  #griddim = blockpergrid, m
+  #print(blockpergrid)
+  #print(B)
+  er = 0
+  #print('rows of D ', m)
+  for l in range(L):
+    I1, J1, V1 = gen_SpData(m, d, nnz)
+    S = pyculib.sparse.CudaCSRMatrix((V1, (U1, J1)), (m,d))
+    
+    
+    D = np.zeros((m, m), dtype = np.float32)
+    #D = cuda.to_device(D)
+    t0 = time.time()
+    d_D = pyculib.sparse.Sparse.csrgemm_ez(S, S, transA='N', transB='T', descrA=None, descrB=None, descrC=None)
+    t1 = time.time()
+    pyculib.sparse.Sparse.csr2dense(m,m,None, d_D.data, d_D.indptr, d_D.indices, D, (m,m)) 
+    
+    #_, D_true = rec(I1, J1, V1, m, d)
+    #print(C)
+    #print(I1)
+    #print(J1)
+    #print(V1)
+    #print(D)
+    #print(D_true)
+    del d_D
+    del I1
+    del J1
+    del V1
+    del D
+    delt1 = t1-t0
+    cuda.profile_stop()
+    #I2, J2, V2 = gen_SpData(d, m, nnz)
+    #I3, J3, V3 = gen_SpData(d, m, nnz)
+    #I4, J4, V4 = gen_SpData(d, m, nnz)
+    #D1, t1, t2 = cuda_API(I1, J1, V1)
+    #D2, t2 = cuda_API(I2, J2, V2)
+    #D3, t3 = cuda_API(I3, J3, V3)
+    #D4, t4 = cuda_API(I4, J4, V4)
+    
+    #tot_t += t1 + t2 + t3 + t4
+    tot_t1 += delt1
+    print(l) 
+  output = ''
+  print(er)
+
+
+
+
+
+
 def main():
   er = 0
   d = 10000
   m = 300
-  nnz = 150000
-  max_nnz = 100   # max nnz per row
-  L = 3000
+  nnz = 60000
+  max_nnz = 2000   # max nnz per row
+  L = 100
   cuda.select_device(0) 
   tot_t1 = 0
   tot_t2 = 0
@@ -204,7 +269,7 @@ def main():
   print(output)
 
 if __name__ == '__main__':
-  main()
+  main_cuSparse()
 
 
 
