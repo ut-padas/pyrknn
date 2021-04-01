@@ -36,12 +36,12 @@ __global__ void compute_dist(int* I, int* J, float* V, float* D, int m, int log_
     if (nnz_j == 0 || nnz_i ==0) return;
 
 
-    //__shared__ int sj[2000];
-    int *sj; 
+    __shared__ int sj[2000];
+    //int *sj; 
     int *si;
     si = (int *)malloc(sizeof(int)*nnz_i);
     for (int n_i=0; n_i < nnz_i; n_i++) si[n_i] = J[n_i];
-    sj = (int *)malloc(sizeof(int)*nnz_j);
+    //sj = (int *)malloc(sizeof(int)*nnz_j);
     for (int n_j=0; n_j < nnz_j; n_j++) sj[n_j] = J[n_j];
 
     //printf("arrays si : \n")
@@ -121,12 +121,12 @@ int main(int argc, char **argv)
 
 
 
-    m = 10;
+    m = 300;
     d = 10000;
-    nnzperrow = 10;
-    Z = 10;
+    nnzperrow = 50;
+    Z = 1;
     nnz = nnzperrow*m;
-    int max_nnz = 2;
+    int max_nnz = d;
     int log_max_nnz = log2(max_nnz);
 
     h_V = (float *)malloc(sizeof(float)*nnzperrow*m);
@@ -179,6 +179,7 @@ int main(int argc, char **argv)
 
     checkCudaErrors(cudaEventRecord(t0, 0));
     compute_dist<<<dimGrid, dimBlock>>>(d_I, d_J, d_V, d_D, m, log_max_nnz, Z);
+    
     checkCudaErrors(cudaEventRecord(t1, 0));
     checkCudaErrors(cudaEventSynchronize(t1));
     //checkCudaErrors(cudaEventSynchronize(t1));
