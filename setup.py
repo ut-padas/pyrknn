@@ -147,27 +147,31 @@ def scandir(directory, files=[]):
 def makeExtension(extName):
     extPath = extName.replace(".", os.path.sep) + ".pyx"
     if 'gpu' in extPath:
-        return Extension(
-                extName,
-                [extPath],
-                include_dirs = gpu_inc_dirs,
-                language="c++",
-                library_dirs = gpu_lib_dirs,
-                runtime_library_dirs = gpu_lib_dirs,
-                #extra_objects=args.gpu_obj,
-                #libraries=["cusparse", "cusolver", "cublas", "cudart"] +["denknngpu", "merge", "gemm", "reorder", "sort", "orthogonal", "readSVM", "transpose", "util"]+["spknngpu", "merge", "gemm", "reorder", "transpose", "orthogonal", "reorder", "sort", "readSVM", "util"],
-                #libraries=["cuda", "cudart", "cublas", "cusparse", "cusolver", "util"] +["gemm", "util", "sort", "merge", "spknngpu", "transpose", "orthogonal", "reorder", "denknngpu"],
 
-                libraries=["cusparse", "cusolver", "cublas", "cudart", "denknngpu","merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal", "spknngpu"],
-
-                #libraries=["cusparse", "cusolver", "cublas", "cudart", "spknngpu","merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal", "denknngpu"],
-
-                #libraries=["cusparse", "cusolver", "cublas", "cudart", "spknngpu","cusparse", "cusolver", "cublas", "cudart", "denknngpu", "merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal"],
-
-
-                extra_compile_args=["-g", "-std=c++11", "-O3", "-fPIC", "-DPROD"],
-                extra_link_args=["-ldl", "-lpthread", "-qopenmp"]#+["-Wl,--start-group", "-lcusparse", "-lcusolver", "-lcublas", "-lcudart", "-lspknngpu", "-ldenknngpu", "-lmerge", "-lutil", "-lreadSVM", "-ltranspose", "-lgemm", "-lreorder", "-lorthogonal", "-Wl,--end-group"]
-                )
+        if 'sparse' in extPath:
+            return Extension(
+                    extName,
+                    [extPath],
+                    include_dirs = gpu_inc_dirs,
+                    language="c++",
+                    library_dirs = gpu_lib_dirs,
+                    runtime_library_dirs = gpu_lib_dirs,
+                    libraries=["cusparse", "cusolver", "cublas", "cudart", "spknngpu","merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal"],
+                    extra_compile_args=["-g", "-std=c++11", "-O3", "-fPIC", "-DPROD"],
+                    extra_link_args=["-ldl", "-lpthread", "-qopenmp"]
+                    )
+        else:
+            return Extension(
+                    extName,
+                    [extPath],
+                    include_dirs = gpu_inc_dirs,
+                    language="c++",
+                    library_dirs = gpu_lib_dirs,
+                    runtime_library_dirs = gpu_lib_dirs,
+                    libraries=["cusparse", "cusolver", "cublas", "cudart", "denknngpu","merge", "util", "readSVM", "transpose", "gemm", "reorder", "orthogonal"],
+                    extra_compile_args=["-g", "-std=c++11", "-O3", "-fPIC", "-DPROD"],
+                    extra_link_args=["-ldl", "-lpthread", "-qopenmp"]
+                    )
     return Extension(
             extName,
             [extPath],
@@ -190,9 +194,9 @@ for e in extNames:
     print(e)
 
 
-package_list=["pyrknn", "pyrknn.kernels", "pyrknn.kernels.cpu", "pyrknn.kdforest", "pyrknn.kdforest.reference"]
+package_list=["pyrknn", "pyrknn.kernels", "pyrknn.kernels.cpu", "pyrknn,kernels.cpu.core", "pyrknn.kdforest", "pyrknn.kdforest.reference"]
 if use_cuda:
-    package_list += ["pyrknn.kernels.gpu"]
+    package_list += ["pyrknn.kernels.gpu", "pyrknn.kernels.gpu.core", "pyrknn.kernels.gpu.core_sparse"]
 
 setup(
         name="pyrknn",

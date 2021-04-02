@@ -11,7 +11,7 @@ import time
 
 import cython
 
-from primitives cimport *
+from core cimport *
 
 def dense_knn(gids, X, levels, ntrees, k, blocksize, device):
    
@@ -23,7 +23,16 @@ def dense_knn(gids, X, levels, ntrees, k, blocksize, device):
     cdef int[:, :] nID = np.zeros([n, k], dtype=np.int32) + -1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + 1e38
 
-    denknn( <int*> &hID[0], <float*> &hP[0,0], <int> n, <int> d, <int> levels, <int> ntrees, <int*> &nID[0, 0], <float*> &nDist[0,0], <int> k, <int> blocksize, <int> device);
+    cdef int c_levels = levels 
+    cdef int c_ntrees = ntrees 
+    cdef int c_blocksize = blocksize 
+    cdef int c_device = device 
+    cdef int c_n = n 
+    cdef int c_d = d
+    cdef int c_k = k 
+
+    with nogil:
+        denknn( <int*> &hID[0], <float*> &hP[0,0], <int> c_n, <int> c_d, <int> c_levels, <int> c_ntrees, <int*> &nID[0, 0], <float*> &nDist[0,0], <int> c_k, <int> c_blocksize, <int> c_device);
 
     outID = np.asarray(nID)
     outDist = np.asarray(nDist)
