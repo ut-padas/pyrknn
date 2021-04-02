@@ -69,7 +69,7 @@ __global__ void compute_dist(int* I, int* J, float* V, float* D, int m, int* nnz
     //int tmp = log2f(nnz_j);
     int ret, testInd, tmp_0, tmp_1, k, l, ind_jk;
         
-    
+    /*
     for (int pos_k=0; pos_k<nnz_i;pos_k++){       
         //int k = J[pos_k+ind0_i + z*nnz];
         k = si[pos_k];
@@ -95,6 +95,7 @@ __global__ void compute_dist(int* I, int* J, float* V, float* D, int m, int* nnz
         
         //c_tmp += c;
     }
+    */
     //c_tmp = max(-2*c_tmp + norm_ij, 0);
     //printf("D[%d, %d] = %.2f for z = %d and ind = %d \n", i, j, c_tmp, ind_out, z); 
     D[ind_out] = c_tmp;
