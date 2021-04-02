@@ -178,7 +178,7 @@ def main():
   m = 300
   nnzperrow = 600
   nnz = nnzperrow*m
-  max_nnz = 2000   # max nnz per row
+  max_nnz = 1000   # max nnz per row
   L = 1
   Z = 1	  # num of simoltaneous AA^T
 
@@ -187,7 +187,7 @@ def main():
   tot_t2 = 0
   tot_t = 0
   tot_ti = 0
-  B = min(256, m)
+  B = min(1024, m)
   blockpergrid = (m + B-1)//B
   blockpergrid = max(1, blockpergrid)
   blockdim = B, 1, 1
@@ -213,6 +213,7 @@ def main():
     d_D = cuda.to_device(D)
     t0 = time.time()
     SpGeMM_3D[griddim, blockdim](d_I,d_J,d_V,d_D, m, nnzperrow, max_nnz, Z)
+    cuda.synchronize()
     t1 = time.time()
     D = d_D.copy_to_host()
     #D_true = np.zeros((m**2, Z), dtype = np.float32)
@@ -242,7 +243,6 @@ def main():
 
     #print(D[:,:,0])
     #print(D_true[:,:,0])
-    cuda.synchronize()
     er = max(er, np.linalg.norm((D-D_true).flatten()))
     #norm_rec = np.linalg.norm(D_true.flatten())
     #norm_true = np.linalg.norm(D)
