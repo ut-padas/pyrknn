@@ -179,7 +179,7 @@ def direct_knn(ids, R, Q, k, loc="HOST", cores=8):
     if dense_flag:
         return cpu.single_knn(ids, R, Q, k, cores)
     elif sparse_flag:
-        print("Running Sparse Exact")
+        #print("Running Sparse Exact")
         return cpu.sparse_exact(ids, R, Q, k, cores)
     
 
@@ -266,7 +266,7 @@ def accuracy_check(a, b):
 
     for i in range(Na):
         miss_array_id   = [1 if a_list[i, j] in b_list[i] else 0 for j in range(k)]
-        miss_array_dist = [0 if b_dist[i, j] < knndist[i] else 0 for j in range(k)]
+        miss_array_dist = [1 if b_dist[i, j] < knndist[i] else 0 for j in range(k)]
         miss_array = np.logical_or(miss_array_id, miss_array_dist)
         miss_array = miss_array_id
         err+= np.sum(miss_array)
@@ -279,8 +279,16 @@ def accuracy_check(a, b):
 def dist_select(k, data, ids, comm):
     return cpu.dist_select(k, data, ids, comm)
 
-def cpu_sparse_knn(gids, X, levels, ntrees, k, blocksize):
+def cpu_sparse_knn(gids, X, levels, ntrees, k, blocksize, cores=8):
+    #print(gids.shape, X.shape,levels, ntrees, k, blocksize, cores, flush=True)
+    #print(X.nnz, np.min(X.indptr), np.max(X.indptr),flush=True)
     return cpu.sparse_knn(gids, X, levels, ntrees, k, blocksize, cores)
+
+def cpu_sparse_knn_3(gids, ptr, idx, val, nnz, levels, ntrees, k, blocksize, n, d, cores=8):
+    #cores = 56
+    #print(gids.shape, levels, nnz, ntrees, k, blocksize, cores, flush=True)
+    #print(np.min(ptr), np.max(ptr),flush=True)
+    return cpu.sparse_knn_3(gids, ptr, idx, val, nnz, levels, ntrees, k, blocksize, cores, n, d)
 
 def gpu_sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     return gpu_sparse.sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device)

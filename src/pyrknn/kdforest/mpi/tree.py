@@ -10,8 +10,9 @@ import scipy.sparse as sp
 from collections import defaultdict, deque 
 
 from numba import njit, prange, set_num_threads
+from sklearn.preprocessing import normalize
 
-set_num_threads(16)
+set_num_threads(8)
 
 from mpi4py import MPI
 
@@ -29,7 +30,7 @@ def pack_sparse_sizes(data_ptr, data_col, data_val, requests):
         l[i] = data_ptr[rid+1] - data_ptr[rid]
     return l
 
-@njit(parallel=True, fastmath=True)
+@njit(parallel=True)
 def pack_sparse_values(nptr, data_ptr, data_col, data_val, requests):
     n = requests.shape[0]
     nnz = nptr[-1]
@@ -45,8 +46,16 @@ def pack_sparse_values(nptr, data_ptr, data_col, data_val, requests):
         start = data_ptr[rid]
         end = data_ptr[rid+1]
 
-        nv[nstart:nend] = data_val[start:end]
-        nc[nstart:nend] = data_col[start:end]
+        for j in range(nend-nstart):
+            pidx = nstart+j 
+            gidx = start+j
+            nv[pidx] = data_val[gidx]
+            nc[pidx] = data_col[gidx]
+
+        #Looping is slightly faster than array slicing here
+
+        #nv[nstart:nend] = data_val[start:end]
+        #nc[nstart:nend] = data_col[start:end]
 
     return nc, nv
 
@@ -56,23 +65,36 @@ def numpy_exsum(array):
     return prefix
 
 def pack_sparse(data, requests):
+    timer = Primitives.Profiler()
+
     n = requests.shape[0]
     d = data.shape[1]
     data_ptr = data.indptr
     data_col = data.indices
     data_val = data.data
+
+    timer.push("Pack Sparse Sizes")
     lengths = pack_sparse_sizes(data_ptr, data_col, data_val, requests)
+    timer.pop("Pack Sparse Sizes")
+
+    timer.push("Compute NPTR Prefix Sum")
     nptr = numpy_exsum(lengths)
+    timer.pop("Compute NPTR Prefix Sum")
+
+    timer.push("Pack Sparse Values")
     nc, nv = pack_sparse_values(nptr, data_ptr, data_col, data_val, requests)
+    timer.pop("Pack Sparse Values")
     #new_data = sp.sparse.csr_matrix((nv, nc, nptr), shape=(n, d))
     return nptr, nc, nv, lengths
 
 @njit(fastmath=True, parallel=True)
 def label_id(global_ids, size_prefix):
+    #n/p points
     N = len(global_ids)
     labels = np.empty(N, dtype=np.int32)
     for i in prange(N):
         current_id = global_ids[i]
+        #log(p) binary search
         idx = np.searchsorted(size_prefix, current_id, side='right')-1
         labels[i] = idx
     return labels
@@ -101,7 +123,7 @@ def reorder_2(array, p):
 def reorder_3(array, p, start=0):
     d = array.shape[0]
     N = array.shape[1]
-    new = np.empty_like(array)
+    new = np.empty(array.shape, dtype=array.dtype)
     #print(array)
     for j in prange(start, d):
         for i in range(N):
@@ -110,12 +132,16 @@ def reorder_3(array, p, start=0):
     return new
 
 @njit(fastmath=True, parallel=True)
+def reorder_4(array, p):
+    new = array[p]
+    return new
+
+@njit(fastmath=True, parallel=True)
 def ordered_sizes(mpi_size, keys, prec=np.float32):
     starts = np.zeros(mpi_size, dtype=prec)
     stops = np.zeros(mpi_size, dtype=prec)
     n = keys.shape[0]
 
-    # TODO: Test parallel version
     for i in prange(n):
         if i > 0 and keys[i] != keys[i-1]:
             starts[keys[i]] = i
@@ -131,31 +157,66 @@ def global_2_local(gl, size_prefix, rank):
     local = gl - size_prefix[rank]
     return local
 
-@njit(fastmath=True, parallel=True)
+#@njit
 def get_nnz_index(lptr, rstarts, rsizes):
     nnz_starts = lptr[rstarts]
     nnz_ends = lptr[rstarts+rsizes]
-    nnz_sizes = nnz_starts - nnz_ends
+    nnz_sizes = nnz_ends - nnz_starts
+
+    return nnz_starts, nnz_sizes
+
+#def get_nnz_index(lptr, rstarts, rsizes):
+#    mpi_size = rstarts.shape[0]
+#    for i in range(mpi_size):
+
 
 
 def gather_sparse(comm, data, requests, size_prefix, rank, sizes, starts, rsizes, rstarts):
+    timer = Primitives.Profiler()
     #Assume data is tuple of CSR ndarrays
     data_ptr = data.indptr 
     data_col = data.indices
-    data_val = data.value 
+    data_val = data.data
+
+    #print(rank, "o datap ", data_ptr, flush=True)
+    #print(rank, "o datac ", data_col, flush=True)
+    #print(rank, "o datav ", data_val, flush=True)
+
+
+    #print(rank, "o datap size", len(data_ptr), flush=True)
+    #print(rank, "o datac size", len(data_col), flush=True)
+    #print(rank, "o datav size", len(data_val), flush=True)
+
+    rank = comm.Get_rank()
+    mpi_size = comm.Get_size()
 
     #Gather Requests
-    timer.push("Collect Points: Gather Requests")
+    timer.push("Collect Points: g2l")
     requests = global_2_local(requests, size_prefix, rank)
-    lptr, nc, nv, lengths = pack_sparse(data, requests)
-    timer.pop("Collect Points: Gather Requests")
+    timer.pop("Collect Points: g2l")
 
+    #timer.push("Collect Points: Gather Requests - NUMBA")
+    #lptr, nc, nv, lengths = pack_sparse(data, requests)
+    #timer.pop("Collect Points: Gather Requests - NUMBA")
+
+    #TODO: WHY IS SCIPY FASTER THAN A PARALLEL NUMBA LOOP HERE!!!!!???????
+    
+    timer.push("Collect Points: Gather Requests")
+    A = data[requests]
+    lptr = A.indptr 
+    nc = A.indices 
+    nv = A.data 
+    lengths = np.diff(lptr)
+    #print(rank, "lengths", l2, lengths, flush=True)
+    timer.pop("Collect Points: Gather Requests")
+    
     #TODO: Overlap prefix sum with col/val A2As?
 
     #Send requested size (unsummed row ptr)
     timer.push("Collect Points: Allocate Row Size List")
     #TODO: Check length on this
-    recv_l = np.zeros(data_ptr.shape[0], dtype=data_ptr.dtype)
+    recv_l = np.empty(data_ptr.shape[0], dtype=data_ptr.dtype)
+    #print(rank, "Allocating data_ptr.shape", data_ptr.shape[0], flush=True)
     timer.pop("Collect Points: Allocate Row Size List")
 
     timer.push("Collect Points: Communicate Row Size List")
@@ -169,23 +230,36 @@ def gather_sparse(comm, data, requests, size_prefix, rank, sizes, starts, rsizes
 
     #Get local indexing for received data
     timer.push("Collect Points: Prefix Sum (row ptr)")
-    nptr = numpy_exsum(recv_data)
+    #print(rank, "recv_l", recv_l.dtype, len(recv_l), flush=True)
+    nptr = numpy_exsum(recv_l)
+    nptr = np.array(np.copy(nptr[:-1]), dtype=np.int32)
+    #print(rank, "nptr next", nptr.dtype, len(nptr), flush=True)
     timer.pop("Collect Points: Prefix Sum (row ptr)")
+    #print(rank, "recv_l", recv_l, flush=True)
+    #print(rank, "nptr", nptr, flush=True)
+    #print(rank, "lptr", lptr, flush=True)
+    #print(rank, "rsizes/rstarts", rstarts, rsizes, flush=True)
 
     #Get start/stops for nnz indexed arrays
     timer.push("Collect Points: NNZ Idx")
     nnz_starts, nnz_sizes = get_nnz_index(lptr, rstarts, rsizes)
     timer.pop("Collect Points: NNZ Idx")
 
+    #print(rank, "nnz_sizes/nnz_starts", nnz_sizes, nnz_starts, flush=True)
+    
+
     timer.push("Collect Points: NNZ recv")
-    nnz_rsizes, nnz_rstarts = exchange_send_info(comm, sizes)
+    nnz_rsizes, nnz_rstarts = exchange_send_info(comm, nnz_sizes)
     timer.pop("Collect Points: NNZ recv")
+
+    #print(rank, "nnz_rsizes/nnz_rstarts", nnz_rsizes, nnz_rstarts, flush=True)
 
     #Send column indices
     timer.push("Collect Points: Allocate Col Idx")
     #TODO: Check length on this
     n = nnz_rsizes[-1] + nnz_rstarts[-1]
-    recv_c = np.zeros(n, dtype=data_col.dtype)
+    #print(rank, "n: ", n, flush=True)
+    recv_c = np.empty(n, dtype=data_col.dtype)
     timer.pop("Collect Points: Allocate Col Idx")
 
     timer.push("Collect Points: Communicate Col Idx")
@@ -199,7 +273,7 @@ def gather_sparse(comm, data, requests, size_prefix, rank, sizes, starts, rsizes
 
     #Send values
     timer.push("Collect Points: Allocate Values")
-    recv_v = np.zeros(n, dtype=data_val.dtype)
+    recv_v = np.empty(n, dtype=data_val.dtype)
     timer.pop("Collect Points: Allocate Values")
 
     timer.push("Collect Points: Communicate Values")
@@ -208,11 +282,24 @@ def gather_sparse(comm, data, requests, size_prefix, rank, sizes, starts, rsizes
     timer.pop("Collect Points: Communicate Values")
 
     #return nptr, recv_c, recv_v
+    
+    #print(rank, "recv_v", recv_v, flush=True)
+    #print(rank, "recv_c", recv_c, flush=True)
+    #print(rank, "nptr", nptr, flush=True)
+
+    #print(rank, "n datap size", len(nptr), np.max(nptr), nptr, flush=True)
+    #print(rank, "n datac size", len(recv_c), flush=True)
+    #print(rank, "n datav size", len(recv_v), flush=True)
 
     #Convert/Wrap in SciPy Datatype
-    new_data = sp.csr_matrix((recv_v, recv_c, nptr), shape=data.shape)
+    new_data = sp.csr_matrix((np.copy(recv_v), np.copy(recv_c), np.copy(nptr)), shape=data.shape)
 
-    return new_data
+    #print("Inspect: ", nptr.dtype, recv_c.dtype, recv_v.dtype)
+    nptr = np.asarray(nptr, dtype=np.int32)
+    recv_c = np.asarray(recv_c, dtype=np.int32)
+    recv_v = np.asarray(recv_v, dtype=np.float32)
+
+    return new_data, (nptr, recv_c, recv_v) 
 
 
 
@@ -291,7 +378,7 @@ def collect(comm, requested_global_ids, data, size_prefix, dtype=np.int64):
     timer.pop("Collect Points: Organize Points - sort")
 
     timer.push("Collect Points: Organize Points - reorder")
-    #labels = reorder(labels, p)
+    #labels = reorder_4(labels, p)
     #requested_global_ids = reorder(requested_global_ids, p)
     labels = labels[p]
     requested_global_ids = requested_global_ids[p]
@@ -330,7 +417,7 @@ def collect(comm, requested_global_ids, data, size_prefix, dtype=np.int64):
     if dense_flag:
         recv_data = gather_dense(comm, data, requests, size_prefix, rank, sizes, starts, rsizes, rstarts)
     elif sparse_flag:
-        recv_data = gather_sparse(comm, data, requests, size_prefix, rank, sizes, starts, rsizes, rstarts)
+        recv_data = gather_sparse(comm, data, requests, size_prefix, rank, sizes, starts, rsizes, rstarts) 
     else:
         raise Exception()
         #TODO: More specific error handling
@@ -353,7 +440,8 @@ def redistribute(comm, global_ids, result, size_prefix):
     neighbor_dist = result[1]
 
     # Check datatype consistency (important for mpi4py, not using automatic interface)
-    assert(global_ids.dtype == neighbor_ids.dtype)
+    #TODO: Change to unsigned so this 1) doesn't crash 2) is consistent 
+    #assert(global_ids.dtype == neighbor_ids.dtype)
     assert(neighbor_dist.dtype == np.float32)
 
     mpi_size = comm.Get_size()
@@ -363,9 +451,10 @@ def redistribute(comm, global_ids, result, size_prefix):
     # These will be the output
     # TODO: Move this allocate outside of the function, to reuse memory between iterations
     timer.push("Redistribute: Allocate")
-    result_gids = np.zeros(N, dtype=neighbor_ids.dtype)
+    result_gids = np.zeros(N, dtype=global_ids.dtype)
     result_ids = np.zeros_like(neighbor_ids)
     result_dist = np.zeros_like(neighbor_dist)
+    #print("Datatypes: ", result_ids.dtype, result_gids.dtype, result_dist.dtype)
     timer.pop("Redistribute: Allocate")
 
     # Label each result id with its destination process
@@ -394,16 +483,18 @@ def redistribute(comm, global_ids, result, size_prefix):
 
     # Compute start/stop indicies
     timer.push("Redistribute: Compute Targets")
-    starts, sizes = ordered_sizes(mpi_size, labels, prec=neighbor_ids.dtype)
+    starts, sizes = ordered_sizes(mpi_size, labels, prec=global_ids.dtype)
     timer.pop("Redistribute: Compute Targets")
 
     # Exchange sizes with receiving processes
     timer.push("Redistribute: Exchange Recv")
+    #print(rank, "sizes", sizes, flush=True)
     rsizes, rstarts = exchange_send_info(comm, sizes)
     timer.pop("Redistribute: Exchange Recv")
 
     # Communicate global ids
     timer.push("Redistribute: Alltoall GIDs")
+    #print(rank, "global_ids", global_ids.shape, result_gids.shape, sizes, rsizes, flush=True)
     if global_ids.dtype == np.int32:
         comm.Alltoallv([global_ids, sizes, starts, MPI.INT], [
                        result_gids, rsizes, rstarts, MPI.INT])
@@ -411,6 +502,8 @@ def redistribute(comm, global_ids, result, size_prefix):
         comm.Alltoallv([global_ids, sizes, starts, MPI.LONG], [
                        result_gids, rsizes, rstarts, MPI.LONG])
     timer.pop("Redistribute: Alltoall GIDs")
+
+    #print(rank, "global_ids recv", result_gids, flush=True)
 
     # Adjust sizes to be k-stride
     sizes = sizes * k
@@ -421,7 +514,7 @@ def redistribute(comm, global_ids, result, size_prefix):
 
     # Communicate neighbor ids
     timer.push("Redistribute: Alltoall IDs")
-    if neighbor_ids.dtype == np.int32:
+    if (neighbor_ids.dtype == np.int32) or ( neighbor_ids.dtype == np.uint32 ):
         comm.Alltoallv([neighbor_ids, sizes, starts, MPI.INT], [
                        result_ids, rsizes, rstarts, MPI.INT])
     else:
@@ -482,8 +575,8 @@ def balance_partition(rank, mpi_size, left_size, left_prefix, right_size, right_
     if after_in_bin == size_prefix[last_idx]:
         last_idx -= 1
 
-    print(rank, "(sending bins)", start_idx, last_idx)
-    print(rank, "(inbin/size_of_last)", after_in_bin, size_prefix[last_idx])
+    #print(rank, "(sending bins)", start_idx, last_idx)
+    #print(rank, "(inbin/size_of_last)", after_in_bin, size_prefix[last_idx])
     r = 1
     local_start = 0
     to_send = left_size
@@ -569,11 +662,11 @@ def exchange_send_info(comm, sizes):
     # Switch mpi4py call based on data type.
     # TODO: There is a better way to do this in mpi4py 3.10 which was just released, switch or keep for compatibility?
     if dtype == np.int32:
-        #print(rank, "This should print ::: ", sizes, temp_sizes, temp_starts)
+        #print(rank, "This should print ::: ", sizes, temp_sizes, temp_starts, flush=True)
         comm.Alltoallv([sizes, temp_sizes, temp_starts, MPI.INT],
                        [recv, temp_sizes, temp_starts, MPI.INT])
     else:
-        #print(rank, "This shouldn't print ::: ", sizes, temp_sizes, temp_starts)
+        #print(rank, "This should NOT print ::: ", sizes, temp_sizes, temp_starts, flush=True)
         comm.Alltoallv([sizes, temp_sizes, temp_starts, MPI.LONG],
                        [recv, temp_sizes, temp_starts, MPI.LONG])
 
@@ -597,7 +690,7 @@ class RKDT:
             self.cores = cores
 
         # Set precision threshold (testing with lower than MAXINT for safety)
-        precision_threshold = 1000000000
+        precision_threshold = 2000000000
 
         # Store tree parameters
         self.max_levels = levels
@@ -651,7 +744,7 @@ class RKDT:
         # Compute exclusive prefix sum of local sizes
         # To be used in partition balancing
         self.prefix_sizes = np.cumsum(local_size_list)
-        self.prefix_sizes = self.prefix_sizes
+        self.prefix_sizes = np.asarray(self.prefix_sizes, dtype=self.gprec)
 
         # Allocate local and global ids
         self.local_ids = np.arange(self.local_size, dtype=self.lprec)
@@ -662,16 +755,21 @@ class RKDT:
 
         #print(rank, self.global_ids, flush=True)
 
+        #Check datatype
+        sparse_flag = isinstance(data, sp.csr.csr_matrix)
+        dense_flag = isinstance(data, np.ndarray)
+        assert(sparse_flag or dense_flag)
+        self.sparse_flag = sparse_flag 
+        
         # Ensure data is in float32 precision
         self.host_data = None
-        if self.sparse:
-            N, d = data.shape
+        if sparse_flag:
             local_value = np.asarray(data.data, dtype=np.float32)
             local_rowptr = np.asarray(data.indptr, dtype=self.lprec)
             local_colidx = np.asarray(data.indices, dtype=self.lprec)
 
             self.host_data = sp.csr_matrix(
-                (local_value, local_colidx, local_rowptr), size=(N, d))
+                (local_value, local_colidx, local_rowptr), shape=data.shape)
         else:
             self.host_data = np.asarray(data, dtype=np.float32)
 
@@ -690,7 +788,7 @@ class RKDT:
 
         self.built = False
 
-        print(self.rank, "Initialized Tree", flush=True)
+        #print(self.rank, "Initialized Tree", flush=True)
 
     """
     def __del__(self):
@@ -713,6 +811,7 @@ class RKDT:
 
     def generate_projection_vectors(self, levels):
         timer = Primitives.Profiler()
+        orth_thres = 10000
 
         # Assume processes share the same random seed to avoid communication
 
@@ -722,22 +821,26 @@ class RKDT:
         timer.pop("Projection: Rand")
 
         timer.push("Projection: QR")
-        vectors = np.linalg.qr(vectors)[0]
+        if self.dim < orth_thres:
+            vectors = np.linalg.qr(vectors)[0]
+        else:
+            vectors = normalize(vectors, axis=0)
         timer.pop("Projection: QR")
 
         self.spill = None
         #print("HERE")
-        print("projection construction: ", levels, self.dim)
+        #print("projection construction: ", levels, self.dim)
         #print(self.rank, "Check vectors: ", vectors, flush=True)
-        print("projection vector layout: ", vectors.flags)
+        #print("projection vector layout: ", vectors.flags)
         if levels > self.dim:
             index = np.arange(self.dim, dtype=self.lprec)
             spill = np.random.randint(
                 low=0, high=self.dim, size=levels-self.dim, dtype=self.lprec)
             self.spill = np.concatenate((index, spill), axis=0)
             #print("HERE: ", self.spill)
-        print(self.rank, vectors, self.spill, flush=True)
+        #print(self.rank, vectors, self.spill, flush=True)
         self.vectors = vectors
+        #print("Generated vectors", flush=True)
 
     def distributed_build(self):
         timer = Primitives.Profiler()
@@ -761,8 +864,8 @@ class RKDT:
                 print("before", vectors.shape)
                 vectors = vectors[self.spill]
                 print("after", vectors.shape)
-            print("after", vectors.shape, flush=True)
-            print("data", self.host_data.shape, flush=True)
+            #print("after", vectors.shape, flush=True)
+            #print("data", self.host_data.shape, flush=True)
             proj = self.host_data @ vectors
             #proj = proj.reshape(self.local_size, self.dist_levels)
             timer.pop("Dist Build: Compute Projection")
@@ -784,10 +887,11 @@ class RKDT:
                 local_size = np.array(self.local_size, dtype=self.gprec)
                 comm.Allreduce(local_size, global_size, op=MPI.SUM)
                 timer.pop("Dist Build: Get Global Size")
-                print(global_rank, "Current Comm Size", mpi_size, flush=True)
+                #print(global_rank, "Current Comm Size", mpi_size, flush=True)
 
                 # Compute median
                 # Get permutation vector for median partition (lids)
+                #print(global_rank, "Dist select", flush=True)
                 timer.push("Dist Build: Distributed Select")
                 lids = np.arange(self.local_size, dtype=self.lprec)
 
@@ -799,6 +903,7 @@ class RKDT:
                 median, local_split = Primitives.dist_select(
                     global_size/2, current_proj, lids, comm)
                 timer.pop("Dist Build: Distributed Select")
+                #print(global_rank, "Finished Dist select", flush=True)
 
                 # Reorder left and right of projection to prepare for communication
                 timer.push("Dist Build: Reorder Projection")
@@ -821,8 +926,8 @@ class RKDT:
                
                 #print(global_rank, "(lids)", lids, flush=True)
                 #print(global_rank, "(gids)", self.global_ids, flush=True)
-                print(global_rank, "(median)", median, proj, flush=True)
-                print(global_rank, "(nleft/nright)", nleft, nright, flush=True)
+                #print(global_rank, "(median)", median, proj, flush=True)
+                #print(global_rank, "(nleft/nright)", nleft, nright, flush=True)
             
                 timer.push("Dist Build: Compute Targets - Prefix Sums")
 
@@ -898,7 +1003,7 @@ class RKDT:
                     recv_proj, rsizes*rl, rstarts*rl, MPI.FLOAT])
                 timer.pop("Dist Build: Communicate Projections - alltoall")
 
-                print(global_rank, median, "recv_proj check", recv_proj[:, l], flush=True)
+                #print(global_rank, median, "recv_proj check", recv_proj[:, l], flush=True)
                 timer.pop("Dist Build: Communicate Projections")
 
                 # update global ids
@@ -917,19 +1022,32 @@ class RKDT:
                 else:
                     cond = np.max(recv_proj[:, l]) <= median
                     count = np.sum(recv_proj[:, l] > median)
+
                 
                 lproj = proj[:local_split, l]
                 rproj = proj[local_split:, l]
 
-                lcond = (np.max(lproj) <= median)
-                rcond = (np.min(rproj) >= median)
+                thres = 0#.00001
+                lcond = (np.max(lproj) <= median + thres)
+                rcond = (np.min(rproj) >= median - thres)
 
-                lcount = np.sum(lproj > median)
-                rcount = np.sum(rproj < median)
+                lcount = np.sum(lproj - thres > median)
+                rcount = np.sum(rproj + thres < median)
 
-                print(global_rank, l, "Validate Send Proj Left", lcond, lcount, lproj, flush=True)
-                print(global_rank, l, "Validate Send Proj Right", rcond, rcount, rproj, flush=True)
-                print(global_rank, l, "Validate Correct Proj: ", cond, count, recv_proj[:, l].shape[0], flush=True)
+                if lcount:
+                    max_lcount = (np.min(lproj[lproj - thres > median]), np.max(lproj[lproj - thres > median]) )
+                else:
+                    max_lcount = 0
+
+                if rcount:
+                    max_rcount = (np.min(rproj[rproj + thres < median]), np.max(rproj[rproj + thres < median]) )
+                else:
+                    max_rcount = 0
+
+                #Note: Check to make sure randomization in dist_select is not creating error
+                #print(global_rank, l, "Validate Send Proj Left", lcond, lcount, max_lcount, median, lproj, flush=True)
+                #print(global_rank, l, "Validate Send Proj Right", rcond, rcount, max_rcount, median, rproj, flush=True)
+                #print(global_rank, l, "Validate Correct Proj: ", cond, count, recv_proj[:, l].shape[0], flush=True)
                 #assert(cond)
 
                 proj = recv_proj
@@ -944,13 +1062,24 @@ class RKDT:
         timer.pop("Dist Build:")
 
     def collect_data(self):
+        t = time.time()
         timer = Primitives.Profiler()
         timer.push("Collect Points:")
         data, gids = collect(self.comm, self.global_ids, self.host_data,
                                  self.prefix_sizes, dtype=self.gprec)
         timer.pop("Collect Points:")
+
+        if self.sparse_flag:
+            data, sp = data 
+            ptr, idx, val = sp 
+            self.ptr = ptr 
+            self.idx = idx 
+            self.val = val 
+
         self.host_data = data
         self.global_ids = gids
+        t = time.time() - t
+        #print("Collect Points: ", t, flush=True)
 
     def redistribute_results(self, results):
         return redistribute(self.comm, self.global_ids, results, self.prefix_sizes)
@@ -991,7 +1120,7 @@ class RKDT:
         rank = self.comm.Get_rank()
 
         query_size = Q.shape[0]
-
+        #print(rank, query_size, self.host_data.shape)
         # Allocate storage for local reduction on rank 0
         recvbuff_list = np.empty([mpi_size, query_size, k], dtype=self.gprec)
         recvbuff_dist = np.empty([mpi_size, query_size, k], dtype=np.float32)
@@ -1009,7 +1138,7 @@ class RKDT:
         result_ids = self.global_ids[result_ids]
         assert(result_ids.dtype == self.gprec)
 
-        print(rank, "locally owned results", result_ids, self.global_ids, flush=True)
+        #print(rank, "locally owned results", result_ids, self.global_ids, flush=True)
 
         # Gather all information back to rank 0
         self.comm.Gather(result_ids, recvbuff_list, root=0)
@@ -1020,7 +1149,7 @@ class RKDT:
         if rank == 0:
             for i in range(0, mpi_size):
                 neighbors = (recvbuff_list[i], recvbuff_dist[i])
-                print("merge", i, neighbors, flush=True)
+                #print("merge", i, neighbors, flush=True)
                 if result:
                     result = Primitives.merge_neighbors(result, neighbors, k)
                 else:
