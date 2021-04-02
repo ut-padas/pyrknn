@@ -4,6 +4,6 @@ To build:
 - Run make 
 
 Main functions to perform an all-to-all nearest neighbor search are:
-    RKDForest.all_search()
-    RKDForest.overlap_search() 
+- RKDForest.all_search()
+- RKDForest.overlap_search() 
 
