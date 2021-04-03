@@ -86,10 +86,29 @@ void find_neighbors(fvec& Dist, const ivec &ID, ivec &idx, float *nborDist, int 
 }
 
 
-// N: # points in ONE leaf node
 void leaf_knn(const ivec &ID, const fvec &P, int N, int d, int nLeaf,
     int *nborID, float *nborDist, int k, int LD, int blkPoint, 
     float &t_dist, float &t_sort) {
+
+  // -----
+  // INPUT
+  // -----
+  // ID: (permuted) ID of data points
+  // P: (permuted) coordinates of data points
+  // N: # of points in ONE leaf node
+  // d: dimension/number of coordinates of a data point
+  // nLeaf: # of leaf nodes
+  // k: # of nearest neighbors to compute
+  // LD: # of columns of the two output matrix 'nborID' and 'nborDist'
+  // blkPoint: # of points in a batch for the compute_distance kernel
+
+  // ------
+  // OUTPUT
+  // ------
+  // nborID: IDs of KNN of all points
+  // nborDist: distances of KNN of all points
+  // t_dist & t_sort: timings
+
 
   float t_kernel = 0., t_gemm = 0., t_rank = 0., t_nbor = 0., t_norm = 0.;
   TimerGPU t0, t1; t0.start();
