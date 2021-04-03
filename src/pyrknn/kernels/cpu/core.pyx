@@ -289,10 +289,6 @@ cpdef RefBatched(gidsList, RList, QList, k):
     #NDL = np.asarray(cNDList);
     return (NLL, NDL)
 
-cpdef test_par():
-    with nogil:
-        test[float]();
-
 cpdef choice(arr):
     cdef int N = len(arr);
     cdef int[:] anchors = np.zeros(2, dtype=np.int32)

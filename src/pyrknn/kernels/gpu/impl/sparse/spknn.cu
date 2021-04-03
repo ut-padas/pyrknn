@@ -118,12 +118,13 @@ int current_time_nanoseconds(){
 }
 
 
-
+/*
 void build_sparse_tree(bool copy, int *hID, int *hRowPtr, int *hColIdx, float *hVal, 
     int* pdRowPtr, int* pdColIdx, float* pdVal, int nExtra, int n, int d, int nnz, int level, int device) {
 
     TimerGPU t, t2, t3;
     float copy_t = 0.0;
+    float t_tsort = 0.0;
 
     const int nLeaf = 1<<level;
     const int maxPoint = (n+nLeaf-1)/nLeaf;
@@ -149,6 +150,7 @@ void build_sparse_tree(bool copy, int *hID, int *hRowPtr, int *hColIdx, float *h
   //random seed
   int seed = current_time_nanoseconds();
 
+  dvec<int> perm(n);
   //cluster points
   {
     //Allocate projection matrix
@@ -175,6 +177,7 @@ void build_sparse_tree(bool copy, int *hID, int *hRowPtr, int *hColIdx, float *h
 
   cudaDeviceSynchronize();
 }
+*/
 
 
 
