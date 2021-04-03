@@ -18,6 +18,8 @@ Main functions to perform an all-to-all nearest neighbor search are:
 Installation Notes:
 --
 
+GPU Sparse Kernel requires <= CUDA/10.1. Several of the calls are deprecated in CUDA 11 and have a new interface. 
+
 Numba works on Frontera with CUDA/10.0
 
 Set: CUDA_HOME=$TACC_CUDA_DIR
