@@ -15,7 +15,7 @@ cimport mpi4py.MPI as MPI
 cimport mpi4py.libmpi as libmpi
 from mpi4py import MPI
 #import time as MPI
-
+import math
 import time
 
 cpdef sparse_exact(gids, R, Q, k, cores):
@@ -476,13 +476,13 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
 
-    if (gmax - gmin < 1e-7):
+    if (math.isclose(gmax, gmin, rel_tol=1e-5, abs_tol=1e-20)):
         st0 = np.random.get_state()
         np.random.seed(None)
         print("Warning: Up to precision ", N, " points are the same.")
         print(rank, "before", np.array(X)) 
-        X = X + np.array(np.random.randn(nlocal), dtype=np.float32)*(3e-4)
-        print(rank, "after", np.array(X))
+        X = X + np.array(np.random.randn(nlocal), dtype=np.float32)*gmax*(3e-5)
+        #print(rank, "after", np.array(X))
         np.random.set_state(st0)
 
     if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
