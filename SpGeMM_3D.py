@@ -63,6 +63,7 @@ def SpGeMM_3D(I, J, V, D, m, start, stop, max_nnz, batchsize):
     norm_ij += v_i[n_i]**2
   
   # remove rows with zero distance
+  
   if i==j: 
     c_tmp = norm_ij
     ind = m*i + i + z*(m**2)
@@ -75,7 +76,7 @@ def SpGeMM_3D(I, J, V, D, m, start, stop, max_nnz, batchsize):
  
   
   # assign shared memory for row j (col indices)
-  sj = cuda.shared.array(shape=(2000),dtype=int32)
+  sj = cuda.shared.array(shape=(2048),dtype=int32)
   
   for l in range(nnz_j):
     sj[l] = J[ind0_j + l]
@@ -90,7 +91,7 @@ def SpGeMM_3D(I, J, V, D, m, start, stop, max_nnz, batchsize):
   for pos_k in range(0, ind1_i-ind0_i):
 
     k = si[pos_k]
-     
+    
     # Binary_search
     ret = 0
     testInd = 0
@@ -120,6 +121,185 @@ def SpGeMM_3D(I, J, V, D, m, start, stop, max_nnz, batchsize):
   D[ind_ij] = c_tmp
   D[ind_ji] = c_tmp
 
+  
+  '''
+  if i == 1 and j == 0 and z== 1:
+    print('distance matrix')
+    for w in range(m**2):
+      print(w , D[w + z*m**2])
+  '''
+
+  cuda.syncthreads()
+
+  # compute k lowest distances 
+  '''
+
+  num_updiag = (m**2 - m)//2
+  tid = i*(m-1 - i) + j-1 + z*num_updiag
+
+  
+
+  if i == 1 and j == 0 and z== 0:
+    print('dist kernel before sort')
+    for w in range(num_updiag):
+      print(w , D[tid])
+  cuda.syncthreads()
+
+  #sj = cuda.shared.array(shape=(2000),dtype=float32)
+  z_ind0 = z*num_updiag + z*m**2 
+  z_ind1 = (z+1)*num_updiag + z*m**2
+  sj = D[z_ind0:z_ind1]
+
+
+  cuda.syncthreads()
+
+  log_size = math.log(num_updiag**2)/math.log(2)
+
+  
+  if tid > (num_updiag)-1:
+    print('error')
+
+  for k_step in range(1, log_size+1, 1):
+    k = pow(2, k_step)
+    
+    for l_step in range(k_step-1, -1, -1):
+      l = pow(2, l_step)
+      
+      ixj = tid ^ l  
+      
+
+      if ixj > tid :
+        if tid & k == 0: 
+          
+          #cuda.compare_and_swap()
+          if sj[tid] > sj[ixj]:
+            sj[tid], sj[ixj] = sj[ixj], sj[tid]
+    
+        else:
+          if sj[tid] < sj[ixj]:
+            sj[tid], sj[ixj] = sj[ixj], sj[tid]
+
+      cuda.syncthreads()
+
+  if i == 0 and j == 1 and z== 0:
+    print('dist kernel after sort')
+    for w in range(num_updiag):
+      print(w , sj[tid])
+
+  '''
+  return
+
+
+
+
+@cuda.jit('void(float32[:],float32[:], int32[:], int32[:], int32, int32, int32)') 
+def compute_knn(D, K ,I_k, J_k, k , m, batchsize):
+
+  i = cuda.threadIdx.x + cuda.blockDim.x*cuda.blockIdx.x 
+  j = cuda.blockIdx.y
+  
+  # bitonic sort for distance matrix 
+  
+
+  if m**2 > 2048: raise Exception(' number of distance > 2000')     
+
+  # tid for distance matrix
+  col_D = i // m 
+  row_D = i - col_D*m 
+  
+  
+  num_updiag = (m**2 - m)//2
+  log_size = math.ceil(math.log(num_updiag)/math.log(2))
+  if i >= pow(2, log_size+1) : return 
+  
+  # mapping of 2D to inline indexing 
+  #tid_D = row_D*(m-1 - row_D) + col_D-1 + j*m**2 
+  tid_D = m*row_D + col_D + j*(m**2)
+  
+  #if tid_D > batchsize*m**2: return
+
+  # mapping of 2D to updiagonal row-based indexing
+  tid =  col_D - row_D - 1 + (m* row_D - (row_D**2 + row_D)//2) #+ j*num_updiag
+
+
+  #tid for the shared memory 
+  sj = cuda.shared.array(shape=(2048),dtype=float32)
+  I = cuda.shared.array(shape=(2048),dtype=float32)
+  J = cuda.shared.array(shape=(2048),dtype=float32)
+  if col_D > row_D:
+    sj[tid] = D[tid_D]
+    I[tid] = row_D 
+    J[tid] = col_D 
+  cuda.syncthreads()
+  
+  
+  # sorting
+  
+  log_size = math.ceil(math.log(num_updiag)/math.log(2))
+  '''
+  if row_D == 0 and col_D == 1 and j == 1:
+    print('before sort')
+    for w in range(pow(2, log_size)):
+      print(w, sj[w])
+  '''
+
+  if i >= pow(2 , log_size) : return
+    
+  for g_step in range(1, log_size+1, 1):
+    g = pow(2, g_step)
+    
+    for l_step in range(g_step-1, -1, -1):
+      l = pow(2, l_step)
+      
+      ixj = i ^ l  
+    
+      if ixj > i :
+        if i & g == 0: 
+          
+          #cuda.compare_and_swap()
+          if sj[i] > sj[ixj]:
+            sj[i], sj[ixj] = sj[ixj], sj[i]
+            I[i], I[ixj] = I[ixj], I[i]
+            J[i], J[ixj] = J[ixj], J[i]
+    
+        else:
+          if sj[i] < sj[ixj]:
+            sj[i], sj[ixj] = sj[ixj], sj[i]
+            I[i], I[ixj] = I[ixj], I[i]
+            J[i], J[ixj] = J[ixj], J[i]
+
+      cuda.syncthreads()
+    
+
+  # write the results back
+  diff = int(pow(2, log_size) - num_updiag)
+
+  if i >= diff and i <= k + diff: 
+    #ind = i-diff
+    K[i-diff + j*k] = sj[i]
+    I_k[i-diff + j*k] = I[i]
+    J_k[i-diff + j*k] = J[i]
+    
+
+  cuda.syncthreads()
+  '''
+  if row_D == 0 and col_D == 1 and j == 1:
+    print('after sort')
+    print(k)
+    for w in range(k):
+      print(w, K[w + j*k], I_k[w + j*k], J_k[w + j*k])
+    
+  ''' 
+  #print(tid, sj[tid])
+  
+  cuda.syncthreads()
+
+  '''
+  if (i == 1 and j == 0):
+    print('after sort')
+    for n in range(m**2):
+      print(n , D[n])
+  '''
   return
 
 
@@ -132,18 +312,21 @@ def gpu_sparse_knn(X, k):
   #m, d = X.shape
 
   # num of rows columns of X 
-  m = 100  
+  m = 300  
   d = 10000
+  k = 32
+  # test 
+  nnzperrow = 600
   # max nonzero per row 
-  max_nnz = 2000 
+  max_nnz = 1000 
   # batches to calculate in each kernel call 
-  batchsize = 100 
+  batchsize = 2 
   ntrees = 1
   
   threadsperblock_x = 256
   blockpergrid = (threadsperblock_x + m - 1)// threadsperblock_x
+  
   blockdim = threadsperblock_x, 1 , 1 
-
   griddim = blockpergrid, m, batchsize
 
 
@@ -152,8 +335,7 @@ def gpu_sparse_knn(X, k):
     # TODO 
     #X2 = c_build_tree(X, levels)
    
-    # test 
-    nnzperrow = 200 
+     
     X2 = gen_SpData_2D(m, d, nnzperrow, batchsize)
     leaves = [1] 
     for batch in leaves:
@@ -161,23 +343,41 @@ def gpu_sparse_knn(X, k):
       #stop = batch.end
 
       D = np.zeros((m**2*batchsize), dtype = np.float32)
-
+      K = np.zeros((batchsize*k), dtype = np.float32)
+      I_k = np.zeros((batchsize*k), dtype = np.float32)
+      J_k = np.zeros((batchsize*k), dtype = np.float32)
       d_I = cuda.to_device(X2['rowptr'])
       d_J = cuda.to_device(X2['colind'])
       d_V = cuda.to_device(X2['data'])
       d_start = cuda.to_device(X2['start'])
       d_stop = cuda.to_device(X2['stop'])
       d_D = cuda.to_device(D)
+      d_K = cuda.to_device(K)
+      d_I_k = cuda.to_device(I_k)
+      d_J_k = cuda.to_device(J_k)
+      
       t0 = time.time()
       
       # kernel
       SpGeMM_3D[griddim, blockdim](d_I,d_J,d_V,d_D, m, d_start, d_stop, max_nnz, batchsize)
       cuda.synchronize()
+      blockpergrid = (threadsperblock_x + m**2//2 - 1)// threadsperblock_x
+      blockdim = threadsperblock_x, 1 
+      griddim = blockpergrid, batchsize
+      print(blockdim, griddim)
+      #log_size = math.log(m**2)/math.log(2)
+      
+      t1 = time.time()
+      compute_knn[griddim, blockdim](d_D, d_K ,d_I_k, d_J_k, k, m, batchsize)
 
-      del_t = time.time() - t0
+      cuda.synchronize()
+      del_t0 = t1 - t0
+      del_t1 = time.time() - t1
       D = d_D.copy_to_host()
       
-      msg = 'iter %d \t batch %d /%d \t kernel time (s) : %.3e'%(iteration, batch, len(leaves), del_t)   
+
+      
+      msg = 'iter %d \t batch %d /%d \t kernel time (s) : %.3e \t %.3e'%(iteration, batch, len(leaves), del_t0, del_t1)   
       
       print(msg)
       
