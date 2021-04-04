@@ -16,7 +16,27 @@ void compute_row_norms(const fvec &P, fvec &P_norm, int m, int n) {
 
 void compute_distance(const fvec &P, const fvec &normP, const fvec &ones, fvec &Dist,
     int nLeaf, int N, int d, int blk, int m, int offset, float &t_gemm, float &t_rank) {
-  
+
+  // -----
+  // INPUT
+  // -----
+  // P: (permuted) coordinates of data points, (N*nLeaf)-by-d matrix in row major
+  // normP: squared two norm of all data points, length N*nLeaf
+  // ones: auxilliary array of one's, length N*nLeaf
+  // nLeaf: # of leaf nodes
+  // N: # of points in ONE leaf node
+  // d: dimension/number of coordinates of a data point
+  // blk: index of batch
+  // m: # of points in a batch for the compute_distance kernel
+  // offset: blk*m
+
+  // ------
+  // OUTPUT
+  // ------
+  // Dist: distances between a batch of points and all points in a leaf node (for all nodes), 
+  //        (m*nLeaf)-by-N matrix in row major
+  // t_gemm & t_rank: timings
+
   auto& handle = knnHandle_t::instance();
   const float alpha = -2;
   const float beta = 0;
