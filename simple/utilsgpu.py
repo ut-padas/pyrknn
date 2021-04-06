@@ -1,7 +1,21 @@
 import numpy as np
 import cupy as cp
 from numba import njit, jit, prange, cuda
+import cupyx.scipy.sparse as cpsp
 
+
+def l2sparse(q,r):
+    rownormq = cpsp.linalg.norm if cpsp.issparse(q) else cp.linalg.norm
+    rownormr = cpsp.linalg.norm if cpsp.issparse(r) else cp.linalg.norm
+    qnr = rownormq(q,axis=1)**2
+    rnr = rownormr(r,axis=1)**2
+    d = -2*q@r.T
+    n,m= d.shape
+    qm = cp.tile(qnr,(m,1)); 
+    qm = qm.T
+    d += qm + cp.tile(rnr,(n,1))
+    d = cp.squeeze(cp.asarray(d))
+    return cp.sqrt(cp.abs(d)) 
 
 
 def l2(q,r):
