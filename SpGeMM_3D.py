@@ -166,7 +166,6 @@ def compute_knn(D_IJ, K, ID_K, k, m, max_nnz, batchID_I, batchID_J, num_batch_I,
 
   subbatch_I = z // num_batch_I 
   subbatch_J = z - num_batch_J*subbatch_I
-
   # shared memory specified for row i for each j  
   sj = cuda.shared.array(shape=(2048),dtype=float32)
   #row_k = cuda.shared.array(shape=(2048),dtype=int32)
@@ -219,7 +218,8 @@ def compute_knn(D_IJ, K, ID_K, k, m, max_nnz, batchID_I, batchID_J, num_batch_I,
   if i >= diff and i < k + diff: 
     #ind = i-diff
     g_col = subbatch_J*k + i - diff
-    ind_ij = num_batch_I*m*g_row + g_col
+    #ind_ij = num_batch_I*m*g_row + g_col
+    ind_ij = (num_batch_I*m*batchID_I + g_row) + g_col
     K[ind_ij] = sj[i]
     #print(z, j , i, g_ind , sj[i])
     ID_K[ind_ij] = id_k[i]
@@ -284,7 +284,6 @@ def merge_knn(d_knn, d_ID_knn, d_K, d_ID_K, k, m , num_batch_I, num_batch_J, bat
     d_knn[i-diff + j*k] = S_dist[i]
       
     d_ID_knn[i-diff + j*k] = S_id[i]
-
     #print(S_id[i], S_dist[i])
   cuda.syncthreads()
   '''
@@ -301,13 +300,13 @@ def gpu_sparse_knn(X, k):
   #m, d = X.shape
 
   # num of points of X 
-  M_I = 1028*1028
+  M_I = 1028
   d = 1000
-  nnzperrow = 100
-  num_batch_I = 16 
-  num_batch_J = 16
-  m = 64
-  k = 32
+  nnzperrow = 200
+  num_batch_I = 32 
+  num_batch_J = 32
+  m = 16
+  k = 8
   dist_max = 1e6
   
 
@@ -401,8 +400,8 @@ def gpu_sparse_knn(X, k):
         K = np.zeros((num_batch_I*num_batch_J*k*m), dtype = np.float32)
         ID_K = np.zeros((num_batch_I*num_batch_J*k*m), dtype = np.int32)
       
-        A_I, _ = rec(R_I, C_I, V_I, m*num_batch_I, d)
-        A_J, _ = rec(R_J, C_J, V_J, m*num_batch_J, d)
+        #A_I, _ = rec(R_I, C_I, V_I, m*num_batch_I, d)
+        #A_J, _ = rec(R_J, C_J, V_J, m*num_batch_J, d)
               
         '''       
         print('A_I for i = ', batch_I , ', j = ',batch_J)
@@ -441,9 +440,9 @@ def gpu_sparse_knn(X, k):
         t2 = time.time()
 
         merge_knn[griddim_merge, blockdim_merge](d_knn_local, d_ID_knn_local, d_K, d_ID_K, k, m , num_batch_I, num_batch_J, batch_I, batch_J, max_nnz)
-        t3 = time.time()
 
         cuda.synchronize()
+        t3 = time.time()
 
         del_t0 += t1 - t0
         del_t1 += t2 - t1
