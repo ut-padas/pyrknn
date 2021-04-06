@@ -49,8 +49,8 @@ def gen_random_sparse_csr(N,M,avg_nnz,idtype=np.int32,vltype=np.float32):
     cols = np.random.randint(M, size=nnz, dtype=idtype)
     rows = np.block( [0, np.cumsum(nnz_arr)])
     vals = np.random.randn(nnz).astype(vltype)
-
     X =csr_matrix((vals, cols, rows), shape=(N,M) )
+    X.sort_indices()    
     return X
 
 
@@ -75,5 +75,6 @@ if USE_CUDA:
         rows = cp.concatenate( [cp.zeros(1), cp.cumsum(nnz_arr)])
         vals = cp.random.randn(int(nnz)).astype(vltype)
         X = cp.sparse.csr_matrix((vals,cols,rows), shape=(N,M))
+        X.sort_indices()
         return X
         

@@ -3,6 +3,7 @@ import cupy as cp
 import utilsgpu as ut
 from time import time
 
+#@jit        
 # TODO: THIS NEEDS TO BE REPLACED BY THE NEW CODE
 def leaf_knn(X,gids,m,knnidx,knndis,k,init,overlap=0):
     '''
@@ -31,16 +32,15 @@ def leaf_knn(X,gids,m,knnidx,knndis,k,init,overlap=0):
     updates knnidx and knndis
     '''
     
-    n = len(gids)
+    n = gids.shape[0]
     offsets = cp.arange(0,n,m)
-
     for i in range(len(offsets)):
         st = cp.asnumpy(offsets[i])
         en = min(st+m, n)
         ls =  gids[st:en]    # leaf set
         ov=overlap
         lss = gids[max(st-ov,0):min(n,en+ov)]
-        D = ut.l2(X[ls,:],X[lss,:])
+        D = ut.l2sparse(X[ls,:],X[lss,:])
         T=cp.tile(lss,(en-st,1))
         S = cp.argsort(D,axis=1)
         T=cp.take_along_axis(T,S,axis=1)
@@ -103,14 +103,14 @@ def rkdt_a2a_it(X,gids,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense
             if 0: print(gids)
 
 
-        if 1 and dense:
-            leaf_knn(X,gids,segsize,knnidx,knndis,K,t==0,overlap)
+        #        if 1 and dense:
+        leaf_knn(X,gids,segsize,knnidx,knndis,K,t==0,overlap)
         if monitor is not None:
             if monitor(t,knnidx,knndis):
                 break
         
-    if not dense:
-        print("\t _WARNING_ :Sparse knn search not supported")
+    # if not dense:
+    #     print("\t _WARNING_ :Sparse knn search not supported")
 
 
 

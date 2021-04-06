@@ -1,5 +1,8 @@
 import numpy as np
-from numba import njit, jit, prange
+from numba import njit
+import scipy as sp
+from scipy.sparse import csr_matrix, isspmatrix
+
 
 def centerpoints(X):
     n=len(X)
@@ -32,9 +35,23 @@ def l2(q,r):
     qnr = np.sum(q**2,axis=-1)
     rnr = np.sum(r**2,axis=-1)
     d = -2*q@r.T
+    print(d)
     rank2_update(d,qnr,rnr)
     return np.sqrt(np.abs(d))   # abs to avoid issues with cancellation error in subtraction
-    
+
+def l2sparse(q,r):
+    rownormq = sp.sparse.linalg.norm if sp.sparse.issparse(q) else np.linalg.norm
+    rownormr = sp.sparse.linalg.norm if sp.sparse.issparse(r) else np.linalg.norm
+    qnr = rownormq(q,axis=1)**2
+    rnr = rownormr(r,axis=1)**2
+    d = -2*q@r.T
+    n,m= d.shape
+    qm = np.tile(qnr,(m,1)); 
+    qm = qm.T
+    d += qm + np.tile(rnr,(n,1))
+    d = np.squeeze(np.asarray(d))
+    return np.sqrt(np.abs(d)) 
+
 
 def orthoproj(X, numdir):
     """
@@ -58,9 +75,11 @@ def orthoproj(X, numdir):
         prm = np.random.permutation(n)
         Xs = X[prm[:2*dim],:]
         U = Xs.T@Xs
-        
-    Q,_ =np.linalg.qr(U,mode='reduced')
-    U[:,:Q.shape[1]] = Q
+    
+    if not isspmatrix(X):
+        Q,_ =np.linalg.qr(U,mode='reduced')
+        U[:,:Q.shape[1]] = Q
+
     Xr = X@U
     return (Xr, U)
 
@@ -118,10 +137,10 @@ def merge_knn(dis,idx,k):
     m = len(dis)
     tmp_idx = np.empty_like(idx)
     for j in range(m):
-        _,tmp_idx = np.unique(idx[j,],return_index=True)
-        m = len(tmp_idx)
-        dis[j,:m] = dis[j,tmp_idx]
-        idx[j,:m] = idx[j,tmp_idx]        
+        _,tmp_idx0 = np.unique(idx[j,],return_index=True)
+        m = len(tmp_idx0)
+        dis[j,:m] = dis[j,tmp_idx0]
+        idx[j,:m] = idx[j,tmp_idx0]        
         tmp_idx = np.argsort(dis[j,:m])
         dis[j,:k]=dis[j,tmp_idx[:k]]
         idx[j,:k]=idx[j,tmp_idx[:k]]
