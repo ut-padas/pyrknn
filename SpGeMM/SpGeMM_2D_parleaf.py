@@ -18,7 +18,7 @@ import random
 
 
 
-@cuda.jit('void(int32[:], int32[:], float32[:], int32[:], int32, float32[:], int32[:], int32, int32,  int32, int32, int32, int32,  int32, int32, float32, int32, int32, int32)') 
+@cuda.jit('void(int32[:], int32[:], float32[:], int32[:], int32, float32[:], int32[:], int32, int32, int32, int32, int32, int32,  int32, int32, float32, int32, int32, int32)') 
 def SpGeMM(R, C, V, GID, leaf_ID, K, ID_K, m_i, m_j, M , max_nnz, batchID_I, batchID_J, num_batch_I, num_batch_J, dist_max, k_nn, num_I, num_J):
   
   # elements
@@ -195,7 +195,7 @@ def SpGeMM(R, C, V, GID, leaf_ID, K, ID_K, m_i, m_j, M , max_nnz, batchID_I, bat
     ID_K[ind_ij] = id_k[i]
 
     
-@cuda.jit('void(float32[:], int32[:], int32[:], int32, float32[:], int32[:], int32, int32,int32,  int32, int32, int32, int32, int32, int32, int32, int32)') 
+@cuda.jit('void(float32[:], int32[:], float32[:], int32[:], int32, int32, int32, int32, int32, int32, int32, int32, int32, int32)') 
 def merge_knn(d_knn, d_ID_knn, d_GID, leaf_ID, d_K, d_ID_K, k, m_i, m_j , M, num_batch_I, num_batch_J, batchID_I, batchID_J, max_nnz, num_I, num_J):
 
   i = cuda.threadIdx.x + cuda.blockIdx.x*cuda.blockDim.x 
@@ -313,22 +313,19 @@ def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M_I, d_knn, d_knn_ID, k, num_ba
   d_ID_K = cuda.to_device(ID_K)
   
   for leaf_ID in range(leaves):
+ 
+
     for batch_I in range(num_I):
       for batch_J in range(num_J):
         t0 = time.time()
         # kernel distand and knn
         cuda.profile_start()
-        
         SpGeMM[griddim, blockdim](d_R, d_C, d_V, d_GID, leaf_ID, d_K, d_ID_K, m_i, m_j, M_I, max_nnz, batch_I, batch_J, num_batch_I, num_batch_J, dist_max, k, num_I, num_J)
-        
         cuda.synchronize()
         cuda.profile_stop()
-        
         t1 = time.time() 
-        
-        merge_knn[griddim_merge, blockdim_merge](d_knn, d_knn_ID, d_GID, leaf_ID, d_K, d_ID_K, k, m_i, m_j ,M_I,  num_batch_I, num_batch_J, batch_I, batch_J, max_nnz, num_I, num_J)
-        cuda.synchronize()
-        
+        merge_knn[griddim_merge, blockdim_merge](d_knn, d_knn_ID, d_GID, leaf_ID, d_K, d_ID_K, k, m_i, m_j ,M,  num_batch_I, num_batch_J, batch_I, batch_J, max_nnz, num_I, num_J)
+      cuda.synchronize()
         t2 = time.time()
         #print(batch_I, batch_J)
         #K = d_K.copy_to_host()
@@ -339,7 +336,7 @@ def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M_I, d_knn, d_knn_ID, k, num_ba
         del_t2 += t2 - t0
 
       
-    msg = 'leaves : %d \n seq_itr : %d, \n batch size : %d, \n parts : %d \n Dist (s) : %.3e \n merge : %.3e \n total : %.3e'%(leaf_ID , num_I*num_J, m_i*m_j , num_batch_I*num_batch_J, del_t0, del_t1, del_t2)   
+    msg = 'leaves : %d \n seq_itr : %d, \n batch size : %d, \n parts : %d \n Dist (s) : %.3e \n merge : %.3e \n total : %.3e'%(ell , num_I*num_J, m_i*m_j , num_batch_I*num_batch_J, del_t0, del_t1, del_t2)   
       
     print(msg)
 
@@ -419,11 +416,11 @@ def gen_SpData_2D(m, d, nnzperrow, num_leaves):
       ind1 = ind0 + nnz_i
       J[ind0:ind1] = np.sort(J[ind0:ind1])
   
-  GID = np.zeros((num_leaves*m))
-  ref = np.arange(m, dtype = np.int32)
-  GID[0:m] = ref
+  GID = np.zeros((num_leaves*M))
+  ref = np.arange(M, dtype = np.int32)
+  GID[0:M] = ref
   for i in range(1, num_leaves):
-    GID[i*m:(i+1)*m] = np.random.permutation(ref)
+    GID[i*M:(i+1)*M] = np.random.permutation(ref)
     
   
   X['rowptr'] = I
@@ -468,7 +465,7 @@ def main():
   max_nnz = 1000
 
 
-  X = gen_SpData_2D(M, d, nnzperrow, num_leaves)
+  X = gen_SpData_2D(M, d, nnzperrow)
   R = X['rowptr']
   C = X['colind']
   V = X['data']
@@ -486,7 +483,6 @@ def main():
   d_R = cuda.to_device(R)
   d_C = cuda.to_device(C)
   d_V = cuda.to_device(V)
-  d_GID = cuda.to_device(GID)
 
 
   # X is concatenated CSR format of Z leaves 
@@ -508,6 +504,7 @@ def main():
 
 if __name__ == '__main__':
   main()
+
 
 
 
