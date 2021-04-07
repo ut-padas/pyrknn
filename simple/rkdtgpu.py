@@ -137,7 +137,7 @@ def rkdt_a2a_it(X,gids,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense
                 break
         
         if not dense:
-            print("\t _WARNING_ :Sparse knn search not supported")
+            print("\t _WARNING_ :Sparse knn search not supported, cupy version")
 
 
 
