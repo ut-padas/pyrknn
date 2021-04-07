@@ -18,8 +18,8 @@ import random
 
 
 
-@cuda.jit('void(int32[:], int32[:], float32[:], int32[:], int32[:], float32[:], float32[:], int32[:], int32, int32,int32, int32, int32, float32, int32, int32, int32)') 
-def SpGeMM_3D(R_I, C_I, V_I, R_J, C_J, V_J, K, ID_K, m_i, m_j, max_nnz, batchID_I, batchID_J, num_batch_I, num_batch_J, dist_max, k_nn):
+@cuda.jit('void(int32[:], int32[:], float32[:], int32[:], float32[:], int32[:], int32, int32,int32, int32, int32, float32, int32, int32, int32)') 
+def SpGeMM_3D(R_I, C_I, V_I, R_J, K, ID_K, m_i, m_j, max_nnz, batchID_I, batchID_J, num_batch_I, num_batch_J, dist_max, k_nn):
   
   # elements
   i = cuda.threadIdx.x + cuda.blockDim.x*cuda.blockIdx.x
@@ -38,8 +38,8 @@ def SpGeMM_3D(R_I, C_I, V_I, R_J, C_J, V_J, K, ID_K, m_i, m_j, max_nnz, batchID_
 
 
   # total number of nonzero for X[I, :] and X[J, :]
-  nnz_I = R_I[subbatch_I*m_i] - R_I[subbatch_I*(m_i+1)]
-  nnz_J = R_J[subbatch_J*m_j] - R_J[subbatch_J*(m_j+1)]
+  #nnz_I = R_I[subbatch_I*m_i] - R_I[subbatch_I*(m_i+1)]
+  #nnz_J = R_J[subbatch_J*m_j] - R_J[subbatch_J*(m_j+1)]
 
   # select indices corresponding to row i , j
 
@@ -67,7 +67,7 @@ def SpGeMM_3D(R_I, C_I, V_I, R_J, C_J, V_J, K, ID_K, m_i, m_j, max_nnz, batchID_
   norm_ij = 0 
 
   cuda.syncthreads()
-      
+   
   # norm of row i  
   for n_i in range(nnz_i):
     norm_ij += V_I[ind0_i + n_i]**2
@@ -75,11 +75,11 @@ def SpGeMM_3D(R_I, C_I, V_I, R_J, C_J, V_J, K, ID_K, m_i, m_j, max_nnz, batchID_
   # remove rows with zero distance
   
   
-  
+    
   # norm of row j
   for n_j in range(nnz_j):
-    norm_ij += V_J[ind0_j + n_j]**2
- 
+    norm_ij += V_I[ind0_j + n_j]**2
+  
   
   
   #for l in range(nnz_j):
@@ -87,7 +87,9 @@ def SpGeMM_3D(R_I, C_I, V_I, R_J, C_J, V_J, K, ID_K, m_i, m_j, max_nnz, batchID_
  
   # register col indices for row i
   si = C_I[ind0_i:ind1_i]
-  sj = C_J[ind0_j:ind1_j]
+  sj = C_I[ind0_j:ind1_j]
+
+  
 
   # search for the same column index among row i,j
   c_tmp = 0
@@ -114,7 +116,7 @@ def SpGeMM_3D(R_I, C_I, V_I, R_J, C_J, V_J, K, ID_K, m_i, m_j, max_nnz, batchID_
     # check the result    
     ind_jk = ret if sj[ret] == k else -1
     
-    c = V_I[ind0_i + pos_k]*V_J[ind0_j + ind_jk] if ind_jk != -1 else 0
+    c = V_I[ind0_i + pos_k]*V_I[ind0_j + ind_jk] if ind_jk != -1 else 0
     
     c_tmp += c
 
@@ -350,12 +352,12 @@ def gpu_sparse_knn(X, k):
   # num of points of X 
   M_I = 1028
   d = 100
-  nnzperrow = 100
-  num_batch_I = 64 
-  num_batch_J = 64
-  m_i = 16
-  m_j = 16
-  k = 2
+  nnzperrow = 200
+  num_batch_I = 1028 
+  num_batch_J = 8
+  m_i = 1
+  m_j = 128
+  k = 32
   dist_max = 10000
   
   if m_i*m_j > 2048 : print(' Error for batch_size , does not fit in shared memory')
@@ -384,7 +386,7 @@ def gpu_sparse_knn(X, k):
   # number of nearest neighbor
   # test 
   # max nonzero per row 
-  max_nnz = 1000 
+  max_nnz = 30 
   # batches to calculate in each kernel call 
   
   threadsperblock_x = m_i*m_j
@@ -414,25 +416,25 @@ def gpu_sparse_knn(X, k):
         #stop = batch.end
         print(batch_I, batch_J)
         if batch_I == num_I - 1:
-          R_I = R[batch_I*num_batch_I*m_i:]
+          R_I = R[batch_I*num_batch_I*m_i:] #- R[batch_I*num_batch_I*m_i]
           #C_I = C[R_I[0]:R_I[-1]]
           C_I = C
           #V_I = V[R_I[0]:R_I[-1]]
           V_I = V
         else:
-          R_I = R[batch_I*num_batch_I*m_i:(batch_I+1)*num_batch_I*m_i+1]
+          R_I = R[batch_I*num_batch_I*m_i:(batch_I+1)*num_batch_I*m_i+1] #- R[batch_I*num_batch_I*m_i]
           #C_I = C[R_I[0]:R_I[-1]]
           #V_I = V[R_I[0]:R_I[-1]]
           C_I = C
           V_I = V
         if batch_J == num_J - 1:
-          R_J = R[batch_J*num_batch_J*m_j:]
+          R_J = R[batch_J*num_batch_J*m_j:] #- R[batch_J*num_batch_J*m_j]
           #C_J = C[R_J[0]:R_J[-1]]
           #V_J = V[R_J[0]:R_J[-1]]
           C_J = C
           V_J = V
         else:
-          R_J = R[batch_J*num_batch_J*m_j:(batch_J+1)*num_batch_J*m_j+1]
+          R_J = R[batch_J*num_batch_J*m_j:(batch_J+1)*num_batch_J*m_j+1] #- R[batch_J*num_batch_J*m_j]
           C_J = C
           V_J = V
           #C_J = C[R_J[0]:R_J[-1]]
@@ -490,20 +492,21 @@ def gpu_sparse_knn(X, k):
         
         t0 = time.time()
         # kernel
-        SpGeMM_3D[griddim, blockdim](d_R_I, d_C_I, d_V_I, d_R_J, d_C_J, d_V_J, d_K, d_ID_K, m_i, m_j, max_nnz, batch_I, batch_J, num_batch_I, num_batch_J, dist_max, k)
-        #cuda.synchronize()
+        SpGeMM_3D[griddim, blockdim](d_R_I, d_C_I, d_V_I, d_R_J, d_K, d_ID_K, m_i, m_j, max_nnz, batch_I, batch_J, num_batch_I, num_batch_J, dist_max, k)
+        cuda.synchronize()
         
-        #t1 = time.time()
-        #del_t0 += t1 - t0
+        t1 = time.time()
+        del_t0 += t1 - t0
+        cuda.profile_start()
         merge_knn[griddim_merge, blockdim_merge](d_knn_local, d_ID_knn_local, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch_J, batch_I, batch_J, max_nnz, num_I, num_J)
+        cuda.profile_stop()
         cuda.synchronize()
         t2 = time.time()
-        del_t1 += t2 - t0
+        del_t1 += t2 - t1
         K = d_K.copy_to_host()
         ID_K = d_ID_K.copy_to_host()
         cuda.synchronize()
-        t3 = time.time()
-        del_t2 = t3-t2 
+        del_t2 += t2 - t0
         ''' 
         print('inline  K ')
         #print(K)
@@ -579,7 +582,7 @@ def gpu_sparse_knn(X, k):
       
 
       
-    msg = 'leaves : %d \n seq_itr : %d, \n batch size : %d, \n parts : %d \n Dist (s) : %.3e \n comp_knn : %.3e \n merge : %.3e'%(ell , num_I*num_J, m_i*m_j , num_batch_I*num_batch_J, del_t0, del_t1, del_t2)   
+    msg = 'leaves : %d \n seq_itr : %d, \n batch size : %d, \n parts : %d \n Dist (s) : %.3e \n merge : %.3e \n total : %.3e'%(ell , num_I*num_J, m_i*m_j , num_batch_I*num_batch_J, del_t0, del_t1, del_t2)   
       
     print(msg)
 
@@ -779,7 +782,7 @@ def main():
     del V
     del J
     delt1 = t1-t0
-    cuda.profile_stop()
+    #cuda.profile_stop()
     
     #tot_t += t1 + t2 + t3 + t4
     

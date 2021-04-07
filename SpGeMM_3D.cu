@@ -11,65 +11,54 @@
 
 
 
-__global__ void compute_dist(int* I, int* J, float* V, float* D, int m, int* nnz_vec, int log_max_nnz, int Z){ 
+__global__ void compute_dist(int* R_I, int* C_I, float* V_I, int* R_J, int* C_J, float* V_J, float* K, int* ID_K, int m_i, int m_j , int max_nnz, int batchID_I, int batchID_J, int size_batch_I, int size_batch_J, int dist_max, int k_nn ){ 
 
     int i = threadIdx.x + blockDim.x*blockIdx.x; 
     int j = blockIdx.y ;
-    int z = blockIdx.z ;
+    //int z = blockIdx.z ;
 
-    if (i>= m || j >= m || z >= Z) return;
-    if (i == j) return;
     
 
-    int ind0_i = I[z*(m+1) + i];
-    int ind1_i = I[z*(m+1) + i+1];
-    int ind0_j = I[z*(m+1) + j];
-    int ind1_j = I[z*(m+1) + j+1];
-    int nnz = nnz_vec[z];
 
 
+    int row_ID = i / m_j;
+    int col_ID = i - row_ID*m_j;
+
+    int subbatch_I = z / size_batch_J;
+    int subbatch_J = z - subbatch_I*size_batch_J;
+
+    int ind0_i = R_I[row_ID + subbatch_I*m_i];
+    int ind1_i = R_I[row_ID + subbatch_I*m_i + 1];
+
+    int ind0_j = R_J[row_ID + subbatch_J*m_j];
+    int ind1_j = R_J[row_ID + subbatch_J*m_j + 1];
+ 
     int nnz_i = ind1_i - ind0_i;
     int nnz_j = ind1_j - ind0_j;
-    int ind_out = i*m + j + z*pow(m, 2);
-    //float *val_out;
-    //val_out = &D[ind_out];
-    //printf("run 1 \n ");
 
-    if (nnz_j == 0 || nnz_i ==0) return;
 
-    
-    __shared__ int sj[1000];
-    __shared__ float v_j[1000];
+    float norm_ij = 0;
 
-    int si[1000];
-    float v_i[1000];
-    //si = (int *)malloc(sizeof(int)*nnz_i);
-    
 
-    //printf("run 1 \n"); 
-    for (int n_i=0; n_i < nnz_i; n_i++) si[n_i] = J[ind0_i + n_i + z*nnz];
-    for (int n_i=0; n_i < nnz_i; n_i++) v_i[n_i] = V[ind0_i + n_i + z*nnz]; 
-        
-    //sj = (int *)malloc(sizeof(int)*nnz_j);
-    for (int n_j=0; n_j < nnz_j; n_j++) v_j[n_j] = V[ind0_j + n_j + z*nnz];
-    sj[i] = J[ind0_j + i + z*nnz];
-    //v_j[i] = V[ind0_j + j + z*nnz];
+    for (int n_i=0; n_i < nnz_i; n_i++) norm_ij += pow(V_I[ind0_i + n_i], 2);
+    for (int n_j=0; n_j < nnz_j; n_j++) norm_ij += pow(V_J[ind0_j + n_j], 2);
     
     __syncthreads();
+
+    __shared__ int sj[2000];
+    si = (int *)malloc(sizeof(int)*nnz_i);
+
+    for (int n_j = 0; n_j < nnz_j; n_j++) sj[n_j] = C_J[ind0_j + n_j];
+    for (int n_i = 0; n_i < nnz_i; n_i++) si[n_i] = C_I[ind0_i + n_i];
     
-    //printf("run 2 \n ");
-    //sj = J[ind0_j:ind1_j];
-    //si = J[ind0_i:ind1_i];
-    float norm_ij = 0;
-    
-    for (int n_i=0; n_i < nnz_i; n_i++) norm_ij += pow(V[ind0_i + n_i + z*nnz], 2);
-    for (int n_j=0; n_j < nnz_j; n_j++) norm_ij += pow(V[ind0_j + n_j + z*nnz], 2);
-    //printf("run 3 \n ");
-    float c_tmp = 0; 
-    //int tmp = log2f(nnz_j);
-    int ret, testInd, tmp_0, tmp_1, k, l, ind_jk;
+
+    //printf("run 1 \n ");
+
+    float c_tmp = 0;
+    int log_max_nnz = log2(max_nnz);
+
         
-    /*
+    
     for (int pos_k=0; pos_k<nnz_i;pos_k++){       
         //int k = J[pos_k+ind0_i + z*nnz];
         k = si[pos_k];
@@ -91,14 +80,59 @@ __global__ void compute_dist(int* I, int* J, float* V, float* D, int m, int* nnz
         ind_jk = (sj[ret] == k) ? ret : -1;
         //if (i==1 && j==2) printf("i = %d, j = %d , k = %d, pos_k = %d, ind_jk = %d , v_i = %.2f, v_j = %.2f \n",i,j,k,pos_k, ind_jk, v_i[pos_k], v_j[ind_jk]);
         //c_tmp += (ind_jk != -1) ? V[ind0_i + pos_k + z*nnz]*V[ind0_j+ind_jk + z*nnz] : 0;
-        c_tmp += (ind_jk != -1) ? v_i[pos_k]*v_j[ind_jk] : 0;
+        //c_tmp += (ind_jk != -1) ? v_i[pos_k]*v_j[ind_jk] : 0;
+        c_tmp += (ind_jk != -1) ? V_I[pos_k+ind0_i]*v_j[ind0_j + ind_jk] : 0;
         
         //c_tmp += c;
     }
-    */
+    
+    if (batchID_I == batchID_J && subbatch_I == subbatch_J && row_ID == col_ID) c_tmp = dist_max; 
+
     //c_tmp = max(-2*c_tmp + norm_ij, 0);
     //printf("D[%d, %d] = %.2f for z = %d and ind = %d \n", i, j, c_tmp, ind_out, z); 
-    D[ind_out] = c_tmp;
+    //D[ind_out] = c_tmp;
+
+    int g_col = subbatch_J*m_j + col_ID;
+
+    
+
+    // bitonic sort 
+    __shared__ float sj[2000];
+    __shared__ int id_k[2000];
+
+    sj[i] = c_tmp; 
+    id_k[i] = g_col;
+
+    __syncthreads();
+
+    int log_size = log2(m_j);
+    int size = (pow(2,log_size) < m_j) ? pow(2, log_size+1) : m_j;
+    
+    // bitonic sort  
+    
+    for (int g = 2; g <= size; g *= 2){
+      for (int l = g/2; l>0; l /= 2){
+	int ixj = i ^ l;
+	if (ixj > i){
+		if ((i & g) == 0){
+			if (sj[i] > sj[ixj]) std::swap(sj[i], sj[ixj]);
+		} else {
+			if (sj[i] < sj[ixj]) std::swap(sj[i], sj[ixj]);
+		}
+	}
+	__syncthreads();
+      }
+     }
+
+    int diff = size-m_j; 
+    if (col_ID >= diff && col_ID < k_nn + diff){
+	    int col_local = subbatch_J*k_nn + col_ID - diff;
+	    int row_local = subbatch_I*m_i + row_ID; 
+	    int ind_ij = row_local*size_batch_J*k_nn + col_local;
+	    K[ind_ij] = sj[i];
+	    ID_K[ind_ij] = id_k[i];
+    }
+
 }
 
 
@@ -125,24 +159,31 @@ int main(int argc, char **argv)
     int *h_J, *d_J;
     int *h_I, *d_I;
     float *h_D, *d_D; 
+    float *knn, *knn_local, *d_knn_local;
+    int *ID_knn, *ID_knn_local, *d_ID_knn_local;
     int *h_nnz_all, *d_nnz_all; 
     cudaEvent_t t0; 
     cudaEvent_t t1;
 
 
-
-    m = 200;
-    d = 10000;
-    nnzperrow = 400;
-    Z = 1;
-    nnz = nnzperrow*m;
+    int M_I = 1028;
+    int d = 100;
+    int nnzperrow = 16;
+    int size_batch_I = 64;
+    int size_batch_J = 64;
+    int m_i = 4;
+    int m_j = 4;
+    int k = 2;
+    float dist_max = 1000
     int max_nnz = 2000;
     int log_max_nnz = log2(max_nnz);
 
-    h_V = (float *)malloc(sizeof(float)*nnz*Z);
-    h_J = (int *)malloc(sizeof(int)*nnz*Z);
-    h_I = (int *)malloc(sizeof(int)*(m+1)*Z);
-    h_nnz_all = (int *)malloc(sizeof(int) *Z);
+    int num_I = M_I / (m_i*size_batch_I);
+    int num_J = M_I / (m_j*size_batch_J);
+
+    h_V = (float *)malloc(sizeof(float)*nnzperrow*M_I);
+    h_J = (int *)malloc(sizeof(int)*nnzperrow*M_I);
+    h_I = (int *)malloc(sizeof(int)*(M_I+1));
 
     // generate random data 
 
@@ -150,13 +191,13 @@ int main(int argc, char **argv)
     
     for (int z=0; z < Z; z++){ 
         h_I[0+z*(m+1)] = 0;
-        h_nnz_all[z] = nnz;
         for (int i=0; i < m; i++){
-        h_I[i+1+z*(m+1)] = h_I[i+z*(m+1)] + nnzperrow;
+	nnz_r = nnzperrow;
+        h_I[i+1+z*(m+1)] = h_I[i+z*(m+1)] + nnz_r;
         
         //tmp_col = (int *)malloc(sizeof(int)*nnzperrow);
         //tmp_val = (float *)malloc(sizeof(float)*nnzperrow);
-        for (int j=0; j < nnzperrow; j++){
+        for (int j=0; j < nnz_r; j++){
             int ind = h_I[i]+j + z*(nnz);
             int val = rand()%d;
             while (val == h_J[ind-1]) val = rand()%d;
@@ -165,7 +206,7 @@ int main(int argc, char **argv)
             //(float)rand()/(float)(RAND_MAX); 
             //
         }    
-        std::sort(h_J+i*nnzperrow+ z*nnz, h_J+(i+1)*nnzperrow+z*nnz);
+        std::sort(h_J+i*nnz_r, h_J+(i+1)*nnz_r);
     }
     }
     /*
@@ -186,33 +227,46 @@ int main(int argc, char **argv)
         printf(" %.4f ", h_V[i+z*nnz]);
     }
     }*/
-    
+    knn = (float *)malloc(sizeof(float)*M_I*k);
+    knn_local = (float *)malloc(sizeof(float)*m_i*k);
+    ID_knn = (int *)malloc(sizeof(int)*M_I*k);
+    ID_knn_local = (int *)malloc(sizeof(int)*m_i*size_batch_I*k);
+
+    for (int n =0; n < *M_I*k; n++) knn_local[n] = dist_max;
+    checkCudaErrors(cudaMalloc((void **) &d_C_I, sizeof(int)*nnzperrow*M_I));
+    checkCudaErrors(cudaMalloc((void **) &d_V_I, sizeof(float)*(M_I+1)));
+    checkCudaErrors(cudaMemcpy(d_C_I, C_I, sizeof(int)*nnzperrow*M_I, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_V_I, V_I, sizeof(float)*nnzperrow*M_I, cudaMemcpyHostToDevice));
+
+    checkCudaErrors(cudaMalloc((void **) &d_knn_local, sizeof(float)*m_i*k));
+    checkCudaErrors(cudaMalloc((void **) &d_ID_knn_local, sizeof(float)*m_i*size_batch_I*k));
+    checkCudaErrors(cudaMemcpy(d_ID_knn_local, ID_knn_local, sizeof(int)*k*m_i, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_knn_local, knn_local, sizeof(float)*k*m_i, cudaMemcpyHostToDevice));
+
+    for (int batch_I=0; batch_I<num_I; batch_I++) {
+      for (int batch_J = 0; batch_J < num_J; batch_J++){
+        R_I = (float *)malloc(sizeof(float)*size_batch_I*m_i);
+        R_J = (float *)malloc(sizeof(float)*size_batch_J*m_j);
+        
+        for (int i =0; i<size_batch_I*m_i) R_I[i] = h_I[batch_I*size_batch_I*m_i+i];	
+        for (int j =0; i<size_batch_J*m_j) R_J[j] = h_I[batch_J*size_batch_J*m_j+j];	
 
 
-
-    h_D = (float *)malloc(sizeof(float)*m*m*Z);
+        //h_D = (float *)malloc(sizeof(float)*m*m*Z);
 
     // prop of execution
-    int B =  (32 > m) ? m: 32;
-    dim3 dimBlock(B,1,1);	// 512 threads per thread-block
-    int threadblock = (m+B-1)/B;
-	  dim3 dimGrid(threadblock, m, Z); // Enough thread-blocks to cover N
+    int B =  m_i*m_j;
+    dim3 dimBlock(B,1);	// 512 threads per thread-block
+    dim3 dimGrid(1, size_batch_I*size_batch_J); // Enough thread-blocks to cover N
 
 
     // gen device arrays
-    checkCudaErrors(cudaMalloc((void **) &d_I, sizeof(int)*(m+1)*Z));
-    checkCudaErrors(cudaMalloc((void **) &d_J, sizeof(int)*nnz*Z));
-    checkCudaErrors(cudaMalloc((void **) &d_V, sizeof(float)*nnz*Z));
-    checkCudaErrors(cudaMalloc((void **) &d_nnz_all, sizeof(int)*Z));
-    checkCudaErrors(cudaMalloc((void **) &d_D, sizeof(float)*m*m*Z));
+    checkCudaErrors(cudaMalloc((void **) &d_R_I, sizeof(int)*size_batch_I*m_i));
+    checkCudaErrors(cudaMalloc((void **) &d_R_J, sizeof(int)*size_batch_J*m_j));
 
     // copy to device 
-
-    checkCudaErrors(cudaMemcpy(d_I, h_I, sizeof(int)*(m+1)*Z, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_J, h_J, sizeof(int)*(nnz)*Z, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_nnz_all, h_nnz_all, sizeof(int)*Z, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_V, h_V, sizeof(float)*(nnz)*Z, cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_D, h_D, sizeof(float)*m*m*Z, cudaMemcpyHostToDevice));
+
 
     //checkCudaErrors(cudaMemset(d_D, 0, sizeof(float) * m * m * Z));
 
@@ -220,16 +274,16 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaEventCreate(&t1));
 
     checkCudaErrors(cudaEventRecord(t0, 0));
-    compute_dist<<<dimGrid, dimBlock>>>(d_I, d_J, d_V, d_D, m, d_nnz_all, log_max_nnz, Z);
-    
+    compute_dist<<<dimGrid, dimBlock>>>(d_R_I, d_C_J, d_V_J, d_R_J, d_C_I, d_V_I, d_knn_local, d_ID_knn_local, m_i, m_j, max_nnz, batch_I, batch_J, size_batch_I, size_batch_J, dist_max, k);
     checkCudaErrors(cudaEventRecord(t1, 0));
     checkCudaErrors(cudaEventSynchronize(t1));
     //checkCudaErrors(cudaEventSynchronize(t1));
     checkCudaErrors(cudaEventElapsedTime(&del_t1, t0, t1));
 
-
-    checkCudaErrors(cudaMemcpy(h_D, d_D, sizeof(float)*m*m*Z, cudaMemcpyDeviceToHost));
+    }
+    checkCudaErrors(cudaMemcpy(knn_local, d_knn_local, sizeof(float)*m_i*k, cudaMemcpyDeviceToHost));
     printf("\n Elapsed time (ms) : %.4f \n ", del_t1);
+    }
     /*
     for (int z=0; z < Z; z++){
         printf(" z = %d \n\n", z);
@@ -260,19 +314,21 @@ int main(int argc, char **argv)
     printf("\n");
     }
     */
+    
     printf("\n\n");
-    checkCudaErrors(cudaFree(d_I));
-    checkCudaErrors(cudaFree(d_J));
-    checkCudaErrors(cudaFree(d_V));
-    checkCudaErrors(cudaFree(d_D));
-    checkCudaErrors(cudaFree(d_nnz_all));
+    checkCudaErrors(cudaFree(d_R_I));
+    checkCudaErrors(cudaFree(d_R_J));
+    checkCudaErrors(cudaFree(d_C_I));
+    checkCudaErrors(cudaFree(d_C_J));
+    checkCudaErrors(cudaFree(d_V_I));
+    checkCudaErrors(cudaFree(d_V_J));
+    checkCudaErrors(cudaFree(d_ID_knn_local));
+    checkCudaErrors(cudaFree(d_knn_local));
     checkCudaErrors(cudaEventDestroy(t0));
     checkCudaErrors(cudaEventDestroy(t1));
     free(h_I);
-    free(h_nnz_all);
     free(h_J);
     free(h_V);
-    free(h_D);
 
 
 }
