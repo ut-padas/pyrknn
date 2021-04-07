@@ -150,8 +150,9 @@ def SpGeMM(R, C, V, GID, leaf_ID, K, ID_K, m_i, m_j, M , max_nnz, batchID_I, bat
 
 
   sj[i] = c_tmp
-  
-  id_k[i] = g_col
+
+  id_k[i] = GID[g_col + leaf_ID*M]
+  #id_k[i] = g_col
 
   cuda.syncthreads()
   
