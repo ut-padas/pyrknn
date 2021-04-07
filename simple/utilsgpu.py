@@ -3,10 +3,15 @@ import cupy as cp
 from numba import njit, jit, prange, cuda
 import cupyx.scipy.sparse as cpsp
 
+def spnrm(X,axis):
+    Y=cp.sparse.csr_matrix((X.indices**2,X.indices,X.indptr))
+    return cp.sqrt(Y.sum(axis))
 
 def l2sparse(q,r):
-    rownormq = cpsp.linalg.norm if cpsp.issparse(q) else cp.linalg.norm
-    rownormr = cpsp.linalg.norm if cpsp.issparse(r) else cp.linalg.norm
+    #rownormq = cpsp.linalg.norm if cpsp.issparse(q) else cp.linalg.norm
+    #rownormr = cpsp.linalg.norm if cpsp.issparse(r) else cp.linalg.norm
+    rownormq = spnrm if cpsp.issparse(q) else cp.linalg.norm
+    rownormr = spnrm if cpsp.issparse(r) else cp.linalg.norm    
     qnr = rownormq(q,axis=1)**2
     rnr = rownormr(r,axis=1)**2
     d = -2*q@r.T
