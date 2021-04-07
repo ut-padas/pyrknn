@@ -1,10 +1,9 @@
 import numpy as np
 import cupy as cp
-from numba import njit, jit, prange, cuda
 import cupyx.scipy.sparse as cpsp
 
 def spnrm(X,axis):
-    Y=cp.sparse.csr_matrix((X.indices**2,X.indices,X.indptr))
+    Y=cp.sparse.csr_matrix((X.data**2,X.indices,X.indptr))
     return cp.sqrt(Y.sum(axis))
 
 def l2sparse(q,r):
@@ -15,11 +14,11 @@ def l2sparse(q,r):
     qnr = rownormq(q,axis=1)**2
     rnr = rownormr(r,axis=1)**2
     d = -2*q@r.T
+    d = d.toarray()
     n,m= d.shape
-    qm = cp.tile(qnr,(m,1)); 
+    qm = cp.tile(qnr.ravel(),(m,1)); 
     qm = qm.T
-    d += qm + cp.tile(rnr,(n,1))
-    d = cp.squeeze(cp.asarray(d))
+    d += cp.squeeze(cp.asarray(qm + cp.tile(rnr.ravel(),(n,1))))
     return cp.sqrt(cp.abs(d)) 
 
 
@@ -72,3 +71,28 @@ def merge_knn(dis,idx,k):
         tmp_idx = cp.argsort(dis[j,:m])
         dis[j,:k]=dis[j,tmp_idx[:k]]
         idx[j,:k]=idx[j,tmp_idx[:k]]
+
+
+# THIS works only for contiguous local sets (ls) and it won't work for random sliced views
+def sliced_view(X,ls):
+    if not cpsp.issparse(X):
+        return X[ls,]
+        
+    rowst = ls[0]
+    rowen = rowst+ls.shape[0]
+    colst = X.indptr[rowst]
+    colen = X.indptr[rowen]
+
+    rptr = cp.copy(X.indptr[rowst:rowen+1])
+    cptr = X.indices[colst:colen]
+    vptr = X.data[colst:colen]
+    rptr -= rptr[0]
+
+    Z = cpsp.csr_matrix((vptr,cptr,rptr), shape=(ls.shape[0],X.shape[1]))
+    return Z
+
+    if 0:
+        A=X.toarray()
+        B=Z.toarray()
+        print(A[ls,]-B)
+

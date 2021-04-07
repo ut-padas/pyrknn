@@ -10,14 +10,14 @@ if 1:
     np.random.seed(1)
     cp.random.seed(1)
 
-T=4
+T=1
 K=2
 dim = 300
 avg_nnz = 100
 vltype = cp.float32
-LogNP =20; 
+LogNP =3; 
 n=1<<LogNP
-LogPPL=10 
+LogPPL=2
 depth = max(0,LogNP-LogPPL)
 points_per_leaf = 1<< (LogNP-depth)
 print('Number of poitns =', n, ', and the dimension =', dim)
