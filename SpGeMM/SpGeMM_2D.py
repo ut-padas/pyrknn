@@ -39,7 +39,7 @@ def SpGeMM(R, C, V, K, ID_K, m_i, m_j, max_nnz, batchID_I, batchID_J, num_batch_
   #row_ind_I = subbatch_I*m_i + row_ID
   row_ind_J = batchID_J*num_batch_J*m_j + subbatch_J*m_j + col_ID
   #row_ind_J =  subbatch_J*m_j + col_ID
-  print(i , z, row_ID, col_ID, z_tmp, subbatch_I, subbatch_J)
+  #print(i , z, row_ID, col_ID, z_tmp, subbatch_I, subbatch_J)
   # select indices corresponding to row i , j
   ind0_i = R[row_ind_I]
   ind1_i = R[row_ind_I + 1]
@@ -238,8 +238,35 @@ def merge_knn(d_knn, d_ID_knn, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch
     d_ID_knn[i-diff + row*k] = S_id[i]
 
 
-def gpu_sparse_knn(d_R, d_C, d_V, leaves, M_I, d_knn, d_knn_ID, d, k, num_batch_I, num_batch_J, m_i, m_j, dist_max, max_nnz):
+def gpu_sparse_knn(d_R, d_C, d_V, leaves, M_I, d_knn, d_knn_ID, k, num_batch_I, num_batch_J, m_i, m_j, dist_max, max_nnz):
 
+
+
+
+  # d_R : row pointer with length M+1 . (Multiple leaves are concatenated with length M+1)
+  # d_C : column indices for points 
+  # d_V : data values 
+
+  # leaves : number of leaves 
+  
+  # M_I : number of rows for points 
+  
+  # d_knn : array for k neighbors 
+  
+  # d_knn_ID : array of IDs for k neighbors 
+  
+  # k : number of neighbors 
+  
+  # num_batch_I : number of blocks in y-direction to do in parallel 
+  # num_batch_J : number of blocks in x-direction to do in parallel 
+  
+  # m_i : block size in y-direction 
+  # m_j : block size in x-direction 
+  
+  # dist_max : maximum distance of points 
+  # max_nnz : maximum number of zeros per row ( can be ignored )
+
+  
 
   if m_j > 2048 : print(' Error for batch_size , does not fit in shared memory')
 
@@ -283,10 +310,10 @@ def gpu_sparse_knn(d_R, d_C, d_V, leaves, M_I, d_knn, d_knn_ID, d, k, num_batch_
         merge_knn[griddim_merge, blockdim_merge](d_knn, d_knn_ID, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch_J, batch_I, batch_J, max_nnz, num_I, num_J)
         cuda.synchronize()
         t2 = time.time()
-        print(batch_I, batch_J)
-        K = d_K.copy_to_host()
-        print('rec K')
-        print(K)
+        #print(batch_I, batch_J)
+        #K = d_K.copy_to_host()
+        #print('rec K')
+        #print(K)
         del_t0 += t1 - t0
         del_t1 += t2 - t1
         del_t2 += t2 - t0
@@ -419,9 +446,9 @@ def main():
   R = X['rowptr']
   C = X['colind']
   V = X['data']
-  k_true = seq_knn(R, C, V, M, d, k)
+  #k_true = seq_knn(R, C, V, M, d, k)
 
-
+  
   
   knn = dist_max * np.ones((M*k), dtype = np.float32)
   knn_ID = np.zeros((M*k), dtype = np.int32)
@@ -434,17 +461,20 @@ def main():
 
 
   # X is concatenated CSR format of Z leaves 
-  gpu_sparse_knn(d_R, d_C, d_V, 1, M , d_knn, d_knn_ID, d, k, num_batch_I, num_batch_J, m_i, m_j, dist_max, max_nnz) 
+  gpu_sparse_knn(d_R, d_C, d_V, 1, M , d_knn, d_knn_ID, k, num_batch_I, num_batch_J, m_i, m_j, dist_max, max_nnz) 
 
   
   knn = d_knn.copy_to_host() 
   knn_ID = d_knn_ID.copy_to_host() 
   diff = knn - k_true.flatten()
   knn_mat = inline2mat(knn, M, k, 0)
-  print(k_true)
-  print(knn_mat)
-  er = np.linalg.norm(diff)
-  print(er)
+  
+  #print('k true')
+  #print(k_true)
+  #print('k rec')
+  #print(knn_mat)
+  #er = np.linalg.norm(diff)
+  #print(er)
 
 
 if __name__ == '__main__':
