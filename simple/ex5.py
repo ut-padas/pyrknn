@@ -15,9 +15,9 @@ K=2
 dim = 300
 avg_nnz = 100
 vltype = cp.float32
-LogNP =8; 
+LogNP =20; 
 n=1<<LogNP
-LogPPL=4 
+LogPPL=10 
 depth = max(0,LogNP-LogPPL)
 points_per_leaf = 1<< (LogNP-depth)
 print('Number of poitns =', n, ', and the dimension =', dim)
