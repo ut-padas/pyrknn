@@ -15,6 +15,7 @@ def leaf_knn(X,gids,m,knnidx,knndis,k,init,overlap=0):
         global indices of points 
     m : int
         number of points per leaf
+        X[:m,] is the first leaf, X[m:2m,] is the second leaf etc..
     knnidx : int matrix
         knnidx[i,j] is jth neighbor of ith point
     knndis : float matrix
