@@ -1,6 +1,6 @@
 
 import numpy as np 
-
+import cupy as cp
 from scipy import sparse 
 import time
 from numba import cuda, float32, int16, int32, int64, gdb_init, types, typeof
@@ -9,8 +9,8 @@ import numba
 import time
 from scipy import sparse
 import random
-  
-
+import os 
+import pdb
 
 
 
@@ -20,7 +20,7 @@ import random
 
 @cuda.jit('void(int32[:], int32[:], float32[:], int32[:], int32, float32[:], int32[:], int32, int32,  int32, int32, int32, int32,  int32, int32, float32, int32, int32, int32)') 
 def SpGeMM(R, C, V, GID, leaf_ID, K, ID_K, m_i, m_j, M , max_nnz, batchID_I, batchID_J, num_batch_I, num_batch_J, dist_max, k_nn, num_I, num_J):
-  
+
   # elements
   i = cuda.threadIdx.x + cuda.blockDim.x*cuda.blockIdx.x
 
@@ -209,22 +209,30 @@ def merge_knn(d_knn, d_ID_knn, d_GID, leaf_ID, d_K, d_ID_K, k, m_i, m_j , M, num
   subbatch_I = i // (num_batch_J*k)
   subbatch_J = (i - subbatch_I*num_batch_J*k) // k
   
-
+  
   ind_ij = z*k*num_batch_J + i - k
 
   #S_dist[i] = d_knn[i + z*k + batchID_I*num_batch_I*m_i*k ] if i < k else d_K[ind_ij]
   #S_id[i] = d_ID_knn[i + z*k + batchID_I*num_batch_I*m_i*k] if i < k else d_ID_K[ind_ij]
-  ind_knn = i + z*k + batchID_I*num_batch_I*m_i*k + leaf_ID*M
-  S_dist[i] = d_knn[d_GID[ind_knn]] if i < k else d_K[ind_ij]
-  S_id[i] = d_ID_knn[ d_GID[ ind_knn ]]  if i < k else d_ID_K[ind_ij]
+  row_current = batchID_I*num_batch_I*m_i + z + leaf_ID*M
+  ind_knn = i + row_current*k + leaf_ID*M
+ 
+   
+  
+  #S_dist[i] = d_knn[d_GID[ind_knn]] if i < k else d_K[ind_ij]
+  S_dist[i] = d_knn[d_GID[row_current]*k + i] if i < k else d_K[ind_ij]
+  #S_id[i] = d_ID_knn[ d_GID[ ind_knn ]]  if i < k else d_ID_K[ind_ij]
+  S_id[i] = d_ID_knn[ d_GID[row_current]*k + i ]  if i < k else d_ID_K[ind_ij]
 
   cuda.syncthreads()
   
+   
   # bitonic sort 
   cuda.syncthreads()
   size = (num_batch_J+1)*k
   log_size = math.ceil(math.log(size)/math.log(2))
   diff = int(pow(2, log_size) - size)
+  #print('run 1')
   if diff > 0 :
       for w in range(diff):
           S_dist[w+size] = 0
@@ -248,15 +256,17 @@ def merge_knn(d_knn, d_ID_knn, d_GID, leaf_ID, d_K, d_ID_K, k, m_i, m_j , M, num
             S_id[i], S_id[ixj] = S_id[ixj], S_id[i]
 
       cuda.syncthreads()
-
   #if batchID_I == 1 and batchID_J == 1: print(z , i , batchID_I, batchID_J, S_dist[i])
+  #print('run 2')
+  #if batchID_I*m_i*num_batch_I+z > (M+1)*leaf_ID :
+  #  print(z , i , batchID_I, batchID_J, S_dist[i])
   if i >= diff and i < k + diff: 
     row = d_GID[batchID_I*m_i*num_batch_I + z]
+    ind = row*k + i - diff 
     d_knn[row*k + i-diff] = S_dist[i]
     d_ID_knn[i-diff + row*k] = S_id[i]
 
-
-def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M_I, d_knn, d_knn_ID, k, num_batch_I, num_batch_J, m_i, m_j, dist_max, max_nnz):
+def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M, d_knn, d_knn_ID, k, num_batch_I, num_batch_J, m_i, m_j, dist_max, max_nnz):
 
 
   # FOR CUPY CSR:  d_R: indptr, d_C: indices; d_V: dataa
@@ -296,7 +306,7 @@ def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M_I, d_knn, d_knn_ID, k, num_ba
 
   if m_j > 2048 : print(' Error for batch_size , does not fit in shared memory')
 
-  
+  M_I  = M//leaves 
   num_I = M_I//(m_i*num_batch_I)
   num_J = M_I//(m_j*num_batch_J)
   
@@ -316,8 +326,8 @@ def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M_I, d_knn, d_knn_ID, k, num_ba
   blockdim_merge = threadsperblock_x_merge, 1  
   griddim_merge = blockpergrid_merge, m_i*num_batch_I
 
-  K = np.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.float32)
-  ID_K = np.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.int32)
+  K = cp.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.float32)
+  ID_K = cp.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.int32)
   d_K = cuda.to_device(K)
   d_ID_K = cuda.to_device(ID_K)
   
@@ -350,7 +360,7 @@ def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M_I, d_knn, d_knn_ID, k, num_ba
       
     msg = 'leaves : %d \n seq_itr : %d, \n batch size : %d, \n parts : %d \n Dist (s) : %.3e \n merge : %.3e \n total : %.3e'%(leaf_ID , num_I*num_J, m_i*m_j , num_batch_I*num_batch_J, del_t0, del_t1, del_t2)   
       
-    print(msg)
+    #print(msg)
 
 
 
