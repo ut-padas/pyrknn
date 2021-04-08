@@ -3,7 +3,7 @@ from time import time
 
 import sys
 sys.path.append("../SpGeMM")
-import SpGeMM as sgemm
+import SpGeMM_2D as sgemm
 
 
 if 1: 
@@ -11,17 +11,17 @@ if 1:
 
 
 
-LogNP =15; 
+LogNP =21; 
 n=1<<LogNP   # NUMBER of POINTS
 
-LogPPL=10    
+LogPPL=11
 depth = max(0,LogNP-LogPPL)
 points_per_leaf = 1<< (LogNP-depth)  # POINTS per leaf
 
 
 print('Generate sparse array')
 dim = 100
-avg_nnz = 10
+avg_nnz = 20
 X = cp.sparse.random(n,dim, density = avg_nnz/dim, format='csr', dtype=cp.float32)
 X.sort_indices()
 
@@ -40,13 +40,14 @@ leaves = 1<<depth
 print('Entering SpGEMM')
 print('%d total points, %d leaves, %d neighbors'%(n,leaves,K))
 print('points_per_leaf =', points_per_leaf)
-tic = time()
-if 1:
-    sgemm.gpu_sparse_knn(X.indptr, X.indices, X.data, \
-                    gids,  leaves, n, \
-                    knndis.ravel(),knnidx.ravel(), K, 
-                    16,16,32,64, 1e30, maxnnz)
+for k in range(2):
+    tic = time()
+    if 1:
+        sgemm.gpu_sparse_knn(X.indptr, X.indices, X.data, gids,\
+                             leaves, n, \
+                             knndis.ravel(),knnidx.ravel(), K, 
+                             32,32,64,64, 2e30, maxnnz)
 
-toc = time()
-print('sgemm took', toc-tic)
+        toc = time()
+        print('sgemm %d it too took %.2e secs'%(k, toc-tic))
 
