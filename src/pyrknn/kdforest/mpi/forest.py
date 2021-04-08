@@ -48,7 +48,7 @@ def distributed_tree_task(tree_args):
 
 def search_task_dense(search_args):
     t = time.time()
-    X, gids, k, local_levels, blocksize, device, rank = search_args
+    X, gids, k, local_levels, blocksize, device, rank, ltrees = search_args
     neighbors = Primitives.gpu_dense_knn(gids, X, local_levels, ltrees, k, blocksize,device)
     t = time.time() - t
     print(rank, "Search Task Time: ", t, flush=True)
@@ -56,8 +56,8 @@ def search_task_dense(search_args):
 
 def search_task_sparse(search_args):
     t = time.time()
-    X, gids, k, local_levels, blocksize, blockleaf, device, rank = search_args 
-    neighbors = Primitives.gpu_sparse_knn(tree.global_ids, tree.host_data, tree.local_levels, ltrees, k, blockleaf, blocksize, self.device)
+    X, gids, k, local_levels, blocksize, blockleaf, device, rank, ltrees = search_args 
+    neighbors = Primitives.gpu_sparse_knn(gids, X, local_levels, ltrees, k, blockleaf, blocksize,device)
     t = time.time() - t
     print(rank, "Search Task Time: ", t, flush=True)
     return neighbors
@@ -140,15 +140,17 @@ class RKDForest:
         self.dim = self.host_data.shape[1] 
 
 
-    def overlap_search(self, k, ntrees=5, truth=None):
+    def overlap_search(self, k, ntrees=5, truth=None, cores=56, blocksize=64, blockleaf=128, ltrees=3, threshold=0.95, merge_flag=True):
         timer = Primitives.Profiler()
         record = Primitives.Recorder()
-        blocksize = 64
-        blockleaf = 256
-        cores = 56
-        Primitives.set_cores(cores)
 
+        timer.push("Total Time")
         result = None 
+
+        if merge_flag:
+            merge_location = self.location
+        else:
+            merge_location = "HOST"
 
         rank = self.comm.Get_rank()
         mpi_size = self.comm.Get_size()
@@ -165,7 +167,7 @@ class RKDForest:
 
             if current_tree is None:
                 timer.push("Build Dist Tree")
-                X = np.copy(self.host_data)
+                X = copy(self.host_data, self.sparse_flag)
                 tree = RKDT(data=X, levels=self.levels, leafsize=self.leafsize)
                 tree.distributed_build()
                 timer.pop("Build Dist Tree")
@@ -174,20 +176,27 @@ class RKDForest:
                 tree.collect_data()
                 timer.pop("Distribute Coordinates")
                 current_tree = tree
-
+            
+            timer.push("Evaluate")
             t = time.time()
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 tree_args = (self.host_data, self.levels, self.leafsize, rank)
                 tree_future = executor.submit(distributed_tree_task, tree_args)
 
-                search_args = (current_tree.host_data, current_tree.global_ids, k, current_tree.local_levels, blocksize, self.device, rank)
-                search_future = executor.submit(search_task, search_args)
+                if self.sparse_flag:
+                    search_args = (current_tree.host_data, current_tree.global_ids, k, current_tree.local_levels, blocksize, blockleaf, self.device, rank, ltrees)
+                    search_future = executor.submit(search_task_sparse, search_args)
+                else:
+                    search_args = (current_tree.host_data, current_tree.global_ids, k, current_tree.local_levels, blocksize, self.device, rank, ltrees)
+                    search_future = executor.submit(search_task_dense, search_args)
+
                 next_tree = tree_future.result()
                 neighbors = search_future.result()
                 #next_tree = tree_future.result()
             t = time.time() - t
+            timer.pop("Evaluate")
             print(rank, "Both Tasks: ", t, flush=True)
-            print("NEW TREE: ", next_tree, flush=True)
+            #print("NEW TREE: ", next_tree, flush=True)
             #next_tree = None 
 
             #Sort to check
@@ -195,7 +204,7 @@ class RKDForest:
             #print(rank, "Neighbors before merge: : ", neighbors, flush=True)
 
             timer.push("Forest: Redistribute")
-            print(rank, "Neighbors: ", neighbors.shape, flush=True)
+            print(rank, "Neighbors: ", neighbors[0].shape, flush=True)
             #Redistribute
             gids, neighbors = current_tree.redistribute_results(neighbors)
             timer.pop("Forest: Redistribute")
@@ -205,11 +214,11 @@ class RKDForest:
 
             timer.push("Forest: Merge")
             if result is None:
-                result = Primitives.merge_neighbors(neighbors, neighbors, k)
+                result = Primitives.merge_neighbors(neighbors, neighbors, k, merge_location, cores)
             else:
-                result = Primitives.merge_neighbors(result, neighbors, k)
+                result = Primitives.merge_neighbors(result, neighbors, k, merge_location, cores)
             timer.pop("Forest: Merge")
-
+            print(rank, "finished merge", flush=True)
             #print(rank, "Result after merge:", result, flush=True)
 
             current_tree = next_tree
@@ -226,15 +235,21 @@ class RKDForest:
 
                 print("Iteration:", it, "Recall:", acc, flush=True)
             timer.pop("Forest: Compare")
+        timer.pop("Total Time")
 
         return result        
 
-    def all_search(self, k, ntrees=5, truth=None, cores=56, blocksize=64, blockleaf=128, ltrees=3, threshold=0.95):
+    def all_search(self, k, ntrees=5, truth=None, cores=56, blocksize=64, blockleaf=128, ltrees=3, threshold=0.95, merge_flag=True):
         timer = Primitives.Profiler()
         record = Primitives.Recorder()
 
         timer.push("All Search")
         result = None 
+
+        if merge_flag:
+            merge_location = self.location
+        else:
+            merge_location = "HOST"
 
         rank = self.comm.Get_rank()
         mpi_size = self.comm.Get_size()
@@ -257,7 +272,8 @@ class RKDForest:
                 tree = RKDT(data=X, levels=self.levels, leafsize=self.leafsize)
                 tree.distributed_build()
             else:
-                tree = RKDT(data=self.host_data, levels=self.levels, leafsize=self.leafsize)
+                X = copy(self.host_data, self.sparse_flag)
+                tree = RKDT(data=X, levels=self.levels, leafsize=self.leafsize)
             t_build = time.time() - t_build 
             print(rank, "Tree Build:", t_build, flush=True)
             timer.pop("Build Dist Tree")
@@ -278,7 +294,7 @@ class RKDForest:
             #print(rank, "GIDS after collect: ", tree.global_ids, flush=True)
             timer.push("Evaluate")
             t = time.time()
-
+            print("LOCAL LEVELS", tree.local_levels, flush=True)
             #TODO: Either support int64 or change to local_ids and update in python
             if self.gpu_flag and (not self.sparse_flag):
                 neighbors = Primitives.gpu_dense_knn(tree.global_ids, tree.host_data, tree.local_levels, ltrees, k, blocksize, self.device)
@@ -288,48 +304,27 @@ class RKDForest:
                 print(rank, "DEVICE: ", self.device, flush=True)
                 neighbors = Primitives.gpu_sparse_knn(tree.global_ids, tree.host_data, tree.local_levels, ltrees, k, blockleaf, blocksize, self.device)
             elif (not self.gpu_flag) and (not self.sparse_flag):
-                #TODO:Need to add this back in 
-                assert(False) 
+                tree.build_local()
+                neighbors = tree.search_local(k)
             elif (not self.gpu_flag) and (self.sparse_flag):
                 #NOTE: Lots of checks to try to track down segfault. S
-                #print(rank, "Running Sparse CPU KNN", tree.global_ids.dtype, tree.ptr, tree.idx, np.max(tree.host_data.indptr), len(tree.host_data.indices), np.min(tree.host_data.indptr), flush=True)
-                #if rank == 3 and it == 3:
-                #    #time.sleep(1)
-                #    with open(f"{2}_csr_{rank}.pickle", 'rb') as f:
-                #        #pickle.dump(tree.host_data, f)
-                #        compare = pickle.load(f)
-                #    X = tree.host_data 
-                #    print(rank, "SIdx", np.sum(tree.idx == X.indices), len(X.indices), X.indices.flags, tree.idx.flags, flush=True)
-                #    print(rank, "SPtr", np.sum(tree.ptr == X.indptr), len(X.indptr), X.indptr.flags, tree.ptr.flags, flush=True)
-                #    print(rank, "SVal", np.sum(tree.val == X.data), len(X.data), X.data.flags, tree.val.flags, flush=True)
-
-                #    print(rank, "Idx", np.sum(compare.indices == X.indices), len(X.indices), len(compare.indices), X.indices.flags, compare.indices.flags, flush=True)
-                #    print(rank, "Ptr", np.sum(compare.indptr == X.indptr), len(X.indptr), len(compare.indptr), X.indptr.flags, compare.indptr.flags, flush=True)
-                #    print(rank, "Val", np.sum(compare.data == X.data), len(X.data), len(compare.data), X.data.flags, compare.data.flags, flush=True)
-                #    print(rank, "os pid", os.getpid(), (compare != X).nnz, flush=True)
-                #    print(rank, "datatype compare: ", compare.indices.dtype, X.indices.dtype, compare.indptr.dtype, X.indptr.dtype, compare.data.dtype, X.data.dtype, flush=True)
-                #    print(rank, "shape", compare.shape, X.shape)
-
-                #    tree.host_data = compare
-
                 #Lets force this to work. 
                 print(rank, "Running on CPU", flush=True)
+                print(rank, len(tree.global_ids), flush=True)
                 flag = True
                 while(flag):
                     try:
                         n, d = tree.host_data.shape 
-                        #neighbors = Primitives.cpu_sparse_knn(tree.global_ids, tree.host_data, tree.local_levels, ltrees, k, blocksize, cores)
                         neighbors = Primitives.cpu_sparse_knn_3(tree.global_ids, tree.host_data.indptr, tree.host_data.indices, tree.host_data.data, len(tree.host_data.data), tree.local_levels, ltrees, k, blocksize, n, d, cores)
-                        #neighbors = Primitives.cpu_sparse_knn_3(tree.global_ids, tree.ptr, tree.idx, tree.val, len(tree.val), tree.local_levels, ltrees, k, blocksize, n, d, cores)
-                        #print(rank, "FINISHED SPARSE CPU KNN", flush=True)
-                        flag = False
                     except:
                         print(rank, "reloading", flush=True)
-                        with open(f"{3}_csr_{rank}.pickle", 'rb') as f:
+                        with open(f"{self.id}_csr_{rank}.pickle", 'rb') as f:
                             pickle.dump(tree.host_data, f)
-                        with open(f"{3}_csr_{rank}.pickle", 'wb') as f:
+                        with open(f"{self.id}_csr_{rank}.pickle", 'wb') as f:
                             compare = pickle.load(f)
                         tree.host_data = compare
+                    else:
+                        flag = False
             t = time.time() - t 
             timer.pop("Evaluate")
             print(rank, "Search :", t, flush=True)
@@ -349,9 +344,9 @@ class RKDForest:
 
             timer.push("Forest: Merge")
             if result is None:
-                result = Primitives.merge_neighbors(neighbors, neighbors, k, self.location, cores)
+                result = Primitives.merge_neighbors(neighbors, neighbors, k, merge_location, cores)
             else:
-                result = Primitives.merge_neighbors(result, neighbors, k, self.location,  cores)
+                result = Primitives.merge_neighbors(result, neighbors, k, merge_location,  cores)
             timer.pop("Forest: Merge")
 
             #print(rank, "Result after merge:", result, flush=True)
