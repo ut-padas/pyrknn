@@ -3,7 +3,7 @@ from time import time
 
 import sys
 sys.path.append("../SpGeMM")
-import SpGeMM_2D as sgemm
+import SpGeMM as sgemm
 
 
 if 1: 
@@ -23,6 +23,7 @@ print('Generate sparse array')
 dim = 100
 avg_nnz = 10
 X = cp.sparse.random(n,dim, density = avg_nnz/dim, format='csr', dtype=cp.float32)
+X.sort_indices()
 
 print('Generate gids')
 gids = cp.random.permutation(cp.arange(n))
