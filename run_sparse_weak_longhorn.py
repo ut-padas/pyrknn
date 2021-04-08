@@ -2,6 +2,9 @@ from pyrknn.kdforest.mpi.tree import *
 from pyrknn.kdforest.mpi.util import *
 from pyrknn.kdforest.mpi.forest import *
 
+
+from scipy.sparse import random
+
 from mpi4py import MPI
 import numpy as np
 
@@ -12,6 +15,10 @@ import os
 
 from sklearn.datasets import load_svmlight_file
 from joblib import Memory
+
+from scipy.sparse import csr_matrix
+
+from scipy.sparse import random
 
 import argparse
 
@@ -64,6 +71,55 @@ def get_kdd12_data():
     print("It took ", t, " (s) to load the dataset")
     return data[0]
 
+def gen_random_sparse_csr(N,M,avg_nnz,idtype=np.int32,vltype=np.float32):
+    '''
+    Generate a real random sparse matrix of N-by-M dimensions with avz_nnz
+    nonzeros per row:  total memory ~ N*avz_nnz
+    The values are normally distributed
+    The nonzeros are uniformly distributed
+    
+    Does not allow empty rows, (at least )
+    
+    
+    Parameters
+    ----------
+    N : int
+        number of rows
+    M : int
+        number of columns (full matrix)
+    avg_nnz : int
+        average number of nonzeros _per_row_
+    idtype : type, optional
+        type for indeces The default is np.int32.
+    vltype : type, optional
+        type for matrix values. The default is np.float32.
+    Returns
+    -------
+    X : sparse N-by-M  matrix
+        CSR format.
+        
+    Example:
+    N=10
+    avg_nnz_per_row = 4
+    M = 9
+    idtype = np.int32
+    vltype = np.float32
+    X = gen_random_sparse_csr(N,M,avg_nnz_per_row)
+    print(X.toarray())
+    '''
+    
+    nnz_arr = np.random.randint(2, 2*avg_nnz, size=N,dtype=idtype)
+    nnz = np.sum(nnz_arr)
+    cols = np.random.randint(M, size=nnz, dtype=idtype)
+    rows = np.block( [0, np.cumsum(nnz_arr)])
+    rows = np.asarray(rows, dtype=idtype)
+    vals = np.random.randn(nnz).astype(vltype)
+
+    X =csr_matrix((vals, cols, rows), shape=(N,M) )
+    print(X.indices)
+    X.sort_indices()
+    print(X.indices)
+    return X
 
 if args.dataset == "url":
     get_data = get_url_data 
@@ -92,20 +148,27 @@ def run():
     if rank == 0:
         print("Starting to Read Data", flush=True)
 
-    t = time.time()
-    X = get_data()
-    t = time.time() - t 
+    N = 2**21
+    d = 1000
+    avg_nnz = 10
+    
+    nq = 20
+    np.random.seed(10)
+    X = random(N, d, density=0.1, dtype=np.int32)
+    X = X.tocsr()
+    Q = X[:nq]
 
+    if rank>0:
+        np.random.seed(None)
+        X = random(N, d, density=0.100)
+        X = X.tocsr()
+
+    t = 0
     if rank == 0:
         print("Finished Reading Data: ", X.shape, flush=True)
         print("Reading data took: ", t," seconds", flush=True)
 
     N, d = X.shape
-    Nmax = 2**27
-    X = X[:Nmax]
-    #Grab queries from start
-    nq = 20
-    Q = X[:nq]
 
     #Convert Q to the correct datatype
     q_data = np.asarray(Q.data, dtype=np.float32)
@@ -113,13 +176,12 @@ def run():
     q_indptr = np.asarray(Q.indptr, dtype=np.int32)
     Q = sp.csr_matrix( (q_data, q_indices, q_indptr), shape=(nq, d))
 
-    #Grab local portion
-    n_local = N//size
+    #Convert X to the correct datatype
+    X_data = np.asarray(X.data, dtype=np.float32)
+    X_indices = np.asarray(X.indices, dtype=np.int32)
+    X_indptr = np.asarray(X.indptr, dtype=np.int32)
+    X = sp.csr_matrix( (X_data, X_indices, X_indptr), shape=X.shape)
 
-    start = (rank)*n_local
-    end   = (rank+1)*n_local
-
-    X = X[start:end]
 
     if rank == 0:
         print("Finished Preprocessing Data", flush=True)
@@ -133,6 +195,7 @@ def run():
     #C = X.copy()
     tree = RKDT(data=X, levels=0, leafsize=2048, location="HOST")
     truth = tree.distributed_exact(Q, k)
+    #truth = (np.zeros([nq, k],  dtype=np.int32), np.zeros([nq, k], dtype=np.float32))
     t = time.time() - t
 
     if rank == 0:

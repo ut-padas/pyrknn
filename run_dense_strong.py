@@ -16,61 +16,46 @@ from joblib import Memory
 import argparse
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
+parser.add_argument('-n', type=int, default=2**25)
+parser.add_argument('-d', type=int, default=15)
 parser.add_argument('-iter', type=int, default=10)
-parser.add_argument('-dataset', default="url")
+parser.add_argument('-dataset', default="gauss")
 parser.add_argument('-bs', type=int, default=64)
 parser.add_argument('-bl', type=int, default=128)
-parser.add_argument('-cores', type=int, default=56)
+parser.add_argument('-cores', type=int, default=4)
 parser.add_argument('-use_gpu', type=bool, default=0)
 parser.add_argument('-levels', type=int, default=13)
 parser.add_argument('-k', type=int, default=32)
 parser.add_argument('-leafsize', type=int, default=512)
-parser.add_argument('-ltrees', type=int, default=3)
+parser.add_argument('-ltrees', type=int, default=1)
+parser.add_argument('-q', type=int, default=100)
 parser.add_argument('-merge', type=int, default=1)
 parser.add_argument('-overlap', type=int, default=1)
 parser.add_argument('-seed', type=int, default=15)
-parser.add_argument('-nq', type=int, default=10)
-
+parser.add_argument('-nq', type=int, default=100)
 args = parser.parse_args()
 
 mem = Memory("./mycache")
 
-@mem.cache()
-def get_url_data():
+def get_gauss_data(rank, N, d):
     t = time.time()
-    data = load_svmlight_file(os.environ["SCRATCH"]+"/datasets/url/url_combined", n_features=3231961)
-    t = time.time() - t
-    print("It took ", t, " (s) to load the dataset")
-    return data[0]
 
-@mem.cache()
-def get_avazu_data():
-    t = time.time()
-    data_app = load_svmlight_file(os.environ["SCRATCH"]+"/datasets/avazu/avazu-app", n_features=1000000)    
-    print(data_app[0].shape)
-    data_site = load_svmlight_file(os.environ["SCRATCH"]+"/datasets/avazu/avazu-site", n_features=1000000)
-    print(data_site[0].shape)
-    data = sp.vstack([data_app[0], data_site[0]])
+    #Load query set 
+    np.random.seed(10)
+    data = np.random.randn(N, d)
+    data = np.asarray(data, dtype=np.float32)
+
     t = time.time() - t
     print("It took ", t, " (s) to load the dataset")
     return data
 
-@mem.cache()
-def get_kdd12_data():
-    t = time.time()
-    data = load_svmlight_file(os.environ["SCRATCH"]+"/datasets/kdd/kdd12", n_features=54686452)
-    print(data[0].shape)
-    t = time.time() - t
-    print("It took ", t, " (s) to load the dataset")
-    return data[0]
 
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = comm.Get_rank()
 
-if args.dataset == "url":
-    get_data = get_url_data 
-elif args.dataset == "avazu":
-    get_data = get_avazu_data
-elif args.dataset == "kdd":
-    get_data = get_kdd12_data
+if args.dataset == "gauss":
+    get_data = get_gauss_data(rank, args.n, args.d) 
 
 if args.use_gpu:
     location = "GPU"
@@ -81,10 +66,6 @@ def run():
     sparse = True
     k = args.k
 
-    comm = MPI.COMM_WORLD
-    size = comm.Get_size()
-    rank = comm.Get_rank()
-
     print(rank, ", ", os.getpid(), flush=True)
     time.sleep(5)
 
@@ -93,7 +74,7 @@ def run():
         print("Starting to Read Data", flush=True)
 
     t = time.time()
-    X = get_data()
+    X = get_data
     t = time.time() - t 
 
     if rank == 0:
@@ -101,17 +82,10 @@ def run():
         print("Reading data took: ", t," seconds", flush=True)
 
     N, d = X.shape
-    Nmax = 2**27
-    X = X[:Nmax]
-    #Grab queries from start
-    nq = 20
-    Q = X[:nq]
 
-    #Convert Q to the correct datatype
-    q_data = np.asarray(Q.data, dtype=np.float32)
-    q_indices = np.asarray(Q.indices, dtype=np.int32)
-    q_indptr = np.asarray(Q.indptr, dtype=np.int32)
-    Q = sp.csr_matrix( (q_data, q_indices, q_indptr), shape=(nq, d))
+    #Grab queries from start
+    nq = 100
+    Q = X[:nq]
 
     #Grab local portion
     n_local = N//size
@@ -143,7 +117,6 @@ def run():
     #timer.reset()
     #record.reset()
 
-    #np.random.seed(100)
     np.random.seed(args.seed)
     forest = RKDForest(data=X, levels=args.levels, leafsize=args.leafsize, location=location)
 
@@ -151,6 +124,7 @@ def run():
         approx = forest.overlap_search(k, ntrees=args.iter, ltrees = args.ltrees, truth=truth, cores=args.cores, blocksize=args.bs, blockleaf=args.bl, merge_flag=args.merge)
     else:
         approx = forest.all_search(k, ntrees=args.iter, ltrees = args.ltrees, truth=truth, cores=args.cores, blocksize=args.bs, blockleaf=args.bl, merge_flag=args.merge)
+
 
     if rank == 0:
         timer.print()
