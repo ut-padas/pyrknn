@@ -1,0 +1,54 @@
+Per Rank:
+Sphere size, local size, intrinsic dim (of spheres):
+(209715, 10) (2097152, 512) (10,)
+
+Region Time(s)
+Projection: Rand, 0.0026082992553710938
+Projection: QR, 0.5539143085479736
+Build: Generate Projection, 0.5534183979034424
+Dist Build: Compute Projection, 0.5400533676147461
+Dist Build: Get Global Size, 0.22617459297180176
+Dist Build: Distributed Select, 8.202697992324829
+Dist Build: Reorder Projection, 2.483146905899048
+Dist Build: Reorder Global Ids, 0.22483420372009277
+Dist Build: Compute Targets - Prefix Sums, 2.9605212211608887
+Dist Build: Compute Targets - Balance, 0.0051403045654296875
+Dist Build: Compute Targets - Exchange Recv, 0.2027733325958252
+Dist Build: Compute Targets, 3.168708324432373
+Dist Build: Communicate IDs - Allocate, 0.04983043670654297
+Dist Build: Communicate IDs - alltoall, 0.14867019653320312
+Dist Build: Communicate IDs, 0.19869208335876465
+Dist Build: Communicate Projections - Allocate, 0.7589600086212158
+Dist Build: Communicate Projections - alltoall, 1.0378923416137695
+Dist Build: Communicate Projections, 1.7971429824829102
+Dist Build:, 19.698716402053833
+Build Dist Tree, 31.31834077835083
+Collect Points: Organize Points - label, 2.128244161605835
+Collect Points: Organize Points - sort, 0.20053482055664062
+Collect Points: Organize Points - reorder, 0.03086543083190918
+Collect Points: Organize Points, 2.359678268432617
+Collect Points: Find Request Sizes, 0.7389912605285645
+Collect Points: Exchange Recv Sizes, 2.32014536857605
+Collect Points: Communicate Requests, 0.1883699893951416
+Collect Points: Gather Requests, 1.7227981090545654
+Collect Points: Communicate Data - Allocate, 0.00016427040100097656
+Collect Points: Communicate Data - AlltoAll, 16.191380977630615
+Collect Points: Communicate Data, 16.191571474075317
+Collect Points:, 23.568841695785522
+Distribute Coordinates, 23.56896662712097
+Generate Local Projection Vectors, 0.0032138824462890625
+Generate Local Projection, 0.5164215564727783
+Build Local Tree, 9.344352006912231
+Stack, 0.012861251831054688
+Compute, 34.92245674133301
+Reindex, 2.8981852531433105
+Search, 37.83479619026184
+Evaluate, 47.2978310585022
+Redistribute: Allocate, 0.23766016960144043
+Redistribute: Label, 0.01512765884399414
+Redistribute: Sort, 0.16924047470092773
+Redistribute: Reorder, 1.5284457206726074
+Redistribute: Compute Targets, 0.0030641555786132812
+Redistribute: Exchange Recv, 9.001648426055908
+Redistribute: Alltoall GIDs, 0.22816061973571777
+Redistribute: Alltoall IDs, 1.5956997871398926
