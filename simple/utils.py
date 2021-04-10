@@ -4,6 +4,7 @@ import scipy as sp
 from scipy.sparse import csr_matrix, isspmatrix
 
 
+
 def centerpoints(X):
     n=len(X)
     C=np.sum(X,axis=0)/n;
@@ -114,6 +115,7 @@ def segpermute_f(arr,segsize,perm):
     st = np.tile(offsets, (segsize,1))
     st = (st.T).ravel()
     perm[:] = perm[:] + st[:]
+    
     
 
 
