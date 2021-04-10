@@ -52,3 +52,15 @@ Redistribute: Compute Targets, 0.0016074180603027344
 Redistribute: Exchange Recv, 2.553556442260742
 Redistribute: Alltoall GIDs, 0.44158506393432617
 Redistribute: Alltoall IDs, 1.9789936542510986
+Redistribute: Alltoall Dist, 1.8942952156066895
+Redistribute: Sort Output, 0.19701695442199707
+Redistribute: Reorder Output, 0.4367702007293701
+Redistribute, 8.17809772491455
+Forest: Redistribute, 8.184025287628174
+Forest: Merge, 1.2964255809783936
+Forest: Compare, 0.07333922386169434
+All Search, 73.59451746940613
+=======
+Record Book
+Recall [0.2828125, 0.5096875, 0.6503125, 0.7571875, 0.8225]
+
