@@ -9,54 +9,42 @@ import numba
 import time
 from scipy import sparse
 import random
+import cupy as cp
+
+
+
+
+
+
+
+
+@cuda.jit('void(int32[:], int32[:], float32[:],  float32[:], int32[:], int32, int32, int32, int32,  int32,  int32, int32, float32, int32, int32, int32, int32)') 
+def SpGeMM(R, C, V, K, K_id, m_i, m_j, max_nnz, batchId_I, batchId_J, numbatch_I, numbatch_J, dist_max, k_nn, num_I, num_J, M_I):
   
-
-
-
-
-
-
-
-
-@cuda.jit('void(int32[:], int32[:], float32[:],  float32[:], int32[:], int32, int32, int32, int32,  int32,  int32, int32, float32, int32, int32, int32)') 
-def SpGeMM(R, C, V, K, ID_K, m_i, m_j, max_nnz, batchID_I, batchID_J, num_batch_I, num_batch_J, dist_max, k_nn, num_I, num_J):
-  
+  print('run1')
   # elements
-  i = cuda.threadIdx.x + cuda.blockDim.x*cuda.blockIdx.x
-
-  # batch number
-  z = cuda.blockIdx.y    
-
-  col_ID = i
-
-  z_tmp = z // (m_i)
-  row_ID = z  - (z_tmp*m_i)
+  colId = cuda.threadIdx.x 
+  rowId = cuda.blockIdx.x
   
-  subbatch_I = z_tmp // num_batch_J
-  subbatch_J = z_tmp - subbatch_I*num_batch_J
+  blockId_I = cuda.threadIdx.y
+  blockId_J = cuda.blockIdx.y
 
-  row_ind_I = batchID_I*num_batch_I*m_i + subbatch_I*m_i + row_ID
-  #row_ind_I = subbatch_I*m_i + row_ID
-  row_ind_J = batchID_J*num_batch_J*m_j + subbatch_J*m_j + col_ID
-  #row_ind_J =  subbatch_J*m_j + col_ID
-  #print(i , z, row_ID, col_ID, z_tmp, subbatch_I, subbatch_J)
-  # select indices corresponding to row i , j
-
-
+  leafId_local = cuda.threadIdx.z 
+  blockId_leaf = cuda.blockIdx.z
+  
+  leafId = cuda.threadIdx.z + cuda.blockIdx.z*cuda.blockDim.z
+  
+  g_rowInd_I = leafId*M_I + batchId_I*numbatch_I*m_i + blockId_I*m_i + rowId 
+  g_rowInd_J = leafId*M_I + batchId_J*numbatch_J*m_i + blockId_J*m_j + colId 
 
   
-  ind0_i = R[row_ind_I]									
-  ind1_i = R[row_ind_I + 1]					
+  ind0_i = R[g_rowInd_I]									
+  ind1_i = R[g_rowInd_I + 1]					
   
+  ind0_j = R[g_rowInd_J]									
+  ind1_j = R[g_rowInd_J + 1]					
   
-
-  ind0_j= R[row_ind_J]
-  ind1_j= R[row_ind_J + 1]
-
-  
-  #ind0_j= R_J[row_ind_J]
-  #ind1_j= R_J[row_ind_J + 1]
-
+  print('run1')
   
   # number of nnz within row i , j
   nnz_i = ind1_i - ind0_i
@@ -66,35 +54,31 @@ def SpGeMM(R, C, V, K, ID_K, m_i, m_j, max_nnz, batchID_I, batchID_J, num_batch_
   if nnz_i > max_nnz: raise Exception('nnz per row > max nnz')   
   if nnz_j > max_nnz: raise Exception('nnz per row > max nnz')   
 
-  
-
   norm_ij = 0 
 
   cuda.syncthreads()
    
-  # norm of row i  
-  for n_i in range(nnz_i):
-    norm_ij += V[ind0_i + n_i]**2
-  
-  # remove rows with zero distance
-  
-  
-    
-  # norm of row j
-  for n_j in range(nnz_j):
-    norm_ij += V[ind0_j + n_j]**2
-  
-  
-  # register col indices for row i
+  # put the col and val in the register
   si = C[ind0_i:ind1_i]
   sj = C[ind0_j:ind1_j]
 
-
+  vi = V[ind0_i:ind1_i]
+  vj = V[ind0_j:ind1_j]
+  
+  # norm of row i  
+  for n_i in range(nnz_i):
+    norm_ij += vi[n_i]**2 
+    
+  # norm of row j
+  for n_j in range(nnz_j):
+    norm_ij += vj[n_j]**2
+  
   # search for the same column index among row i,j
   c_tmp = 0
-  #log_n = math.floor(math.log(max_nnz)/math.log(2)) 
-  log_n = math.floor(math.log(nnz_j)/math.log(2))+1
+  log_n = math.floor(math.log(max_nnz)/math.log(2)) 
+  #log_n = math.floor(math.log(nnz_j)/math.log(2))+1
 
+  print('run1')
   for pos_k in range(0, ind1_i-ind0_i):
 
     k = si[pos_k]
@@ -116,97 +100,89 @@ def SpGeMM(R, C, V, K, ID_K, m_i, m_j, max_nnz, batchID_I, batchID_J, num_batch_
     # check the result    
     ind_jk = ret if sj[ret] == k else -1
     
-    c = V[ind0_i + pos_k]*V[ind0_j + ind_jk] if ind_jk != -1 else 0
+    c = vi[pos_k]*vj[ind_jk] if ind_jk != -1 else 0
     
     c_tmp += c
 
-  #c_tmp = max(-2*c_tmp + norm_ij, 0)
-
-  if batchID_I == batchID_J and subbatch_I == subbatch_J and row_ID == col_ID:
-    c_tmp = dist_max  
-  # write to the global array
-
- 
-  g_col = subbatch_J*m_j + col_ID
-
-   
-  #print(z , i , row_ID, col_ID, c_tmp)
+  c_tmp = max(-2*c_tmp + norm_ij, 0)**0.5
 
 
   #bitonic sort among rows
 
-  sj = cuda.shared.array(shape=(2048),dtype=float32)
-  id_k = cuda.shared.array(shape=(2048),dtype=int32)
+  l_K = cuda.shared.array(shape=(2048),dtype=float32)
+  l_K_id = cuda.shared.array(shape=(2048),dtype=int32)
 
-
-
-  sj[i] = c_tmp
+  l_K[colId] = c_tmp
   
-  id_k[i] = g_col
+  l_K_id[colId] = g_rowInd_J
 
   cuda.syncthreads()
   
 
+  print('run1')
   log_size = math.ceil(math.log(m_j)/math.log(2))
+
   # bitonic sort
   for g_step in range(1, log_size+1, 1):
     g = pow(2, g_step)
     for l_step in range(g_step-1, -1, -1):
       l = pow(2, l_step)
-      ixj = col_ID ^ l
+      ixj = colId ^ l
       #ixj_tmp = ixj + row_ID*m_j  
-      if ixj > col_ID :
-        if col_ID & g == 0: 
+      if ixj > colId :
+        if colId & g == 0: 
           
           #cuda.compare_and_swap()
-          if sj[i] > sj[ixj]:
-            #sj[i], sj[ixj_tmp] = sj[ixj_tmp], sj[i]
-            #id_k[i], id_k[ixj_tmp] = id_k[ixj_tmp], id_k[i]
-            sj[i], sj[ixj] = sj[ixj], sj[i]
-            id_k[i], id_k[ixj] = id_k[ixj], id_k[i]
+          if l_K[colId] > l_K[ixj]:
+            l_K[colId], l_K[ixj] = l_K[ixj], l_K[colId]
+            l_K_id[colId], l_K_id[ixj] = l_K_id[ixj], l_K_id[colId]
     
         else:
-          if sj[i] < sj[ixj]:
-            #sj[i], sj[ixj] = sj[ixj_tmp], sj[i]
-            sj[i], sj[ixj] = sj[ixj], sj[i]
-            #id_k[i], id_k[ixj] = id_k[ixj], id_k[i]
-            id_k[i], id_k[ixj] = id_k[ixj], id_k[i]
+          if l_K[colId] < l_K[ixj]:
+            l_K[colId], l_K[ixj] = l_K[ixj], l_K[colId]
+            l_K_id[colId], l_K_id[ixj] = l_K_id[ixj], l_K_id[colId]
 
   
       cuda.syncthreads()
+
+
   # write the results back
-  diff = int(pow(2, log_size) - m_j)
-  if col_ID >= diff and col_ID < k_nn + diff: 
-    col_local = subbatch_J*k_nn + col_ID - diff
-    row_local = subbatch_I*m_i + row_ID
-    ind_ij = row_local*num_batch_J*k_nn + col_local
+  if colId < k_nn:
+    col_write = batchId_J * numbatch_J * k_nn + blockId_J * k_nn + colId
+    row_write = g_rowInd_I
     
-    #if batchID_I == 1 and batchID_J == 1: print(row_local, col_local, sj[i] , id_k[i], ind_ij)
-    K[ind_ij] = sj[i]
-    ID_K[ind_ij] = id_k[i]
+    ind_write = leafId*M_I*k_nn + row_write * numbatch_I * k_nn + col_write 
+
+    K[ind_write] = l_K[colId]
+    K_id[ind_write] = l_K_id[colId]
 
     
-@cuda.jit('void(float32[:], int32[:], float32[:], int32[:], int32, int32, int32, int32, int32, int32, int32, int32, int32, int32)') 
-def merge_knn(d_knn, d_ID_knn, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch_J, batchID_I, batchID_J, max_nnz, num_I, num_J):
+@cuda.jit('void(float32[:], int32[:], float32[:], int32[:], int32, int32, int32, int32, int32, int32, int32, int32, int32, int32, int32)') 
+def merge_knn(d_knn, d_ID_knn, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch_J, batchID_I, batchID_J, max_nnz, num_I, num_J, M_I):
 
-  i = cuda.threadIdx.x + cuda.blockIdx.x*cuda.blockDim.x 
-  z = cuda.blockIdx.y
-
+  i = cuda.threadIdx.x 
+  z = cuda.blockIdx.x
+  #leaf_ID_local = cuda.blockIdx.y
 
   S_dist = cuda.shared.array(shape=(2048),dtype=float32)
   S_id = cuda.shared.array(shape=(2048),dtype=int32)
   
-  subbatch_I = i // (num_batch_J*k)
-  subbatch_J = (i - subbatch_I*num_batch_J*k) // k
+  #subbatch_I = i // (num_batch_J*k)
+  #subbatch_J = (i - subbatch_I*num_batch_J*k) // k
   
+  leaf_ID = cuda.threadIdx.y + cuda.blockIdx.y*cuda.blockDim.y
 
-  ind_ij = z*k*num_batch_J + i - k
+  col_local = batchID_J*num_batch_J*k +  i - k
+  row_local = batchID_I*num_batch_I*m_i + z
+  ind_ij = row_local*num_batch_J*k + col_local + leaf_ID*num_batch_I*num_batch_J*k*m_i
 
-  S_dist[i] = d_knn[i + z*k + batchID_I*num_batch_I*m_i*k ] if i < k else d_K[ind_ij]
-  S_id[i] = d_ID_knn[i + z*k + batchID_I*num_batch_I*m_i*k] if i < k else d_ID_K[ind_ij]
-  #ind_knn = i + z*k + batchID_I*num_batch_I*m_i*k + leaf_ID*M
-  #S_dist[i] = d_knn[d_GID[ind_knn]] if i < k else d_K[ind_ij]
-  #S_id[i] = d_ID_knn[ d_GID[ ind_knn ]]  if i < k else d_ID_K[ind_ij]
+  #ind_ij = z*k*num_batch_J + i - k + leaf_ID*num_batch_I*num_batch_J*k*m_i
+  size = (num_batch_J+1)*k
+  log_size = math.ceil(math.log(size)/math.log(2))
+  pad_size = int(pow(2, log_size))
+
+  S_dist[i] = d_knn[i + z*k + batchID_I*num_batch_I*m_i*k  + leaf_ID*M_I*k] if i < k else d_K[ind_ij] if i < size else 1e30
+  S_id[i] = d_ID_knn[i + z*k + batchID_I*num_batch_I*m_i*k + leaf_ID*M_I*k] if i < k else d_ID_K[ind_ij] if i < size else 0
 
   cuda.syncthreads()
   
@@ -215,10 +191,12 @@ def merge_knn(d_knn, d_ID_knn, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch
   size = (num_batch_J+1)*k
   log_size = math.ceil(math.log(size)/math.log(2))
   diff = int(pow(2, log_size) - size)
+  '''
   if diff > 0 :
       for w in range(diff):
-          S_dist[w+size] = 0
+          S_dist[w+size] = 2e30
           S_id[w+size] = 0
+  '''
   for g_step in range(1, log_size+1, 1):
     g = pow(2, g_step)
     for l_step in range(g_step-1, -1, -1):
@@ -239,16 +217,23 @@ def merge_knn(d_knn, d_ID_knn, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch
 
       cuda.syncthreads()
 
-  #if batchID_I == 1 and batchID_J == 1: print(z , i , batchID_I, batchID_J, S_dist[i])
-  if i >= diff and i < k + diff: 
-    row = batchID_I*m_i*num_batch_I + z
-    d_knn[row*k + i-diff] = S_dist[i]
-    d_ID_knn[i-diff + row*k] = S_id[i]
+  cuda.syncthreads()
+  g_row = batchID_I*num_batch_I*m_i + z
+  ind = leaf_ID*M_I*k + g_row*k + i
+  #if i >= diff and i < k + diff:
+  #ind = i + z*k + batchID_I*num_batch_I*m_i*k  + leaf_ID*M_I*k  
+  if i < k: 
+    #row = batchID_I*m_i*num_batch_I + z
+    #if leaf_ID == 1 and row == 0: print(batchID_I, batchID_J, subbatch_I, subbatch_J, S_dist[i],  S_id[i])
+    #d_knn[row*k + i-diff + leaf_ID*M_I*k] = S_dist[i]
+    #d_ID_knn[i-diff + row*k + leaf_ID*M_I*k] = S_id[i]
+    #if leaf_ID == 13: print(g_row, z , i , ind, S_dist[i], S_id[i])
+    d_knn[ind] = S_dist[i]
+    d_ID_knn[ind] = S_id[i]
+    #if leaf_ID == 12 and batchID_I == 3 and batchID_J == 1: print(z , i, ind, g_row, S_dist[i], S_id[i], d_knn[ind], d_ID_knn[ind])
 
 
 def gpu_sparse_knn(d_R, d_C, d_V, leaves, M_I, d_knn, d_knn_ID, k, num_batch_I, num_batch_J, m_i, m_j, dist_max, max_nnz):
-
-
 
 
   # d_R : row pointer with length M+1 . (Multiple leaves are concatenated with length M+1)
@@ -274,11 +259,10 @@ def gpu_sparse_knn(d_R, d_C, d_V, leaves, M_I, d_knn, d_knn_ID, k, num_batch_I, 
   # dist_max : maximum distance of points 
   # max_nnz : maximum number of zeros per row ( can be ignored )
 
-  
-
+   
   if m_j > 2048 : print(' Error for batch_size , does not fit in shared memory')
 
-  
+   
   num_I = M_I//(m_i*num_batch_I)
   num_J = M_I//(m_j*num_batch_J)
   
@@ -288,52 +272,45 @@ def gpu_sparse_knn(d_R, d_C, d_V, leaves, M_I, d_knn, d_knn_ID, k, num_batch_I, 
 
   # batches to calculate in each kernel call 
   
-  threadsperblock_x = m_j
-  blockpergrid = (threadsperblock_x + m_i - 1)// threadsperblock_x
-  blockdim = threadsperblock_x, 1 
-  griddim = blockpergrid, num_batch_I*num_batch_J*m_i
+  threadsperblock_x = 1024
+  blockdim = threadsperblock_x, num_batch_J
+  griddim = m_i, num_batch_I
 
-  threadsperblock_x_merge = k*(num_batch_J+1)
-  blockpergrid_merge = (threadsperblock_x_merge + k - 1)// threadsperblock_x_merge 
-  blockdim_merge = threadsperblock_x_merge, 1  
-  griddim_merge = blockpergrid_merge, m_i*num_batch_I
+  print(blockdim)
+  print(griddim)
 
-  K = np.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.float32)
-  ID_K = np.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.int32)
-  d_K = cuda.to_device(K)
-  d_ID_K = cuda.to_device(ID_K)
+  size = (num_batch_J+1)*k
+  log_size = math.ceil(math.log(size)/math.log(2))
+  threadsperblock_x_merge = int(pow(2, log_size))
+  blockdim_merge = threadsperblock_x_merge
+  griddim_merge = m_i*num_batch_I
   
-  for ell in range(leaves):
- 
-
+  d_K = cp.zeros((num_batch_I*num_batch_J*k*m_i), dtype = cp.float32)
+  d_ID_K = cp.zeros((num_batch_I*num_batch_J*k*m_i), dtype = cp.int32)
+  #print(d_knn_ID.shape)  
+  for leaf_ID in range(leaves): 
     for batch_I in range(num_I):
       for batch_J in range(num_J):
-       
+		   
         t0 = time.time()
-        # kernel distand and knn
+  			# kernel distand and knn
         cuda.profile_start()
-        SpGeMM[griddim, blockdim](d_R, d_C, d_V, d_K, d_ID_K, m_i, m_j, max_nnz, batch_I, batch_J, num_batch_I, num_batch_J, dist_max, k, num_I, num_J)
+        SpGeMM[griddim, blockdim](d_R, d_C, d_V, d_K, d_ID_K, m_i, m_j, max_nnz, batch_I, batch_J, num_batch_I, num_batch_J, dist_max, k, num_I, num_J, M_I)
         cuda.synchronize()
         cuda.profile_stop()
         t1 = time.time() 
-        merge_knn[griddim_merge, blockdim_merge](d_knn, d_knn_ID, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch_J, batch_I, batch_J, max_nnz, num_I, num_J)
+        #merge_knn[griddim_merge, blockdim_merge](d_knn, d_knn_ID, d_K, d_ID_K, k, m_i, m_j , num_batch_I, num_batch_J, batch_I, batch_J, max_nnz, num_I, num_J, M_I)
         cuda.synchronize()
         t2 = time.time()
-        #print(batch_I, batch_J)
-        #K = d_K.copy_to_host()
-        #print('rec K')
-        #print(K)
         del_t0 += t1 - t0
         del_t1 += t2 - t1
         del_t2 += t2 - t0
+    
+    msg = 'leaves : %d \n seq_itr : %d, \n batch size : %d, \n parts : %d \n Dist (s) : %.3e \n merge : %.3e \n total : %.3e'%(leaf_ID , num_I*num_J, m_i*m_j , num_batch_I*num_batch_J, del_t0, del_t1, del_t2)   
 
-      
-    msg = 'leaves : %d \n seq_itr : %d, \n batch size : %d, \n parts : %d \n Dist (s) : %.3e \n merge : %.3e \n total : %.3e'%(ell , num_I*num_J, m_i*m_j , num_batch_I*num_batch_J, del_t0, del_t1, del_t2)   
-      
-    print(msg)
+    print(msg)        
 
-
-
+  
 
 # array for debug (rec of true matrix)
 def rec(I, J, V, m, d):

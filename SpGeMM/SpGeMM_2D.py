@@ -35,7 +35,7 @@ def SpGeMM(R, C, V, GID, leaf_ID, K, ID_K, m_i, m_j, M , max_nnz, batchID_I, bat
   subbatch_I = z_tmp // num_batch_J
   subbatch_J = z_tmp - subbatch_I*num_batch_J
 
-  row_ind_I = batchID_I*num_batch_I*m_i + subbatch_I*m_i + row_ID
+  row_ind_I = batchID_I*num_batch_I*m_i + subbatch_I*m_i + row_ID + 
   #row_ind_I = subbatch_I*m_i + row_ID
   row_ind_J = batchID_J*num_batch_J*m_j + subbatch_J*m_j + col_ID
   #row_ind_J =  subbatch_J*m_j + col_ID
@@ -309,7 +309,9 @@ def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M, d_knn, d_knn_ID, k, num_batc
   M_I  = M//leaves 
   num_I = M_I//(m_i*num_batch_I)
   num_J = M_I//(m_j*num_batch_J)
-  
+  if num_I == 0 or num_J == 0 : 
+    print('Invalid number of blocks')
+    return 
   del_t0 = 0
   del_t1 = 0
   del_t2 = 0
@@ -326,10 +328,10 @@ def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M, d_knn, d_knn_ID, k, num_batc
   blockdim_merge = threadsperblock_x_merge, 1  
   griddim_merge = blockpergrid_merge, m_i*num_batch_I
 
-  K = cp.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.float32)
-  ID_K = cp.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.int32)
-  d_K = cuda.to_device(K)
-  d_ID_K = cuda.to_device(ID_K)
+  d_K = cp.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.float32)
+  d_ID_K = cp.zeros((num_batch_I*num_batch_J*k*m_i), dtype = np.int32)
+  #d_K = cuda.to_device(K)
+  #d_ID_K = cuda.to_device(ID_K)
   
   for leaf_ID in range(leaves):
     for batch_I in range(num_I):
@@ -350,14 +352,15 @@ def gpu_sparse_knn(d_R, d_C, d_V, d_GID, leaves, M, d_knn, d_knn_ID, k, num_batc
         
         t2 = time.time()
         #print(batch_I, batch_J)
-        #K = d_K.copy_to_host()
-        #print('rec K')
-        #print(K)
+        knn = d_knn.copy_to_host()
+        print('rec K')
         del_t0 += t1 - t0
         del_t1 += t2 - t1
         del_t2 += t2 - t0
 
-      
+    if leaf_ID == 0:        
+      print(knn[0:10]))
+
     msg = 'leaves : %d \n seq_itr : %d, \n batch size : %d, \n parts : %d \n Dist (s) : %.3e \n merge : %.3e \n total : %.3e'%(leaf_ID , num_I*num_J, m_i*m_j , num_batch_I*num_batch_J, del_t0, del_t1, del_t2)   
       
     #print(msg)
