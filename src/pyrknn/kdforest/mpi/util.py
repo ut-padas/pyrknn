@@ -260,37 +260,21 @@ def accuracy_check(a, b):
     N = Na
     k = ka
 
-    approx_id = b_list 
-    approx_dist = b_dist 
+    knndist = a_dist[:, k-1]
+    err = 0
+    relative_distance = 0
 
-    truth_id = a_list
-    truth_dist = a_dist 
-    
-    #knndist = a_dist[:, k-1]
-    #err = 0
-    #relative_distance = 0
-    
-    """
     for i in range(Na):
         miss_array_id   = [1 if a_list[i, j] in b_list[i] else 0 for j in range(k)]
         miss_array_dist = [1 if b_dist[i, j] < knndist[i] else 0 for j in range(k)]
         miss_array = np.logical_or(miss_array_id, miss_array_dist)
-        #miss_array = miss_array_id
+        miss_array = miss_array_id
         err+= np.sum(miss_array)
         relative_distance = max(relative_distance, np.abs(knndist[i] - b_dist[i, kb-1])/knndist[i])
-    """
-    err = 0 
-    for i in range(N):
 
-        miss_array_id = [1 if approx_id[i, j] in truth_id[i, :] else 0 for j in range(k)]
-        miss_array_dist = [1 if approx_dist[i, j] <= truth_dist[i, -1] else 0 for j in range(k)]
+    perc = float(err)/(Na*ka)
 
-        err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
-
-
-    perc = err/(Na*ka)
-
-    return perc, 0
+    return perc, relative_distance
 
 def dist_select(k, data, ids, comm):
     return cpu.dist_select(k, data, ids, comm)
