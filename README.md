@@ -5,7 +5,7 @@ To build:
 
 Current build dependencies are: 
 
-Libraries: GSKNN, CUB, ModernGPU, Eigen
+Libraries: GSKNN, ModernGPU, Eigen
 
 Python: mpi4py, numpy, numba, cupy, scipy, sklearn, cython
 
