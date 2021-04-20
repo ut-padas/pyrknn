@@ -338,6 +338,10 @@ def gather_dense(comm, data, requests, size_prefix, rank, sizes, starts, rsizes,
     #print(rank, "recv", sizes, starts, flush=True)
     d = data.shape[1]
     #print(rank, "D", d)
+    rsizes = np.asarray(rsizes, dtype=np.int64)
+    rstarts = np.asarray(rstarts, dtype=np.int64)
+    sizes = np.asarray(sizes, dtype=np.int64)
+    starts = np.asarray(starts, dtype=np.int64)
     comm.Alltoallv([requested_data, rsizes*d, rstarts*d, MPI.FLOAT], [
                    recv_data, sizes*d, starts*d, MPI.FLOAT])
     #print(rank, "Recv Data", recv_data, flush=True)
@@ -452,8 +456,10 @@ def redistribute(comm, global_ids, result, size_prefix):
     # TODO: Move this allocate outside of the function, to reuse memory between iterations
     timer.push("Redistribute: Allocate")
     result_gids = np.zeros(N, dtype=global_ids.dtype)
-    result_ids = np.zeros_like(neighbor_ids)
-    result_dist = np.zeros_like(neighbor_dist)
+    result_ids = np.zeros(neighbor_ids.shape, dtype=neighbor_ids.dtype)
+    result_dist = np.zeros(neighbor_dist.shape, dtype=neighbor_dist.dtype)
+    #print(rank, neighbor_ids.shape, N, flush=True)
+    #print(rank, "HERE", flush=True)
     #print("Datatypes: ", result_ids.dtype, result_gids.dtype, result_dist.dtype)
     timer.pop("Redistribute: Allocate")
 
@@ -481,16 +487,22 @@ def redistribute(comm, global_ids, result, size_prefix):
     global_ids = global_ids[p]
     timer.pop("Redistribute: Reorder")
 
+    #print(rank, "reorder", flush=True)
+
     # Compute start/stop indicies
     timer.push("Redistribute: Compute Targets")
     starts, sizes = ordered_sizes(mpi_size, labels, prec=global_ids.dtype)
     timer.pop("Redistribute: Compute Targets")
+
+    print(rank, "targets", flush=True)
 
     # Exchange sizes with receiving processes
     timer.push("Redistribute: Exchange Recv")
     #print(rank, "sizes", sizes, flush=True)
     rsizes, rstarts = exchange_send_info(comm, sizes)
     timer.pop("Redistribute: Exchange Recv")
+
+    #print(rank, "recv", flush=True)
 
     # Communicate global ids
     timer.push("Redistribute: Alltoall GIDs")
@@ -503,24 +515,43 @@ def redistribute(comm, global_ids, result, size_prefix):
                        result_gids, rsizes, rstarts, MPI.LONG])
     timer.pop("Redistribute: Alltoall GIDs")
 
+    #print(rank, "a2a gids",flush=True) 
     #print(rank, "global_ids recv", result_gids, flush=True)
 
+    #print(rank, "buffers", neighbor_ids.shape, result_ids.shape, flush=True)
     # Adjust sizes to be k-stride
+
+    rsizes = np.asarray(rsizes, dtype=np.int64)
+    rstarts = np.asarray(rstarts, dtype=np.int64)
+    sizes = np.asarray(sizes, dtype=np.int64)
+    starts = np.asarray(starts, dtype=np.int64)
+
+
     sizes = sizes * k
     rsizes = rsizes * k
 
     starts = starts * k
     rstarts = rstarts * k
 
+    #print(rank, sizes, rsizes, starts, rstarts, flush=True)
+    #print(rank, "buffers", neighbor_ids.dtype, result_ids.dtype, flush=True)
     # Communicate neighbor ids
     timer.push("Redistribute: Alltoall IDs")
-    if (neighbor_ids.dtype == np.int32) or ( neighbor_ids.dtype == np.uint32 ):
+    if (neighbor_ids.dtype == np.int32):
+        #print(rank, "starting a2a id (int)", flush=True)
         comm.Alltoallv([neighbor_ids, sizes, starts, MPI.INT], [
                        result_ids, rsizes, rstarts, MPI.INT])
+    elif ( neighbor_ids.dtype == np.uint32 ):
+        #print(rank, "starting a2a id (uint)", flush=True)
+        comm.Alltoallv([neighbor_ids, np.asarray(sizes, dtype=np.int32), np.asarray(starts, dtype=np.int32), MPI.UNSIGNED], [
+                       result_ids, np.asarray(rsizes, dtype=np.int32), np.asarray(rstarts, dtype=np.int32), MPI.UNSIGNED])
     else:
+        #print(rank, "starting a2a id (long)", flush=True)
         comm.Alltoallv([neighbor_ids, sizes, starts, MPI.LONG], [
                        result_ids, rsizes, rstarts, MPI.LONG])
     timer.pop("Redistribute: Alltoall IDs")
+
+    #print(rank, "a2a nIDs", flush=True)
 
     # Communicate neighbor distances
     timer.push("Redistribute: Alltoall Dist")
@@ -528,12 +559,17 @@ def redistribute(comm, global_ids, result, size_prefix):
         result_dist, rsizes, rstarts, MPI.FLOAT])
     timer.pop("Redistribute: Alltoall Dist")
 
+
+    #print(rank, "a2a nDist", flush=True)
+
     # Output results need to be sorted by global id
 
     # TODO: Replace with parallel sort
     timer.push("Redistribute: Sort Output")
     lids = np.argsort(result_gids)
     timer.pop("Redistribute: Sort Output")
+
+    #print(rank, "sort", flush=True)
 
     timer.push("Redistribute: Reorder Output")
     #result_gids = reorder(result_gids, lids)
@@ -543,6 +579,8 @@ def redistribute(comm, global_ids, result, size_prefix):
     result_ids = result_ids[lids, :]
     result_dist = result_dist[lids, :]
     timer.pop("Redistribute: Reorder Output")
+
+    #print(rank, "finished redistribute", flush=True)
 
     timer.pop("Redistribute")
 
@@ -572,6 +610,7 @@ def balance_partition(rank, mpi_size, left_size, left_prefix, right_size, right_
     last_idx = np.searchsorted(size_prefix, after_in_bin, side='right')-1
 
     # Correction for last bin (we overcount above)
+
     if after_in_bin == size_prefix[last_idx]:
         last_idx -= 1
 
@@ -616,6 +655,9 @@ def balance_partition(rank, mpi_size, left_size, left_prefix, right_size, right_
     after_in_bin = right_prefix[rank] + right_size
     last_idx = np.searchsorted(size_prefix, after_in_bin, side='right')-1
 
+
+
+    #print(rank, "aib", after_in_bin, size_prefix[last_idx], last_idx, flush=True)
     # Correction for last bin (we overcount above)
     if after_in_bin == size_prefix[last_idx]:
         last_idx -= 1
@@ -623,6 +665,8 @@ def balance_partition(rank, mpi_size, left_size, left_prefix, right_size, right_
     #local_start = 0
     to_send = right_size
     for idx in range(start_idx, last_idx+1):
+
+        #print(rank, len(size_prefix), idx, len(left_prefix), size_prefix, left_prefix, flush=True)
         remain = size_prefix[idx+1] - right_prefix[rank]
         #rprint("idx", idx, rank=r)
         #rprint("remain", remain, rank=r)
@@ -666,7 +710,7 @@ def exchange_send_info(comm, sizes):
         comm.Alltoallv([sizes, temp_sizes, temp_starts, MPI.INT],
                        [recv, temp_sizes, temp_starts, MPI.INT])
     else:
-        #print(rank, "This should NOT print ::: ", sizes, temp_sizes, temp_starts, flush=True)
+        print(rank, "This should NOT print ::: ", sizes, temp_sizes, temp_starts, flush=True)
         comm.Alltoallv([sizes, temp_sizes, temp_starts, MPI.LONG],
                        [recv, temp_sizes, temp_starts, MPI.LONG])
 
@@ -860,10 +904,8 @@ class RKDT:
             # If levels > dim, append projection with resampled random vectors
             vectors = self.vectors
             if self.spill is not None:
-                print("USING SPILL", self.spill, flush=True)
-                print("before", vectors.shape)
-                vectors = vectors[self.spill]
-                print("after", vectors.shape)
+                vectors = vectors[:, self.spill]
+                
             #print("after", vectors.shape, flush=True)
             #print("data", self.host_data.shape, flush=True)
             proj = self.host_data @ vectors
@@ -1112,6 +1154,98 @@ class RKDT:
             result = (result_ids, result_dist)
 
             return result
+
+    def build_local(self):
+        timer = Primitives.Profiler()
+        timer.push("Build Local Tree")
+        timer.push("Generate Local Projection Vectors")
+        self.generate_projection_vectors(self.local_levels)
+        timer.pop("Generate Local Projection Vectors")
+
+        timer.push("Generate Local Projection")
+        vectors = self.vectors
+
+        if self.spill is not None:
+            vectors = vectors[:, self.spill]
+
+        proj = self.host_data @ vectors
+        timer.pop("Generate Local Projection")
+
+        #print("proj shape", proj.shape)
+        proj = np.asarray(proj, order='F')
+        lids, offsets = Primitives.dense_build(proj)
+
+        lids = np.asarray(lids, dtype=np.int32)
+        offsets = np.asarray(offsets, dtype=np.int32)
+
+        self.host_data = self.host_data[lids]
+        self.offsets = offsets
+        self.local_ids = lids 
+        #self.global_ids = self.global_ids[lids]
+
+        timer.pop("Build Local Tree")
+
+
+    def search_local(self, k):
+        timer = Primitives.Profiler()
+
+        timer.push("Search")
+        Primitives.set_env("CPU", False)
+        Primitives.cores = 56
+
+        rank = self.comm.Get_rank()
+
+        N = self.local_size 
+        nleaves = len(self.offsets)
+
+        #Allocate space to store results
+        neighbor_list = np.zeros([N, k], dtype=np.int32)
+        neighbor_dist = np.zeros([N, k], dtype=np.float32)
+
+        gidsList = []
+        RList = []
+        timer.push("Stack")
+        for i in range(nleaves):
+            start = self.offsets[i]
+            if i < nleaves-1:
+                end = self.offsets[i+1]
+            else:
+                end = N 
+
+            gidsList.append(self.local_ids[start:end])
+            RList.append(self.host_data[start:end])
+        timer.pop("Stack")
+
+        timer.push("Compute")
+        NLL, NDL, out = Primitives.batched_knn(gidsList, RList, RList, k)
+        timer.pop("Compute")
+
+        
+
+        timer.push("Reindex")
+        for i in range(nleaves):
+            start = self.offsets[i]
+            if i < nleaves-1:
+                end = self.offsets[i+1]
+            else:
+                end = N 
+            idx = self.local_ids[start:end]
+            NL = NLL[i]
+            ND = NDL[i]
+            neighbor_list[idx, :] = self.global_ids[NL[:, :]]
+            neighbor_dist[idx, :] = ND[:, :]
+        timer.pop("Reindex")
+
+        timer.pop("Search")
+
+        return neighbor_list, neighbor_dist 
+            
+
+
+
+
+
+
 
     # Compute exact nearest neighbors over distributed tree
     def distributed_exact(self, Q, k):

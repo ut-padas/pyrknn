@@ -190,6 +190,9 @@ def batched_knn(gidsList, RList, QList, k):
         raise Exception("Error: GPU Batched KNN no longer supported through this interface. Use combined kernel `dense_knn` instead.")
         #return gpu.batched_knn(gidsList, RList, QList, k)
 
+def dense_build(P):
+    return cpu.dense_build(P)
+
 def merge_neighbors(a, b, k, loc="HOST", cores=8):
     """Merge nearest neighbor results from different trees
 
@@ -260,21 +263,37 @@ def accuracy_check(a, b):
     N = Na
     k = ka
 
-    knndist = a_dist[:, k-1]
-    err = 0
-    relative_distance = 0
+    approx_id = b_list 
+    approx_dist = b_dist 
 
+    truth_id = a_list
+    truth_dist = a_dist 
+    
+    #knndist = a_dist[:, k-1]
+    #err = 0
+    #relative_distance = 0
+    
+    """
     for i in range(Na):
         miss_array_id   = [1 if a_list[i, j] in b_list[i] else 0 for j in range(k)]
         miss_array_dist = [1 if b_dist[i, j] < knndist[i] else 0 for j in range(k)]
         miss_array = np.logical_or(miss_array_id, miss_array_dist)
-        miss_array = miss_array_id
+        #miss_array = miss_array_id
         err+= np.sum(miss_array)
         relative_distance = max(relative_distance, np.abs(knndist[i] - b_dist[i, kb-1])/knndist[i])
+    """
+    err = 0 
+    for i in range(N):
 
-    perc = float(err)/(Na*ka)
+        miss_array_id = [1 if approx_id[i, j] in truth_id[i, :] else 0 for j in range(k)]
+        miss_array_dist = [1 if approx_dist[i, j] <= truth_dist[i, -1] else 0 for j in range(k)]
 
-    return perc, relative_distance
+        err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
+
+
+    perc = err/(Na*ka)
+
+    return perc, 0
 
 def dist_select(k, data, ids, comm):
     return cpu.dist_select(k, data, ids, comm)
