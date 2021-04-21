@@ -27,7 +27,7 @@ Set: CUDA_HOME=$TACC_CUDA_DIR
 You might need to set: NUMBA_CUDA_DRIVER=/usr/lib64/libcuda.so.1
 
 
-#TODO
+# TODO
 **Will**: Run max int32 problem Dense synthetic
 **Will**: Strong scaling for largest 1B SIFT and 100M  SIFT runs,  dense CPU
 **George/Ali**: Criteo
