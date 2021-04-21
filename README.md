@@ -28,8 +28,11 @@ You might need to set: NUMBA_CUDA_DRIVER=/usr/lib64/libcuda.so.1
 
 
 # TODO
-**Will**: Run max int32 problem Dense synthetic
-**Will**: Strong scaling for largest 1B SIFT and 100M  SIFT runs,  dense CPU
-**George/Ali**: Criteo
-**George**: scalable correct synthetic sparse
-**Chao**: GPU/CPU Dense discrepency, bug
+**Will**: Run max int32 problem Dense synthetic\
+**Will**: Strong scaling for largest 1B SIFT and 100M  SIFT runs,  dense CPU \
+**George/Ali**: Criteo \
+**George**: scalable correct synthetic sparse \
+**Chao**: GPU/CPU Dense discrepency, bug  
+
+
+
