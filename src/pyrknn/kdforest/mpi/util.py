@@ -52,6 +52,7 @@ class Profiler:
     current_times = dict()
 
     def push(self, string):
+        #print(string)
         if string in self.current_times and self.current_times[string] != 0:
             print("Warning: Resetting currently running timer")
         self.current_times[string] = time.time()

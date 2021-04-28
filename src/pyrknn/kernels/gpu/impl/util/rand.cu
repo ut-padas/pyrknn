@@ -13,8 +13,9 @@ struct prg : public thrust::unary_function<unsigned int, float> {
 
   __host__ __device__
   float operator()(const unsigned int n) const {
-    thrust::minstd_rand rng(n);
+    thrust::minstd_rand rng;
     thrust::random::normal_distribution<float> dist(a, b);
+
     //thrust::default_random_engine rng;
     //thrust::uniform_real_distribution<float> dist(a, b);
     rng.discard(n);

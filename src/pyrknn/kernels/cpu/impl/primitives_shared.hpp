@@ -76,6 +76,18 @@ void gather(T *ID, const int *perm, const size_t n, T *copy)
         ID[i] = copy[perm[i]];
 }
 
+void gather(float* data, const int* perm, const int n, const int d){
+    float* copy = new float[n];
+    for(int i = 0; i < d; i++){
+        par::copy(n, (float*) data + n*i, (float*) copy);
+
+        #pragma omp parallel for
+        for(int j = 0; j < n; j++){
+            data[i*n + j] = copy[perm[j]];
+        }
+    }
+}
+
 //reorder for vectors
 void gather(ivec &order, const ivec &perm)
 {
@@ -101,6 +113,16 @@ void gather(T* order, const ivec &perm)
         order[i] = copy[perm[i]];
 }
 
+template <typename T>
+void print(const T *ptr, const size_t n, std::string name)
+{
+  std::cout << name << ":\n";
+  for (size_t i = 0; i < n; i++)
+    std::cout << ptr[i] << " ";
+  std::cout << std::endl;
+}
+
+
 /* Tree Build */
 //Assume local tree has less than 2 billion elements
 void build_tree(float *X, unsigned *order, unsigned *firstPt, const unsigned int n, const size_t L)
@@ -123,10 +145,10 @@ void build_tree(float *X, unsigned *order, unsigned *firstPt, const unsigned int
 
     // return offsets of leaf nodes
     par::copy(firstPoint[L].size(), (float *)firstPoint[L].data(), (float *)firstPt);
-
+    //std::cout << firstPoint[L].size() << std::endl;
     // initial ordering
     par::iota(order, order + n, 0);
-
+    //print(order, n, "order");
     // permutation of one level
     ivec perm(n);
     for (size_t i = 0; i < L; i++)
@@ -140,6 +162,9 @@ void build_tree(float *X, unsigned *order, unsigned *firstPt, const unsigned int
         // partition nodes at this level
         const ivec &offset = firstPoint[i];
         unsigned nNode = 1 << i;
+
+        //print(order, n, "order");
+        //print(X+i*n, n, "data");
 
         #pragma omp parallel for
         for (unsigned j = 0; j < nNode; j++)
@@ -1078,6 +1103,9 @@ void batchedRef(idx_type<T> **rgids,
     } //end loop over leaves
 
 } //end function
+
+
+//TODO: Make this a clean batchedGSKNN call for the a2a case. 
 
 template <typename T>
 void batchedGSKNN(idx_type<T> **rgids,

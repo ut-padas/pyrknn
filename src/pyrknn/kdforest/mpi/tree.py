@@ -302,14 +302,6 @@ def gather_sparse(comm, data, requests, size_prefix, rank, sizes, starts, rsizes
     return new_data, (nptr, recv_c, recv_v) 
 
 
-
-
-
-
-
-    
-
-
 def gather_dense(comm, data, requests, size_prefix, rank, sizes, starts, rsizes, rstarts):
     timer = Primitives.Profiler()
 
@@ -886,17 +878,24 @@ class RKDT:
         self.vectors = vectors
         #print("Generated vectors", flush=True)
 
-    def distributed_build(self):
+    def distributed_build(self, projection=None):
         timer = Primitives.Profiler()
         comm = self.comm
         local_rank = comm.Get_rank()
         global_rank = comm.Get_rank()
         mpi_size = comm.Get_size()
         timer.push("Dist Build:")
+        print("Ranks:", global_rank, local_rank, flush=True)
         if mpi_size > 1:
             timer.push("Build: Generate Projection")
             # Generate orthogonal projection vectors
-            self.generate_projection_vectors(self.dist_levels)
+            if projection is not None:
+                #TODO: Assert right shape
+                self.vectors = projection
+                self.spill = np.arange(10)
+            else:
+                self.generate_projection_vectors(self.dist_levels)
+                np.save("projections", self.vectors)
             timer.pop("Build: Generate Projection")
 
             timer.push("Dist Build: Compute Projection")
@@ -922,7 +921,7 @@ class RKDT:
             #   - Send remaining projection and global ids
             #   - Split communicator between children
             for l in range(self.dist_levels):
-
+                
                 timer.push("Dist Build: Get Global Size")
                 local_rank = comm.Get_rank()
                 global_size = np.array(0, dtype=self.gprec)
@@ -1017,6 +1016,7 @@ class RKDT:
                 
                 timer.push("Dist Build: Communicate IDs - alltoall")
                 # TODO: There is a better way to do this in mpi4py 3.10 which was just released, switch or keep for compatibility?
+                print(global_rank, recv_gids.shape, self.global_ids.shape, sizes, starts, flush=True)
                 if self.gprec == np.int32:
                     comm.Alltoallv([self.global_ids, sizes, starts, MPI.INT], [
                                    recv_gids, rsizes, rstarts, MPI.INT])
@@ -1041,6 +1041,7 @@ class RKDT:
                 timer.pop("Dist Build: Communicate Projections - Allocate")
 
                 timer.push("Dist Build: Communicate Projections - alltoall")
+                print(global_rank, recv_proj.shape, proj.shape, sizes*rl, starts*rl, flush=True)
                 comm.Alltoallv([proj, sizes*rl, starts*rl, MPI.FLOAT], [
                     recv_proj, rsizes*rl, rstarts*rl, MPI.FLOAT])
                 timer.pop("Dist Build: Communicate Projections - alltoall")
@@ -1155,11 +1156,15 @@ class RKDT:
 
             return result
 
-    def build_local(self):
+    def build_local(self, projection=None):
         timer = Primitives.Profiler()
         timer.push("Build Local Tree")
         timer.push("Generate Local Projection Vectors")
-        self.generate_projection_vectors(self.local_levels)
+        if projection is not None:
+            self.vectors = projection 
+            self.spill = np.arange(10, dtype=np.int32)
+        else:
+            self.generate_projection_vectors(self.local_levels)
         timer.pop("Generate Local Projection Vectors")
 
         timer.push("Generate Local Projection")
@@ -1177,7 +1182,8 @@ class RKDT:
 
         lids = np.asarray(lids, dtype=np.int32)
         offsets = np.asarray(offsets, dtype=np.int32)
-
+        print(len(lids))
+        print(self.local_size)
         self.host_data = self.host_data[lids]
         self.offsets = offsets
         self.local_ids = lids 
