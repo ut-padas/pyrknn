@@ -12,7 +12,7 @@
 
 
 
-__global__ void compute_dist(int* R, int* C, float* V, float* K, int m_i, int m_j , int k_nn, int M_I, int leaf_id_g, int max_nnz){
+__global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int m_i, int m_j , int k_nn, int M_I, int leaf_id_g, int max_nnz, int M){
 
     int col_Id = threadIdx.x;
     //int row_Id = blockIdx.x;
@@ -22,15 +22,24 @@ __global__ void compute_dist(int* R, int* C, float* V, float* K, int m_i, int m_
     int blockId_J = blockIdx.x;
     int blockId_I = blockIdx.y;
    
-
+    
     int g_rowId_I = leaf_id_g * M_I + blockId_I * m_i + row_Id;
     int g_rowId_J = leaf_id_g * M_I + blockId_J * m_j + col_Id;
-     
-    int ind0_i = R[g_rowId_I];
-    int ind1_i = R[g_rowId_I + 1];
+    
+    if (g_rowId_I >= M || g_rowId_J >= M) return;
+    //if (g_rowId_I >= M || g_rowId_J >= M) printf(" Illegal access for I = %d , J = %d \n", g_rowId_I , g_rowId_J);
+    //if (g_rowId_I > M_I*2048 || g_rowId_J > M_I*2048) printf("g_rowID_I = %d , g_row_ID_J = %d , leaf_id_g = %d , M_I = %d , blockId_I = %d , blockID_J = %d , row_Id = %d , col_Id = %d \n", g_rowId_I , g_rowId_J, leaf_id_g , M_I , blockId_I, blockId_J, row_Id , col_Id);
+    int g_Id_i = G_Id[g_rowId_I]; 
+    int g_Id_j = G_Id[g_rowId_J];     
 
-    int ind0_j = R[g_rowId_J];
-    int ind1_j = R[g_rowId_J + 1];
+    //int g_Id_i = g_rowId_I;
+    //int g_Id_j = g_rowId_J;
+
+    int ind0_i = R[g_Id_i];
+    int ind1_i = R[g_Id_i + 1];
+
+    int ind0_j = R[g_Id_j];
+    int ind1_j = R[g_Id_j + 1];
  
     int nnz_i = ind1_i - ind0_i;
     int nnz_j = ind1_j - ind0_j;
@@ -38,17 +47,7 @@ __global__ void compute_dist(int* R, int* C, float* V, float* K, int m_i, int m_
 
     float norm_ij = 0.0;    
 
-    //__shared__ int sj[512];
-    //__shared__ float vj[512];
-    
-    //int si[256];
-    //__shared__ int si[8192];
-
-    __shared__ int si[12000];
-
-    //float vi[256];
-    //int sj[256];
-    //float vj[256];
+    __shared__ int si[8192];
 
     int shift = max_nnz*threadIdx.y;
 
@@ -61,7 +60,6 @@ __global__ void compute_dist(int* R, int* C, float* V, float* K, int m_i, int m_
     for (int n_j = 0; n_j < nnz_j; n_j++){
       norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
     }
-     
      
      
     float c_tmp = 0.0;
@@ -200,11 +198,13 @@ __global__ void compute_dist(int* R, int* C, float* V, float* K, int m_i, int m_
 
 
 //__global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* K_Id, int k, int M_I){
-__global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* K_Id, int k, int M_I, int m_j, int leaf_id_g){
+__global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* K_Id, int* G_Id, int k, int M_I, int m_j, int leaf_id_g, int M){
 
     int col_Id = threadIdx.x; 
     int row_Id = blockIdx.x;
 
+    if (row_Id >= M || col_Id >= M) return;
+ 
     __shared__ float Dist[2048];
     __shared__ int Dist_Id[2048];
 
@@ -217,7 +217,8 @@ __global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* K_Id, int 
     Dist[col_Id] = K[ind_K];
     //Dist_Id[ind_shared] = (col_Id < k) ? knn_Id[ind_knn] : (col_Id < size) ? K_Id[ind_read] : 0;
     //Dist_Id[ind_shared] = (col_Id < k) ? 0 : (col_Id < size) ? K_Id[ind_read] : 0;
-    Dist_Id[col_Id] = col_Id;
+    //Dist_Id[col_Id] = col_Id;
+    Dist_Id[col_Id] = G_Id[leaf_id_g * M_I + col_Id];
     int ind_shared = col_Id;
     //if (leaf_id_g == 2047) printf("row = %d , col = %d 1 , ind_shared = %d , \n", row_write, col_write, ind_shared);
      
@@ -396,7 +397,7 @@ void gen_sparse(int M, int tot_nnz, int d, int *R, int *C, float *V) {
     }
 }
 
-void gen_R(int M, int nnzperrow, int *R, int d) {  
+void gen_R(int M, int nnzperrow, int *R, int *G_Id, int d) {  
   R[0] = 0;
   int tot_nnz = 0;
   int val;
@@ -406,25 +407,36 @@ void gen_R(int M, int nnzperrow, int *R, int d) {
    if (val > d) val = 1; 
    tot_nnz += val;
    R[m] = tot_nnz;
+   G_Id[m-1] = m-1;
   } 
-  
+  std::random_shuffle(&G_Id[0], &G_Id[M]);
+  /*
+  for (int m = 0; m < M; m++){ 
+  printf("G_Id[%d] = %d \n", m , G_Id[m]);
+  } 
+  */
 }
 
-void gpu_knn(int *R, int *C, float *V, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz){
+void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz){
  
-
 	int pointsperleaf = M/leaves;
-	int m_i = 12000 / max_nnz;
+	int m_i = 8192 / max_nnz;
+  m_i = min(m_i, pointsperleaf);
   int m_j = 1024 / m_i;
   m_j = min(m_j, pointsperleaf);
-   
-  if (m_i*max_nnz > 12000) printf("Exceeds the shared memory size \n"); 
-	int size_batch_I = (pointsperleaf)/m_i;
+  
+ 
+  if (m_i*max_nnz > 8192) printf("Exceeds the shared memory size \n"); 
+	int size_batch_I = (pointsperleaf + m_i - 1)/m_i;
 	int size_batch_J = (pointsperleaf + m_j - 1) / m_j;
 	int M_I = M/leaves;
+
+  printf("m_i = %d , m_j = %d , size_batch_I = %d , size_batch_J = %d , M_I = %d \n", m_i , m_j , size_batch_I , size_batch_J, M_I);
+
   float del_t1;
   cudaEvent_t t0; 
   cudaEvent_t t1;
+  
   
   dim3 dimBlock(m_j, m_i);	
   dim3 dimGrid(size_batch_J, size_batch_I); 
@@ -446,9 +458,9 @@ void gpu_knn(int *R, int *C, float *V, int M, int leaves, int k, float *knn, int
 
   checkCudaErrors(cudaEventRecord(t0, 0));
   for (int leaf_id_g = 0; leaf_id_g < leaves; leaf_id_g++){
-    compute_dist <<< dimGrid, dimBlock >>>(R, C, V, d_K, m_i, m_j, k, M_I, leaf_id_g, max_nnz);
+    compute_dist <<< dimGrid, dimBlock >>>(R, C, V, G_Id, d_K, m_i, m_j, k, M_I, leaf_id_g, max_nnz, M);
     checkCudaErrors(cudaDeviceSynchronize());
-    find_neighbor <<< dimGrid_n, dimBlock_n >>>(knn, knn_Id, d_K, d_K_Id, k, M_I, m_j, leaf_id_g);
+    find_neighbor <<< dimGrid_n, dimBlock_n >>>(knn, knn_Id, d_K, d_K_Id, G_Id, k, M_I, m_j, leaf_id_g, M);
     //checkCudaErrors(cudaDeviceSynchronize());
     //merge <<< dimGrid_merge, dimBlock_merge >>>(knn, knn_Id, d_K, d_K_Id, k, M_I, m_j, leaf_id_g);
   } 
@@ -457,8 +469,8 @@ void gpu_knn(int *R, int *C, float *V, int M, int leaves, int k, float *knn, int
   checkCudaErrors(cudaEventRecord(t1, 0));
   checkCudaErrors(cudaEventSynchronize(t1));
   checkCudaErrors(cudaEventElapsedTime(&del_t1, t0, t1));
-  printf("\n Elapsed time (ms) : %.4f \n ", del_t1);
-
+  printf("\n Elapsed time (s) : %.4f \n ", del_t1/1000);
+  printf(" # points = %d" , M);
   checkCudaErrors(cudaFree(d_K));
   checkCudaErrors(cudaFree(d_K_Id));
   checkCudaErrors(cudaEventDestroy(t0));
@@ -481,12 +493,12 @@ int main(int argc, char **argv)
     float *h_V, *d_V;
     int *h_C, *d_C;
     int *h_R, *d_R;
-
+    int *h_G_Id, *d_G_Id;
     int M = 1024*2048;
     int leaves = 2048;
     d = 10000;
     int k = 32;
-    nnzperrow = 16;
+    nnzperrow = 100;
     int max_nnz = 2*nnzperrow;
     
     
@@ -495,9 +507,10 @@ int main(int argc, char **argv)
     float *d_knn;
 
     h_R = (int *)malloc(sizeof(int)*(M+1));
+    h_G_Id = (int *)malloc(sizeof(int)*(M));
 
     // generate random data 
-    gen_R(M, nnzperrow, h_R, d);
+    gen_R(M, nnzperrow, h_R,h_G_Id, d);
     int tot_nnz = h_R[M];
 		h_V = (float *)malloc(sizeof(float)*tot_nnz);
     h_C = (int *)malloc(sizeof(int)*tot_nnz);
@@ -510,6 +523,7 @@ int main(int argc, char **argv)
     }    
     */
     checkCudaErrors(cudaMalloc((void **) &d_R, sizeof(int)*(M+1)));
+    checkCudaErrors(cudaMalloc((void **) &d_G_Id, sizeof(int)*(M)));
     checkCudaErrors(cudaMalloc((void **) &d_C, sizeof(int)*tot_nnz));
     checkCudaErrors(cudaMalloc((void **) &d_V, sizeof(float)*tot_nnz));
     checkCudaErrors(cudaMalloc((void **) &d_knn_Id, sizeof(int)*M*k));
@@ -518,20 +532,21 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMemcpy(d_C, h_C, sizeof(int)*tot_nnz, cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_V, h_V, sizeof(float)*tot_nnz, cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_R, h_R, sizeof(int)*(M+1), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_G_Id, h_G_Id, sizeof(int)*(M), cudaMemcpyHostToDevice));
 
     printf("Random csr is generated  \n");
-    //printf("m_j = %d , size_batch_J = %d , m_i = %d , size_batch_I = %d , blocksize_leaf = %d , batch_leavs = %d \n", 
-           //m_j , size_batch_J , m_i , size_batch_I , blocksize_leaf, batch_leaves);
 
-    gpu_knn(d_R, d_C, d_V, M, leaves, k, d_knn, d_knn_Id, max_nnz);
+    gpu_knn(d_R, d_C, d_V, d_G_Id, M, leaves, k, d_knn, d_knn_Id, max_nnz);
     
     printf("\n\n");
     checkCudaErrors(cudaFree(d_R));
+    checkCudaErrors(cudaFree(d_G_Id));
     checkCudaErrors(cudaFree(d_C));
     checkCudaErrors(cudaFree(d_V));
     free(h_R);
     free(h_C);
     free(h_V);
+    free(h_G_Id);
 
 
 }
