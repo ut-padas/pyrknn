@@ -6,13 +6,13 @@
 #include <helper_cuda.h>
 #include <cuda_runtime.h>
 #include <algorithm>
+#include <cuda_profiler_api.h>
 
 
 
 
 
-
-__global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int m_i, int m_j , int k_nn, int M_I, int leaf_id_g, int max_nnz, int M){
+__global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int m_i, int m_j , int k_nn, int M_I, int leaf_batch_g, int max_nnz, int M){
 
     int col_Id = threadIdx.x;
     //int row_Id = blockIdx.x;
@@ -21,8 +21,8 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     //int blockId_J = threadIdx.y;
     int blockId_J = blockIdx.x;
     int blockId_I = blockIdx.y;
-   
-    
+    int leaf_id_g = leaf_batch_g * gridDim.z + blockIdx.z;
+    //if (col_Id == 0 && row_Id == 0) printf("Id z = %d ,  gridDim = %d ,  leaf_batch = %d , leaf_id_g = %d \n", blockIdx.z, gridDim.z, leaf_batch_g , leaf_id_g);
     int g_rowId_I = leaf_id_g * M_I + blockId_I * m_i + row_Id;
     int g_rowId_J = leaf_id_g * M_I + blockId_J * m_j + col_Id;
     
@@ -52,16 +52,17 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     int shift = max_nnz*threadIdx.y;
 
     //if (leaf_id_g == 0) printf("Id_y = %d , shift = %d \n", threadIdx.y , shift);
-    
+    /*
     for (int n_i = 0; n_i < nnz_i; n_i++){
-      si[n_i + shift] = C[ind0_i + n_i];
+      if (col_Id == 0) si[n_i + shift] = C[ind0_i + n_i];
       norm_ij += V[ind0_i + n_i]*V[ind0_i + n_i];
     }
-    for (int n_j = 0; n_j < nnz_j; n_j++){
-      norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
-    }
+    */
+    for (int n_j = 0; n_j < nnz_j; n_j++) norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
+    for (int n_i = 0; n_i < nnz_i; n_i++) norm_ij += V[ind0_i + n_i]*V[ind0_i + n_i];
+    for (int n_i = threadIdx.x; n_i < nnz_i; n_i += blockDim.x) si[shift + n_i] = C[ind0_i + n_i];
      
-     
+    __syncthreads();
     float c_tmp = 0.0;
     
     int tmp_0, tmp_1, ind_jk, k, ret, testInd; 
@@ -120,7 +121,8 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     
 	  int col_write = blockId_J * m_j + col_Id; 
 	  int row_write = blockId_I * m_i + row_Id;
-	  int ind_write = row_write * M_I + col_write;
+	  //int ind_write = row_write * M_I + col_write;
+	  int ind_write = blockIdx.z * M_I * M_I + row_write * M_I + col_write;
     K[ind_write] = c_tmp;
 
     
@@ -198,7 +200,7 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
 
 
 //__global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* K_Id, int k, int M_I){
-__global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* K_Id, int* G_Id, int k, int M_I, int m_j, int leaf_id_g, int M){
+__global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* G_Id, int k, int M_I, int m_j, int leaf_batch_g, int M){
 
     int col_Id = threadIdx.x; 
     int row_Id = blockIdx.x;
@@ -209,8 +211,10 @@ __global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* K_Id, int*
     __shared__ int Dist_Id[2048];
 
     int size = blockDim.x;
+    int leaf_id_g = leaf_batch_g * gridDim.y + blockIdx.y;
     
-    int ind_K = row_Id * M_I + col_Id; 
+    //int ind_K = row_Id * M_I + col_Id; 
+    int ind_K = blockIdx.z * M_I * M_I + row_Id * M_I + col_Id; 
     int i = col_Id;
     //if (leaf_id_g == 2047) printf("row = %d , col = %d 0 , ind_shared = %d \n", row_write, col_write, ind_shared);
     //Dist[ind_shared] = (col_Id < k) ? knn[ind_knn] : (col_Id < size) ? K[ind_read] : 1e30;
@@ -402,7 +406,7 @@ void gen_R(int M, int nnzperrow, int *R, int *G_Id, int d) {
   int tot_nnz = 0;
   int val;
   for (int m =1; m <= M; m++){ 
-   val = nnzperrow/2 + rand()%nnzperrow;
+   val = 1 + rand()%(2*nnzperrow);
    //val = nnzperrow; //+ rand()%nnzperrow;
    if (val > d) val = 1; 
    tot_nnz += val;
@@ -421,14 +425,27 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, floa
  
 	int pointsperleaf = M/leaves;
 	int m_i = 8192 / max_nnz;
+	int m_j = 8192 / max_nnz;
   m_i = min(m_i, pointsperleaf);
-  int m_j = 1024 / m_i;
+  m_i = min(m_i , 1024);
+  //int m_j = 1024 / m_i;
+  //int m_j = 1024 / m_i;
   m_j = min(m_j, pointsperleaf);
-  
+  if (m_i*m_j > 1024){
+    m_j = 1024/m_i;
+  }
  
+  
+
+
   if (m_i*max_nnz > 8192) printf("Exceeds the shared memory size \n"); 
 	int size_batch_I = (pointsperleaf + m_i - 1)/m_i;
 	int size_batch_J = (pointsperleaf + m_j - 1) / m_j;
+  int size_batch_leaves = (pow(2, 33)) / (4 * pointsperleaf * pointsperleaf ); 
+  int num_batch_leaves = (leaves) / size_batch_leaves; 
+   
+
+
 	int M_I = M/leaves;
 
   printf("m_i = %d , m_j = %d , size_batch_I = %d , size_batch_J = %d , M_I = %d \n", m_i , m_j , size_batch_I , size_batch_J, M_I);
@@ -438,18 +455,14 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, floa
   cudaEvent_t t1;
   
   
-  dim3 dimBlock(m_j, m_i);	
-  dim3 dimGrid(size_batch_J, size_batch_I); 
-  dim3 dimBlock_n(M_I);
-  dim3 dimGrid_n(M_I);
-
-  dim3 dimBlock_merge(2*k);
-  dim3 dimGrid_merge(M_I);
+  dim3 dimBlock(m_j, m_i, 1);	
+  dim3 dimGrid(size_batch_J, size_batch_I, size_batch_leaves); 
+  dim3 dimBlock_n(M_I, 1);
+  dim3 dimGrid_n(M_I, size_batch_leaves);
 
   float *d_K;
-  int *d_K_Id;
-  checkCudaErrors(cudaMalloc((void **) &d_K, sizeof(float) * pointsperleaf * pointsperleaf));
-  checkCudaErrors(cudaMalloc((void **) &d_K_Id, sizeof(int)* pointsperleaf * k));
+  checkCudaErrors(cudaMalloc((void **) &d_K, sizeof(float) * pointsperleaf * pointsperleaf * size_batch_leaves));
+  //checkCudaErrors(cudaMalloc((void **) &d_K_Id, sizeof(int)* pointsperleaf * k));
   //checkCudaErrors(cudaMalloc((void **) &d_K, sizeof(int)*pointsperleaf*pointsperleaf));
 
 
@@ -457,13 +470,16 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, floa
   checkCudaErrors(cudaEventCreate(&t1));
 
   checkCudaErrors(cudaEventRecord(t0, 0));
-  for (int leaf_id_g = 0; leaf_id_g < leaves; leaf_id_g++){
+  //for (int leaf_id_g = 0; leaf_id_g < leaves; leaf_id_g++){
+  checkCudaErrors(cudaProfilerStart());
+  for (int leaf_id_g = 0; leaf_id_g < num_batch_leaves; leaf_id_g++){
     compute_dist <<< dimGrid, dimBlock >>>(R, C, V, G_Id, d_K, m_i, m_j, k, M_I, leaf_id_g, max_nnz, M);
     checkCudaErrors(cudaDeviceSynchronize());
-    find_neighbor <<< dimGrid_n, dimBlock_n >>>(knn, knn_Id, d_K, d_K_Id, G_Id, k, M_I, m_j, leaf_id_g, M);
+    find_neighbor <<< dimGrid_n, dimBlock_n >>>(knn, knn_Id, d_K, G_Id, k, M_I, m_j, leaf_id_g, M);
     //checkCudaErrors(cudaDeviceSynchronize());
     //merge <<< dimGrid_merge, dimBlock_merge >>>(knn, knn_Id, d_K, d_K_Id, k, M_I, m_j, leaf_id_g);
   } 
+  checkCudaErrors(cudaProfilerStop());
   
   checkCudaErrors(cudaDeviceSynchronize());
   checkCudaErrors(cudaEventRecord(t1, 0));
@@ -472,7 +488,6 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, floa
   printf("\n Elapsed time (s) : %.4f \n ", del_t1/1000);
   printf(" # points = %d" , M);
   checkCudaErrors(cudaFree(d_K));
-  checkCudaErrors(cudaFree(d_K_Id));
   checkCudaErrors(cudaEventDestroy(t0));
   checkCudaErrors(cudaEventDestroy(t1));
 
@@ -498,7 +513,7 @@ int main(int argc, char **argv)
     int leaves = 2048;
     d = 10000;
     int k = 32;
-    nnzperrow = 100;
+    nnzperrow = 32;
     int max_nnz = 2*nnzperrow;
     
     
