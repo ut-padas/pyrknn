@@ -1,7 +1,5 @@
 import numpy as np
 from scipy.sparse import csr_matrix
-USE_CUDA=True
-
 
 def gen_random_sparse_csr(N,M,avg_nnz,idtype=np.int32,vltype=np.float32):
     '''
@@ -43,38 +41,47 @@ def gen_random_sparse_csr(N,M,avg_nnz,idtype=np.int32,vltype=np.float32):
 
 
     '''
-    
-    nnz_arr = np.random.randint(2, 2*avg_nnz, size=N,dtype=idtype)
-    nnz = np.sum(nnz_arr)
-    cols = np.random.randint(M, size=nnz, dtype=idtype)
+
+    # generate random connectivity matrix
+    con = np.random.randint(1,M+1,size=(N,2*avg_nnz), dtype=idtype)
+    con = unique_byrow(con)  # detect duplicates
+    con = np.sort(con,axis=1)  # sort indices
+    flt = np.random.randint(2,size=(N,2*avg_nnz))
+    flt = np.sort(flt,axis=1)
+    con = con*flt
+    cols = con.ravel()  # get column
+    cols = cols[cols>0] 
+    nnz_arr = np.sum(con>0,axis=1) # nonzeros per rows
+
+    nnz = np.sum(nnz_arr)        
     rows = np.block( [0, np.cumsum(nnz_arr)])
+    cols -=1
     vals = np.random.randn(nnz).astype(vltype)
     X =csr_matrix((vals, cols, rows), shape=(N,M) )
-    X.sort_indices()    
     return X
 
 
-
-# N=10
-# avg_nnz_per_row = 4
-# M = 9
-# idtype = np.int32
-# vltype = np.float32
-
-# X = gen_random_sparse_csr(N,M,avg_nnz_per_row)
-# print(X.toarray())
+def unique_byrow(a):
+    weight = 1j*np.linspace(0, a.shape[1], a.shape[0], endpoint=False)
+    b = a + weight[:, np.newaxis]
+    u, ind = np.unique(b, return_index=True)
+    b = np.zeros_like(a)
+    np.put(b, ind, a.flat[ind])
+    return b
 
 
-if USE_CUDA:
-    import cupy as cp
+if __name__ == '__main__':
 
-    def gen_random_sparse_csr_gpu(N,M,avg_nnz,idtype=cp.int32,vltype=cp.float32):
-        nnz_arr = cp.random.randint(2, 2*avg_nnz, size=N, dtype=idtype)
-        nnz = cp.sum(nnz_arr)
-        cols = cp.random.randint(M, size=int(nnz), dtype=idtype)
-        rows = cp.concatenate( [cp.zeros(1), cp.cumsum(nnz_arr)])
-        vals = cp.random.randn(int(nnz)).astype(vltype)
-        X = cp.sparse.csr_matrix((vals,cols,rows), shape=(N,M))
-        X.sort_indices()
-        return X
-        
+    N=10000
+    avg_nnz_per_row = 100
+    M = 1000
+    idtype = np.int32
+    vltype = np.float32
+    X = gen_random_sparse_csr(N,M,avg_nnz_per_row)
+
+    print(f'Total nnz = {X.nnz}')
+    nnzarr = np.diff(X.indptr)
+    print(f'Avg nnz per row = {np.mean(nnzarr)}')
+    print(f'Max nnz per row = {np.max(nnzarr)}')
+    print(f'Min nnz per row = {np.min(nnzarr)}')
+    
