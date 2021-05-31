@@ -54,7 +54,12 @@ def vis(X,gids,level, colors, knnidx, point=None,fnm=None):
         st = offsets[i]
         en = min(st+segsize,n)
         scale = 100
-        ax.scatter(X[gids[st:en],0],X[gids[st:en],1],c=colors(i),
+
+        ci = 0.2989 * colors(i)[0] + 0.5870 * colors(i)[1] + 0.1140 * colors(i)[2]
+        print(f'Color {colors(i)} and ci={ci}')
+        cisc = np.array([colors(i)])
+        #cisc = np.array([ci])
+        ax.scatter(X[gids[st:en],0],X[gids[st:en],1],c=cisc,
                    s=scale,alpha=0.3,edgecolors='none')
 
     if point is not None:
@@ -73,7 +78,8 @@ def vis(X,gids,level, colors, knnidx, point=None,fnm=None):
     
     
         
-def rkdt_a2a_it(X,gids,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0):
+def rkdt_a2a_it(X,gids,levels,knnidx,knndis,K,maxit,monitor=None,
+                overlap=0,visualize=False):
     n = X.shape[0]
     perm = np.empty_like(gids)
     for t in range(maxit):
@@ -92,7 +98,6 @@ def rkdt_a2a_it(X,gids,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0):
             if monitor(t,knnidx,knndis):
                 break
 
-    visualize = False
     if visualize is True:
         cset = ['hot','Accent','tab10','tab20']
         for i in range(1,levels):
