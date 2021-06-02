@@ -6,33 +6,75 @@
 #include <helper_cuda.h>
 #include <cuda_runtime.h>
 #include <algorithm>
-#include <cuda_profiler_api.h>
 
-#define shared_size  8192
-#define MaxProcperBlock  1024 
+
 
 
 
 
 __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int m_i, int m_j , int k_nn, int M_I, int leaf_batch_g, int max_nnz, int M){
 
-    int col_Id = threadIdx.x;
-    int row_Id = threadIdx.y;
+
+    // triangular partitioning 
+
+    int b_i = blockIdx.y;
+    int b_j = blockIdx.x;
+  
+    int b_ind = b_i * gridDim.x + b_j;  
+    int num_blocks = M_I / m_i; 
+  
+    float tmp = num_blocks * num_blocks - b_ind - 1;
+    int blockId_I = sqrt(tmp);
+    blockId_I = num_blocks - 1 - blockId_I;
+    int blockId_J_tmp = b_ind - num_blocks*num_blocks + (num_blocks - blockId_I)*(num_blocks - blockId_I) + 2*blockId_I;
+    int blockId_J = (blockId_J_tmp+1)/2;
+    //printf("(%d,%d) -> %d -> (%d,%d, %d) \n", b_i,b_j,b_ind, blockId_I, blockId_J_tmp, blockId_J);  
+ 
+    int i = threadIdx.y;
+    int j = threadIdx.x; 
     
-    int blockId_J = blockIdx.x;
-    int blockId_I = blockIdx.y;
-    
+    int ind = i * (m_i + 1) + j; 
+     
+    tmp = -8*ind + 4*m_i*(m_i + 1) - 7;
+    int row_Id = sqrt(tmp)/2.0 - 0.5;
+    row_Id = m_i - 1 - row_Id;
+    int col_Id = ind + row_Id - m_i*(m_i+1)/2 + (m_i - row_Id) * ((m_i - row_Id) + 1)/2; 
+     
+    int tmp1;
+    bool lower_block = false;
+    if (blockId_I % 2 == 0 && blockId_J_tmp % 2 != 0){
+      tmp1 = row_Id;
+      row_Id = col_Id; 
+      col_Id = tmp1;
+      lower_block = true;
+      //printf("comp1 : (%d,%d), true=(%d,%d) \n", blockId_I, blockId_J, blockId_I, blockId_J_tmp);
+    }
+    if (blockId_I % 2 != 0 && blockId_J_tmp % 2 != 0){
+      tmp1 = row_Id; 
+      row_Id = col_Id;
+      col_Id = tmp1;
+      lower_block = true;
+      //printf("comp2 : (%d,%d), true=(%d,%d) \n", blockId_I, blockId_J, blockId_I, blockId_J_tmp);
+    }
+    //printf("(%d, %d), lower %d \n", blockId_I, blockId_J_tmp, lower_block);
+    //if (blockId_I == 1 && blockId_J == 1 && lower_block == 0) printf("(%d,%d) -> %d -> (%d,%d) , lower %d\n", i,j,ind, row_Id,col_Id, lower_block);  
+     
+    // end of partioning    
     int leaf_id_g = leaf_batch_g * gridDim.z + blockIdx.z;
-    
+     
     int g_rowId_I = leaf_id_g * M_I + blockId_I * m_i + row_Id;
     int g_rowId_J = leaf_id_g * M_I + blockId_J * m_j + col_Id;
-    
+    //printf(" leaf = %d \n", leaf_id_g);
+    //if (leaf_id_g == 2047) printf("(%d,%d) \n", g_rowId_I, g_rowId_J);
     if (g_rowId_I >= M || g_rowId_J >= M) return;
-    
+    //printf("m_i = %d , m_j = %d , (%d,%d), blockId_I = %d, blockId_J = %d , g_rowId_I = %d , g_rowId_J = %d \n", m_i,m_j,row_Id,col_Id,blockId_I,blockId_J,g_rowId_I,g_rowId_J);
+    //if (g_rowId_I < 110 && g_rowId_I > 90 && g_rowId_J < 110 && g_rowId_J > 90) printf("g_rowId_I = %d , g_rowId_J = %d \n", g_rowId_I, g_rowId_J); 
     int g_Id_i = G_Id[g_rowId_I]; 
     int g_Id_j = G_Id[g_rowId_J];     
-   
 
+    //int g_Id_i = g_rowId_I;
+    //int g_Id_j = g_rowId_J;
+    
     int ind0_i = R[g_Id_i];
     int ind1_i = R[g_Id_i + 1];
 
@@ -46,25 +88,65 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     float norm_ij = 0.0;    
 
     __shared__ int si[8192];
+    //__shared__ int sj[4096];
 
-    int shift_i = max_nnz*threadIdx.y;
+    
+    int shift_i = max_nnz * row_Id;
+    //int shift_j = max_nnz * col_Id;
 
-    //for (int n_j = 0; n_j < nnz_j; n_j++) norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
-    for (int n_j = 0; n_j < nnz_j; n_j++) {
-    norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
-    if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f nnz_j = %d, \n", V[ind0_j + n_j], nnz_j);   
+    int start_i, start_j; 
+
+    start_i = (lower_block) ? col_Id : col_Id-row_Id;
+    //start_j = (lower_block) ? row_Id-col_Id : row_Id;
+
+    //if (leaf_id_g == 0) printf("Id_y = %d , shift = %d \n", threadIdx.y , shift);
+    //for (int n_i = 0; n_i < nnz_i; n_i++) norm_ij += V[ind0_i + n_i] * V[ind0_i + n_i];
+
+
+    for (int n_i = 0; n_i < nnz_i; n_i++) norm_ij += V[ind0_i + n_i] * V[ind0_i + n_i];
+    
+
+    int blockdim_comp_x = (lower_block) ? row_Id+1 : m_i - row_Id; 
+    //int blockdim_comp_y = (lower_block) ? m_j - col_Id : col_Id+1;
+
+
+    //if (g_rowId_I == 1 && g_rowId_J == 1) printf("lower = %d, c_x = %d , c_y = %d \n", lower_block, blockdim_comp_x, blockdim_comp_y); 
+    //for (int n_i = threadIdx.x; n_i < nnz_i; n_i += blockDim.x) si[shift_i + n_i] = C[ind0_i + n_i];
+    //for (int n_i = col_Id; n_i < nnz_i; n_i += blockdim_comp_x) si[shift_i + n_i] = C[ind0_i + n_i];
+
+
+    for (int n_i = start_i; n_i < nnz_i; n_i += blockdim_comp_x) si[shift_i + n_i] = C[ind0_i + n_i]; 
+    /*
+    for (int n_i = start_i; n_i < nnz_i; n_i += blockdim_comp_x) {
+       si[shift_i + n_i] = C[ind0_i + n_i]; 
+       //if (g_rowId_I == 1 && g_rowId_J == 1) printf("row=%d, col=%d, n_i = %d, c=%d, v = %.4f, block_i = %d, block_j = %d \n", row_Id, col_Id, n_i, si[shift_i + n_i],V[ind0_i + n_i], blockId_I, blockId_J);
     }
-    //for (int n_i = 0; n_i < nnz_i; n_i++) norm_ij += V[ind0_i + n_i]*V[ind0_i + n_i];
-    for (int n_i = 0; n_i < nnz_i; n_i++) {
-    norm_ij += V[ind0_i + n_i]*V[ind0_i + n_i]; 
-    if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f nnz_i = %d, \n", V[ind0_i + n_i], nnz_i);   
+    */
+    for (int n_j = 0; n_j < nnz_j; n_j++) norm_ij += V[ind0_j + n_j] * V[ind0_j + n_j];
+    //__syncthreads();
+    //for (int n_j = start_j; n_j < nnz_j; n_j += blockdim_comp_y) sj[shift_j + n_j] = C[ind0_j + n_j];
+    /*
+    for (int n_j = start_j; n_j < nnz_j; n_j += blockdim_comp_y) {
+      sj[shift_j + n_j] = C[ind0_j + n_j];
+      if (g_rowId_J == 1) printf("writing sm j, (%d,%d), start_j = %d, nnz_j=%d, move=%d, shift_j = %d, n_j=%d \n", row_Id,col_Id,start_j,nnz_j,blockdim_comp_y, shift_j,n_j);  
+      
+     //if (g_rowId_I == 1 && g_rowId_J == 1) printf("row=%d, col=%d, n_j = %d, c=%d, v = %.4f\n", row_Id, col_Id, n_j, sj[shift_j + n_j],V[ind0_j + n_j]); 
     }
-    //if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f \n", norm_ij);  
-    for (int n_i = threadIdx.x; n_i < nnz_i; n_i += blockDim.x) si[shift_i + n_i] = C[ind0_i + n_i];
-     
+    */
+    //si[n_i + shift_i] = C[ind0_i + n_i];
+    //for (int n_j = 0; n_j < nnz_j; n_j++){
+    //  sj[n_j + shift_j] = C[ind0_j + n_j];
+    //  norm_ij += V[ind0_j + n_j] * V[ind0_j + n_j];
+    //}
     __syncthreads();
+    //int ValPad_i = si[nnz_i + shift_i -1];
+    //int ValPad_j = sj[nnz_j + shift_j -1];
+
+    //for (int n_i = nnz_i ; n_i < max_nnz; n_i++) si[n_i + shift_i] = d;
+    //for (int n_j = nnz_j ; n_j < max_nnz; n_j++) sj[n_j + shift_j] = d;
     float c_tmp = 0.0;
-    int tmp_0, tmp_1, ind_jk, k, ret, testInd; 
+    
+    int tmp_0, tmp_1, ind_jk, k, ret, testInd;
     
     ret=0; 
     testInd = 0;
@@ -72,7 +154,9 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     
     
     for (int pos_k=0; pos_k<nnz_j;pos_k++){       
+    //for (int pos_k=0; pos_k<max_nnz;pos_k++){       
         k = C[ind0_j + pos_k];
+        //k = sj[pos_k + shift_j];
            
         // Binary search 
         for (int l=nnz_i-ret; l > 1; l/=2){
@@ -84,48 +168,29 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
         tmp_0 = ret+1;
         tmp_1 = nnz_i-1;
         testInd = (tmp_0 < tmp_1) ? tmp_0: tmp_1;
-        ret = (si[testInd+ shift_i] <= k) ? testInd : ret;
-        ind_jk = (si[ret+ shift_i] == k) ? ret : -1;
+        ret = (si[testInd + shift_i] <= k) ? testInd : ret;
+        ind_jk = (si[ret + shift_i] == k) ? ret : -1;
         c_tmp += (ind_jk != -1) ? V[ind0_j + pos_k]*V[ind0_i + ind_jk] : 0;
         
     }
-    if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f \n", c_tmp);  
-    /* 
-    for (int pos_k=0; pos_k<nnz_i;pos_k++){       
-        k = si[pos_k];
-        
-        ret=0; 
-        testInd = 0;
-        
-        // Binary search 
-        for (int l=nnz_j; l > 1; l/=2){
-            tmp_0 = ret+l;
-            tmp_1 = nnz_j-1;
-            testInd = (tmp_0 < tmp_1) ? tmp_0: tmp_1;
-            ret = (sj[testInd] <= k) ? testInd : ret ;
-        }
-        tmp_0 = ret+1;
-        tmp_1 = nnz_j-1;
-        testInd = (tmp_0 < tmp_1) ? tmp_0: tmp_1;
-        ret = (sj[testInd] <= k) ? testInd : ret;
-        ind_jk = (sj[ret] == k) ? ret : -1;
-        
-        //c_tmp += (ind_jk != -1) ? vi[pos_k]*vj[pos_k] : 0;
-        //c_tmp +=  vi[pos_k]*vi[pos_k] ;
-        
-    }
-    */
+    
     c_tmp = -2*c_tmp + norm_ij;
     c_tmp = (c_tmp > 0) ? sqrt(c_tmp) : 0.0;
-    //c_tmp = sqrt(c_tmp);
     
 	  int col_write = blockId_J * m_j + col_Id; 
 	  int row_write = blockId_I * m_i + row_Id;
-	  //int ind_write = row_write * M_I + col_write;
 	  int ind_write = blockIdx.z * M_I * M_I + row_write * M_I + col_write;
+	  int col_write_T = blockId_I * m_i + row_Id; 
+	  int row_write_T = blockId_J * m_j + col_Id;
+	  int ind_write_T = blockIdx.z * M_I * M_I + row_write_T * M_I + col_write_T;
+    //printf("thread (%d, %d) -> (%d) -> (%d, %d), block (%d, %d) -> (%d) -> (%d,%d)\n", i,j,ind,row_Id,col_Id, b_i,b_j,b_ind,blockId_I,blockId_J);
     K[ind_write] = c_tmp;
-
-    if (row_write == 0) printf("leaf = %d , (%d , %d) = %.4f \n", blockIdx.z, row_write, col_write, c_tmp); 
+    if (lower_block == 0 && g_rowId_I != g_rowId_J) K[ind_write_T] = c_tmp;
+    if (lower_block == 1 && row_Id != col_Id) K[ind_write_T] = c_tmp;
+    //printf("row_write = %d,  col_write = %d \n", row_write, col_write);
+    //if (g_rowId_I == 32 && g_rowId_J == 32) printf("(%d, %d) = %.4f \n", row_write, col_write, c_tmp); 
+    //if (g_rowId_I == 32 && g_rowId_J  == 33) printf("(%d, %d) = %.4f \n", row_write, col_write, c_tmp); 
+    //if (row_write_T == 33 && col_write_T == 32) printf("(%d, %d) = %.4f \n", row_write_T, col_write_T, c_tmp);
     /*
     // bitonic sort 
     __shared__ float kvals[4096];
@@ -198,6 +263,8 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     
 }
 
+
+//__global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* K_Id, int k, int M_I){
 __global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* G_Id, int k, int M_I, int m_j, int leaf_batch_g, int M){
 
     int col_Id = threadIdx.x; 
@@ -205,19 +272,22 @@ __global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* G_Id, int 
 
     if (row_Id >= M || col_Id >= M) return;
  
-    __shared__ float Dist[4096];
-    __shared__ int Dist_Id[4096];
+    __shared__ float Dist[2048];
+    __shared__ int Dist_Id[2048];
 
     int size = blockDim.x;
-    int leaf_id_g = leaf_batch_g * gridDim.y + blockIdx.y;
-    
+    int leaf_id_g = leaf_batch_g * gridDim.y + blockIdx.y; 
     int ind_K = blockIdx.z * M_I * M_I + row_Id * M_I + col_Id; 
     int i = col_Id;
-    
+    //if (leaf_id_g == 2047) printf("row = %d , col = %d 0 , ind_shared = %d \n", row_write, col_write, ind_shared);
+    //Dist[ind_shared] = (col_Id < k) ? knn[ind_knn] : (col_Id < size) ? K[ind_read] : 1e30;
     Dist[col_Id] = K[ind_K];
+    //Dist_Id[ind_shared] = (col_Id < k) ? knn_Id[ind_knn] : (col_Id < size) ? K_Id[ind_read] : 0;
+    //Dist_Id[ind_shared] = (col_Id < k) ? 0 : (col_Id < size) ? K_Id[ind_read] : 0;
+    //Dist_Id[col_Id] = col_Id;
     Dist_Id[col_Id] = G_Id[leaf_id_g * M_I + col_Id];
-    
     int ind_shared = col_Id;
+    //if (leaf_id_g == 2047) printf("row = %d , col = %d 1 , ind_shared = %d , \n", row_write, col_write, ind_shared);
      
     __syncthreads();
 
@@ -251,18 +321,24 @@ __global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* G_Id, int 
         }
       
       __syncthreads();
+      //if (leaf_id_g == 0 && row_write == 0) printf("i = %d , ixj = %d , Dist[%d] = %.2f \n", i , ixj, i, Dist[i]);
       }
     }
 
-  size = 2*k;
+    /*
+    if (col_Id < k) {
+      K[ind_K] = Dist[col_Id];
+      K_Id[ind_K] = Dist_Id[col_Id];
+    }
+    */
 
-  int ind_knn = leaf_id_g * M_I * k + row_Id * k + col_Id;
+    size = 2*k;
 
-  // should change to the given knn 
-  //if (col_Id >= k && col_Id < size) Dist[col_Id] = 1e30;
-  if (col_Id >= k && col_Id < size) Dist[col_Id] = 1e30;
-  //if (col_Id >= k && col_Id < size) Dist_Id[col_Id] = 0;
-  if (col_Id >= k && col_Id < size) Dist_Id[col_Id] = 0;
+
+    int ind_knn = leaf_id_g * M_I * k + row_Id * k + col_Id;
+
+    if (col_Id >= k && col_Id < size) Dist[col_Id] = 1e30;
+    if (col_Id >= k && col_Id < size) Dist_Id[col_Id] = 0;
 
   __syncthreads();
 	for (int g = 2; g <= size; g *= 2){
@@ -293,7 +369,7 @@ __global__ void find_neighbor(float* knn, int* knn_Id, float* K, int* G_Id, int 
 		
 		__syncthreads();
 		}
-     
+    
     if (col_Id < k){
       knn[ind_knn] = Dist[col_Id];
       knn_Id[ind_knn] = Dist_Id[col_Id];
@@ -311,7 +387,7 @@ __global__ void merge(float* knn, int* knn_Id, float* K, int* K_Id, int k, int M
   int row_Id = blockIdx.x;
   //int leaf_id_g = threadIdx.z +blockIdx.z * blockDim.z;
 
-  __shared__ float Dist[2048];
+  __shared__ float Dist[4096];
   __shared__ int Dist_Id[2048];
 
   int size = 2*k;
@@ -383,10 +459,6 @@ void gen_sparse(int M, int tot_nnz, int d, int *R, int *C, float *V) {
           V[ind] = rand()%100;
         }    
       std::sort(C+R[i], C+(R[i+1]));
-      printf("\n point %d\n", i);
-      for (int j=R[i]; j<R[i+1]; j++) {
-      printf("(%d ,%.4f) ",C[j], V[j]);
-      }
     }
 }
 
@@ -402,88 +474,78 @@ void gen_R(int M, int nnzperrow, int *R, int *G_Id, int d) {
    R[m] = tot_nnz;
    G_Id[m-1] = m-1;
   } 
-  //std::random_shuffle(&G_Id[0], &G_Id[M]);
-    
+  std::random_shuffle(&G_Id[0], &G_Id[M]);
+  /*
   for (int m = 0; m < M; m++){ 
   printf("G_Id[%d] = %d \n", m , G_Id[m]);
   } 
-  
+  */
 }
 
-void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz){
+void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz, int d){
  
 	int pointsperleaf = M/leaves;
-	
-  int m_i = shared_size / max_nnz;
-  int m_j = shared_size / max_nnz;
-  
+	int m_i = 8192 / max_nnz;
   m_i = min(m_i, pointsperleaf);
-  m_i = min(m_i , MaxProcperBlock);
-  m_j = min(m_j, pointsperleaf);
-  
-  if (m_i*m_j > MaxProcperBlock){
-    m_j = MaxProcperBlock/m_i;
-  }
+  int m_j = m_i;
+  //m_j = min(m_j, pointsperleaf);
+  if (m_i > 32){ 
+    //m_j = 1024/m_i; 
+    m_i = 32; 
+    m_j = 32;
+  } 
+  if (m_j * max_nnz > 4096 || m_i * max_nnz > 8192) printf("Exceeds the shared memory size \n"); 
+	int num_batch_I = (pointsperleaf + m_i - 1) / m_i;
+	int num_batch_J = (pointsperleaf + m_j - 1) / m_j;
 
-  if (m_i*max_nnz > shared_size) printf("Exceeds the shared memory size \n"); 
-	int size_batch_I = (pointsperleaf + m_i - 1)/m_i;
-	int size_batch_J = (pointsperleaf + m_j - 1) / m_j;
-  int size_batch_leaves = (pow(2, 33)) / (4 * pointsperleaf * pointsperleaf );
-  if (size_batch_leaves > leaves) size_batch_leaves = leaves; 
-  int num_batch_leaves = (leaves) / size_batch_leaves; 
-   
-
-
+  int size_batch_leaves = (pow(2, 33)) / ( 4* pointsperleaf * pointsperleaf) ;
+  int num_batch_leaves = (leaves + size_batch_leaves - 1) / size_batch_leaves;
 	int M_I = M/leaves;
 
+  //printf("%d , %d  , %d \n", num_batch_I, num_batch_J, num_batch_leaves);
   float del_t1;
   cudaEvent_t t0; 
   cudaEvent_t t1;
+  int block_size_i = m_i / 2;
+  int block_size_j = m_i + 1; 
   
-  
-  dim3 dimBlock(m_j, m_i, 1);	
-  dim3 dimGrid(size_batch_J, size_batch_I, size_batch_leaves); 
+  dim3 dimBlock(block_size_j, block_size_i, 1);	
+  //dim3 dimBlock(32, 32, 1);	
+  dim3 dimGrid(num_batch_J, num_batch_I, size_batch_leaves); 
   dim3 dimBlock_n(M_I, 1);
-  dim3 dimGrid_n(M_I, size_batch_leaves);
+  dim3 dimGrid_n(M_I, num_batch_leaves);
+
+  dim3 dimBlock_merge(2*k);
+  dim3 dimGrid_merge(M_I);
 
   float *d_K;
   checkCudaErrors(cudaMalloc((void **) &d_K, sizeof(float) * pointsperleaf * pointsperleaf * size_batch_leaves));
+
 
   checkCudaErrors(cudaEventCreate(&t0));
   checkCudaErrors(cudaEventCreate(&t1));
 
   checkCudaErrors(cudaEventRecord(t0, 0));
-  checkCudaErrors(cudaProfilerStart());
-  
-
   for (int leaf_id_g = 0; leaf_id_g < num_batch_leaves; leaf_id_g++){
+    printf("running leaf=%d \n", leaf_id_g);
     compute_dist <<< dimGrid, dimBlock >>>(R, C, V, G_Id, d_K, m_i, m_j, k, M_I, leaf_id_g, max_nnz, M);
     checkCudaErrors(cudaDeviceSynchronize());
-    printf("\n find neghibors \n");
     find_neighbor <<< dimGrid_n, dimBlock_n >>>(knn, knn_Id, d_K, G_Id, k, M_I, m_j, leaf_id_g, M);
-    //checkCudaErrors(cudaDeviceSynchronize());
-    //merge <<< dimGrid_merge, dimBlock_merge >>>(knn, knn_Id, d_K, d_K_Id, k, M_I, m_j, leaf_id_g);
   } 
-
-  checkCudaErrors(cudaProfilerStop());  
+  
   checkCudaErrors(cudaDeviceSynchronize());
   checkCudaErrors(cudaEventRecord(t1, 0));
   checkCudaErrors(cudaEventSynchronize(t1));
   checkCudaErrors(cudaEventElapsedTime(&del_t1, t0, t1));
-  
-
-
   printf("# leaves : %d \n", leaves);
   printf("# points/leaf : %d \n", pointsperleaf);
-  printf(" max_nnz : %d \n", max_nnz);
-  printf(" blockDim (distance) : (%d,%d,1) \n", m_j, m_i);
-  printf(" blockGrid (distance) : (%d,%d,%d) \n", size_batch_J, size_batch_I, size_batch_leaves);
-  printf(" blockDim (find knn) : (%d,%d,1) \n", M_I, 1);
-  printf(" blockGrid (find knn) : (%d,%d,1) \n", M_I, size_batch_leaves);
-  printf(" num leaves per loop : %d \n",size_batch_leaves); 
+  printf("  max_nnz : %d \n", max_nnz);
+	printf("blockDim (distance) : (%d,%d,1) \n", block_size_j, block_size_i);
+  printf("blockGrid (distance) : (%d,%d,%d) \n", num_batch_J, num_batch_I, size_batch_leaves);
+	printf("blockDim (find knn) : (%d, 1) \n", M_I);
+  printf("blockGrid (find knn) : (%d,%d) \n", M_I, num_batch_leaves);
   printf("\n Elapsed time (s) : %.4f \n ", del_t1/1000);
-  printf(" # points = %d" , M);  
- 
+  printf(" # points = %d" , M);
   checkCudaErrors(cudaFree(d_K));
   checkCudaErrors(cudaEventDestroy(t0));
   checkCudaErrors(cudaEventDestroy(t1));
@@ -506,11 +568,11 @@ int main(int argc, char **argv)
     int *h_C, *d_C;
     int *h_R, *d_R;
     int *h_G_Id, *d_G_Id;
-    int M = 8;     // total number of points 
-    int leaves = 1;     // number of leaves
-    d = 100;
-    int k = 2;
-    nnzperrow = 4;
+    int M = 1024*2048;
+    int leaves = 2048;
+    d = 10000;
+    int k = 32;
+    nnzperrow = 256;
     int max_nnz = 2*nnzperrow;
     
     
@@ -528,7 +590,7 @@ int main(int argc, char **argv)
     h_C = (int *)malloc(sizeof(int)*tot_nnz);
     gen_sparse(M, tot_nnz, d , h_R, h_C, h_V);   
     /*   
-    for (int i = 0; i < M; i++){
+    for (int i = 32; i < 34; i++){
         int nnz = h_R[i+1] - h_R[i];
         for (int j = 0; j < nnz; j++)
         printf("R[%d] = %d , C[%d] = %d , V[%d] = %.4f \n", i ,h_R[i], h_R[i]+j, h_C[h_R[i] + j], h_R[i]+j, h_V[h_R[i]+j]);
@@ -546,9 +608,9 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMemcpy(d_R, h_R, sizeof(int)*(M+1), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_G_Id, h_G_Id, sizeof(int)*(M), cudaMemcpyHostToDevice));
 
-    printf("\nRandom csr is generated  \n");
+    printf("Random csr is generated  \n");
 
-    gpu_knn(d_R, d_C, d_V, d_G_Id, M, leaves, k, d_knn, d_knn_Id, max_nnz);
+    gpu_knn(d_R, d_C, d_V, d_G_Id, M, leaves, k, d_knn, d_knn_Id, max_nnz, d);
     
     printf("\n\n");
     checkCudaErrors(cudaFree(d_R));

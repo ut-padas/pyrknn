@@ -59,6 +59,7 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     for (int n_i = 0; n_i < nnz_i; n_i++) norm_ij += V[ind0_i + n_i] * V[ind0_i + n_i];
     for (int n_i = threadIdx.x; n_i < nnz_i; n_i += blockDim.x) si[shift_i + n_i] = C[ind0_i + n_i];
     for (int n_j = 0; n_j < nnz_j; n_j++) norm_ij += V[ind0_j + n_j] * V[ind0_j + n_j];
+    __syncthreads();
     for (int n_j = threadIdx.y; n_j < nnz_j; n_j += blockDim.y) sj[shift_j + n_j] = C[ind0_j + n_j];
     
     //si[n_i + shift_i] = C[ind0_i + n_i];
@@ -411,8 +412,8 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, floa
   m_j = min(m_j, pointsperleaf);
   if (m_i*m_j > 1024){ 
     //m_j = 1024/m_i; 
-    m_i = 64; 
-    m_j = 16; 
+    m_i = 32; 
+    m_j = 32; 
   } 
   if (m_j * max_nnz > 4096 || m_i * max_nnz > 8192) printf("Exceeds the shared memory size \n"); 
 	int size_batch_I = (pointsperleaf + m_i - 1) / m_i;
@@ -488,7 +489,7 @@ int main(int argc, char **argv)
     int leaves = 2048;
     d = 10000;
     int k = 32;
-    nnzperrow = 32;
+    nnzperrow = 16;
     int max_nnz = 2*nnzperrow;
     
     
