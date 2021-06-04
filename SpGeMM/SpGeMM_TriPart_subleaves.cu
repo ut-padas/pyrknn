@@ -175,11 +175,11 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     int leaf_row = blockId_I * m_i + row_Id;
     int leaf_col = blockId_J * m_j + col_Id;
     //printf("l_i,l_j=(%d,%d) , i,j = (%d,%d) , d = %.4f\n", subleaf_batch_i,subleaf_batch_j,row_write,col_write,c_tmp); 
-    K[ind_write] = c_tmp;
+    if (lower_block == 0) K[ind_write] = c_tmp;
     if (lower_block == 0 && g_rowId_I != g_rowId_J && lower_subleaf == 0) K[ind_write_T] = c_tmp;
     if (lower_block == 1 && row_Id != col_Id && lower_subleaf == 0) K[ind_write_T] = c_tmp;
     if (lower_subleaf == 1 && leaf_col != leaf_row && leaf_col != 0 && leaf_row != 0) K[ind_write_T] = c_tmp;
-    
+
     /*
     // bitonic sort 
     __shared__ float kvals[4096];
@@ -505,7 +505,7 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int num_sub
   //dim3 dimBlock(32, 32, 1);	
   dim3 dimGrid(num_batch_J, num_batch_I, size_batch_leaves * num_subleaves * num_subleaves); 
   dim3 dimBlock_n(M_I, 1);
-  dim3 dimGrid_n(M_I, num_batch_leaves);
+  dim3 dimGrid_n(M_I, size_batch_leaves);
 
   dim3 dimBlock_merge(2*k);
   dim3 dimGrid_merge(M_I);
@@ -535,7 +535,7 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int num_sub
 	printf("blockDim (distance) : (%d,%d,1) \n", block_size_j, block_size_i);
   printf("blockGrid (distance) : (%d,%d,%d) \n", num_batch_J, num_batch_I, size_batch_leaves * num_subleaves * num_subleaves);
 	printf("blockDim (find knn) : (%d, 1) \n", M_I);
-  printf("blockGrid (find knn) : (%d,%d) \n", M_I, num_batch_leaves);
+  printf("blockGrid (find knn) : (%d,%d) \n", M_I, size_batch_leaves);
   printf("\n Elapsed time (s) : %.4f \n ", del_t1/1000);
   printf(" # points = %d" , M);
   checkCudaErrors(cudaFree(d_K));

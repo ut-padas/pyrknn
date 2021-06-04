@@ -152,13 +152,13 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     testInd = 0;
 
     
-    
+    /*
     for (int pos_k=0; pos_k<nnz_j;pos_k++){       
     //for (int pos_k=0; pos_k<max_nnz;pos_k++){       
         
         k = C[ind0_j + pos_k];
         //k = sj[pos_k + shift_j];
-           
+            
         // Binary search 
         for (int l=nnz_i-ret; l > 1; l/=2){
             tmp_0 = ret+l;
@@ -174,7 +174,7 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
         c_tmp += (ind_jk != -1) ? V[ind0_j + pos_k]*V[ind0_i + ind_jk] : 0;
         
     }
-     
+    */
     c_tmp = -2*c_tmp + norm_ij;
     c_tmp = (c_tmp > 0) ? sqrt(c_tmp) : 0.0;
     
@@ -185,9 +185,10 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
 	  int row_write_T = blockId_J * m_j + col_Id;
 	  int ind_write_T = blockIdx.z * M_I * M_I + row_write_T * M_I + col_write_T;
     //printf("thread (%d, %d) -> (%d) -> (%d, %d), block (%d, %d) -> (%d) -> (%d,%d)\n", i,j,ind,row_Id,col_Id, b_i,b_j,b_ind,blockId_I,blockId_J);
-    K[ind_write] = c_tmp;
+    if (lower_block == 1 && row_Id != col_Id && row_Id != m_i && col_Id != 0) K[ind_write] = c_tmp;
+    if (lower_block == 0) K[ind_write] = c_tmp;
     if (lower_block == 0 && g_rowId_I != g_rowId_J) K[ind_write_T] = c_tmp;
-    if (lower_block == 1 && row_Id != col_Id) K[ind_write_T] = c_tmp;
+    if (lower_block == 1 && row_Id != col_Id && row_Id != 0 && col_Id != 0) K[ind_write_T] = c_tmp;
     //printf("row_write = %d,  col_write = %d \n", row_write, col_write);
     //if (g_rowId_I == 32 && g_rowId_J == 32) printf("(%d, %d) = %.4f \n", row_write, col_write, c_tmp); 
     //if (g_rowId_I == 32 && g_rowId_J  == 33) printf("(%d, %d) = %.4f \n", row_write, col_write, c_tmp); 
@@ -468,8 +469,8 @@ void gen_R(int M, int nnzperrow, int *R, int *G_Id, int d) {
   int tot_nnz = 0;
   int val;
   for (int m =1; m <= M; m++){ 
-   //val = 1 + rand()%(2*nnzperrow);
-   val = nnzperrow; //+ rand()%nnzperrow;
+   val = 1 + rand()%(2*nnzperrow);
+   //val = nnzperrow; //+ rand()%nnzperrow;
    if (val > d) val = 1; 
    tot_nnz += val;
    R[m] = tot_nnz;
@@ -514,7 +515,7 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, floa
   //dim3 dimBlock(32, 32, 1);	
   dim3 dimGrid(num_batch_J, num_batch_I, size_batch_leaves); 
   dim3 dimBlock_n(M_I, 1);
-  dim3 dimGrid_n(M_I, num_batch_leaves);
+  dim3 dimGrid_n(M_I, size_batch_leaves);
 
   dim3 dimBlock_merge(2*k);
   dim3 dimGrid_merge(M_I);
@@ -572,9 +573,9 @@ int main(int argc, char **argv)
     int M = 1024*2048;
     int leaves = 2048;
     d = 10000;
-    int k = 8;
+    int k = 32;
     nnzperrow = 8;
-    int max_nnz = nnzperrow;
+    int max_nnz = 2*nnzperrow;
     
     
 

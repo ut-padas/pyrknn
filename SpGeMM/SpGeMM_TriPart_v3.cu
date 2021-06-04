@@ -87,17 +87,17 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
 
     float norm_ij = 0.0;    
 
-    __shared__ int si[4096];
-    __shared__ int sj[4096];
+    __shared__ int si[8192];
+    //__shared__ int sj[4096];
 
     
     int shift_i = max_nnz * row_Id;
-    int shift_j = max_nnz * col_Id;
+    //int shift_j = max_nnz * col_Id;
 
     int start_i, start_j; 
 
     start_i = (lower_block) ? col_Id : col_Id-row_Id;
-    start_j = (lower_block) ? row_Id-col_Id : row_Id;
+    //start_j = (lower_block) ? row_Id-col_Id : row_Id;
 
     //if (leaf_id_g == 0) printf("Id_y = %d , shift = %d \n", threadIdx.y , shift);
     //for (int n_i = 0; n_i < nnz_i; n_i++) norm_ij += V[ind0_i + n_i] * V[ind0_i + n_i];
@@ -107,15 +107,19 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     
 
     int blockdim_comp_x = (lower_block) ? row_Id+1 : m_i - row_Id; 
-    int blockdim_comp_y = (lower_block) ? m_j - col_Id : col_Id+1;
+    //int blockdim_comp_y = (lower_block) ? m_j - col_Id : col_Id+1;
 
 
     //if (g_rowId_I == 1 && g_rowId_J == 1) printf("lower = %d, c_x = %d , c_y = %d \n", lower_block, blockdim_comp_x, blockdim_comp_y); 
     //for (int n_i = threadIdx.x; n_i < nnz_i; n_i += blockDim.x) si[shift_i + n_i] = C[ind0_i + n_i];
     //for (int n_i = col_Id; n_i < nnz_i; n_i += blockdim_comp_x) si[shift_i + n_i] = C[ind0_i + n_i];
 
-
-    for (int n_i = start_i; n_i < nnz_i; n_i += blockdim_comp_x) si[shift_i + n_i] = C[ind0_i + n_i]; 
+    
+    //for (int n_i = start_i; n_i < nnz_i; n_i += blockdim_comp_x) si[shift_i + n_i] = C[ind0_i + n_i]; 
+    int ind_read = (b_j < m_i) ? b_i : blockDim.y;
+    int shift_read = (b_j % 2 == 0) ? blockDim.y+1 : blockDim.y;
+    //for (int n_i = ind_read; n_i < nnz_i; n_i += blockDim.y) si[shift_i + n_i] = C[ind0_i + n_i]; 
+    for (int n_i = ind_read; n_i < nnz_i; n_i += shift_read) si[shift_i + n_i] = C[ind0_i + n_i]; 
     /*
     for (int n_i = start_i; n_i < nnz_i; n_i += blockdim_comp_x) {
        si[shift_i + n_i] = C[ind0_i + n_i]; 
@@ -123,8 +127,8 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     }
     */
     for (int n_j = 0; n_j < nnz_j; n_j++) norm_ij += V[ind0_j + n_j] * V[ind0_j + n_j];
-    __syncthreads();
-    for (int n_j = start_j; n_j < nnz_j; n_j += blockdim_comp_y) sj[shift_j + n_j] = C[ind0_j + n_j];
+    //__syncthreads();
+    //for (int n_j = start_j; n_j < nnz_j; n_j += blockdim_comp_y) sj[shift_j + n_j] = C[ind0_j + n_j];
     /*
     for (int n_j = start_j; n_j < nnz_j; n_j += blockdim_comp_y) {
       sj[shift_j + n_j] = C[ind0_j + n_j];
@@ -152,12 +156,12 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
     testInd = 0;
 
     
-    
     for (int pos_k=0; pos_k<nnz_j;pos_k++){       
     //for (int pos_k=0; pos_k<max_nnz;pos_k++){       
-        //k = C[ind0_j + pos_k];
-        k = sj[pos_k + shift_j];
-           
+        
+        k = C[ind0_j + pos_k];
+        //k = sj[pos_k + shift_j];
+            
         // Binary search 
         for (int l=nnz_i-ret; l > 1; l/=2){
             tmp_0 = ret+l;
@@ -173,7 +177,6 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
         c_tmp += (ind_jk != -1) ? V[ind0_j + pos_k]*V[ind0_i + ind_jk] : 0;
         
     }
-    
     c_tmp = -2*c_tmp + norm_ij;
     c_tmp = (c_tmp > 0) ? sqrt(c_tmp) : 0.0;
     
@@ -184,12 +187,10 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
 	  int row_write_T = blockId_J * m_j + col_Id;
 	  int ind_write_T = blockIdx.z * M_I * M_I + row_write_T * M_I + col_write_T;
     //printf("thread (%d, %d) -> (%d) -> (%d, %d), block (%d, %d) -> (%d) -> (%d,%d)\n", i,j,ind,row_Id,col_Id, b_i,b_j,b_ind,blockId_I,blockId_J);
-    K[ind_write] = c_tmp;
     if (lower_block == 1 && row_Id != col_Id && row_Id != m_i && col_Id != 0) K[ind_write] = c_tmp;
     if (lower_block == 0) K[ind_write] = c_tmp;
     if (lower_block == 0 && g_rowId_I != g_rowId_J) K[ind_write_T] = c_tmp;
     if (lower_block == 1 && row_Id != col_Id && row_Id != 0 && col_Id != 0) K[ind_write_T] = c_tmp;
-
     //printf("row_write = %d,  col_write = %d \n", row_write, col_write);
     //if (g_rowId_I == 32 && g_rowId_J == 32) printf("(%d, %d) = %.4f \n", row_write, col_write, c_tmp); 
     //if (g_rowId_I == 32 && g_rowId_J  == 33) printf("(%d, %d) = %.4f \n", row_write, col_write, c_tmp); 
@@ -488,7 +489,7 @@ void gen_R(int M, int nnzperrow, int *R, int *G_Id, int d) {
 void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz, int d){
  
 	int pointsperleaf = M/leaves;
-	int m_i = 4096 / max_nnz;
+	int m_i = 8192 / max_nnz;
   m_i = min(m_i, pointsperleaf);
   int m_j = m_i;
   //m_j = min(m_j, pointsperleaf);
@@ -546,7 +547,7 @@ void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, floa
 	printf("blockDim (distance) : (%d,%d,1) \n", block_size_j, block_size_i);
   printf("blockGrid (distance) : (%d,%d,%d) \n", num_batch_J, num_batch_I, size_batch_leaves);
 	printf("blockDim (find knn) : (%d, 1) \n", M_I);
-  printf("blockGrid (find knn) : (%d,%d) \n", M_I, num_batch_leaves);
+  printf("blockGrid (find knn) : (%d,%d) \n", M_I, size_batch_leaves);
   printf("\n Elapsed time (s) : %.4f \n ", del_t1/1000);
   printf(" # points = %d" , M);
   checkCudaErrors(cudaFree(d_K));
@@ -575,7 +576,7 @@ int main(int argc, char **argv)
     int leaves = 2048;
     d = 10000;
     int k = 32;
-    nnzperrow = 256;
+    nnzperrow = 16;
     int max_nnz = 2*nnzperrow;
     
     

@@ -49,16 +49,15 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
 
     int shift_i = max_nnz*threadIdx.y;
 
-    //for (int n_j = 0; n_j < nnz_j; n_j++) norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
-    for (int n_j = 0; n_j < nnz_j; n_j++) {
-    norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
-    if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f nnz_j = %d, \n", V[ind0_j + n_j], nnz_j);   
-    }
-    //for (int n_i = 0; n_i < nnz_i; n_i++) norm_ij += V[ind0_i + n_i]*V[ind0_i + n_i];
-    for (int n_i = 0; n_i < nnz_i; n_i++) {
-    norm_ij += V[ind0_i + n_i]*V[ind0_i + n_i]; 
-    if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f nnz_i = %d, \n", V[ind0_i + n_i], nnz_i);   
-    }
+    for (int n_j = 0; n_j < nnz_j; n_j++) norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
+    //for (int n_j = 0; n_j < nnz_j; n_j++) {
+    //norm_ij += V[ind0_j + n_j]*V[ind0_j + n_j];
+    //}
+    for (int n_i = 0; n_i < nnz_i; n_i++) norm_ij += V[ind0_i + n_i]*V[ind0_i + n_i];
+    //for (int n_i = 0; n_i < nnz_i; n_i++) {
+    //norm_ij += V[ind0_i + n_i]*V[ind0_i + n_i]; 
+    //if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f nnz_i = %d, \n", V[ind0_i + n_i], nnz_i);   
+    //}
     //if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f \n", norm_ij);  
     for (int n_i = threadIdx.x; n_i < nnz_i; n_i += blockDim.x) si[shift_i + n_i] = C[ind0_i + n_i];
      
@@ -89,7 +88,7 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
         c_tmp += (ind_jk != -1) ? V[ind0_j + pos_k]*V[ind0_i + ind_jk] : 0;
         
     }
-    if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f \n", c_tmp);  
+    //if (g_rowId_I == 0 && g_rowId_J == 1) printf("%.4f \n", c_tmp);  
     /* 
     for (int pos_k=0; pos_k<nnz_i;pos_k++){       
         k = si[pos_k];
@@ -125,7 +124,6 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id,  float* K, int
 	  int ind_write = blockIdx.z * M_I * M_I + row_write * M_I + col_write;
     K[ind_write] = c_tmp;
 
-    if (row_write == 0) printf("leaf = %d , (%d , %d) = %.4f \n", blockIdx.z, row_write, col_write, c_tmp); 
     /*
     // bitonic sort 
     __shared__ float kvals[4096];
@@ -383,10 +381,12 @@ void gen_sparse(int M, int tot_nnz, int d, int *R, int *C, float *V) {
           V[ind] = rand()%100;
         }    
       std::sort(C+R[i], C+(R[i+1]));
+      /*
       printf("\n point %d\n", i);
       for (int j=R[i]; j<R[i+1]; j++) {
       printf("(%d ,%.4f) ",C[j], V[j]);
       }
+      */
     }
 }
 
@@ -403,11 +403,11 @@ void gen_R(int M, int nnzperrow, int *R, int *G_Id, int d) {
    G_Id[m-1] = m-1;
   } 
   //std::random_shuffle(&G_Id[0], &G_Id[M]);
-    
+  /* 
   for (int m = 0; m < M; m++){ 
   printf("G_Id[%d] = %d \n", m , G_Id[m]);
   } 
-  
+  */
 }
 
 void gpu_knn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz){
@@ -506,11 +506,11 @@ int main(int argc, char **argv)
     int *h_C, *d_C;
     int *h_R, *d_R;
     int *h_G_Id, *d_G_Id;
-    int M = 8;     // total number of points 
-    int leaves = 1;     // number of leaves
-    d = 100;
-    int k = 2;
-    nnzperrow = 4;
+    int M = 1024*2048;     // total number of points 
+    int leaves = 2048;     // number of leaves
+    d = 10000;
+    int k = 32;
+    nnzperrow = 128;
     int max_nnz = 2*nnzperrow;
     
     
