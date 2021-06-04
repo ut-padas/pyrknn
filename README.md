@@ -6,7 +6,7 @@ The search routine is provided by RKDForest object, where location specifies whe
 The routine can be called from within MPI. By default it assumes the global communicator, otherwise subcommunicators can be passed in to the forest constructor. 
 
 ```
-forest = RKDForest(data=X, leafsize=leafsize, location="HOST")
+forest = RKDForest(data=X, leafsize=leafsize, location="HOST", comm=MPI.COMM_WORLD)
 neighbors = forest.all_search(k)
 ```
 
