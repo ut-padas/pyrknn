@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH -J fcpu_gist
+#SBATCH -e fcpu_gist.err 
+#SBATCH -o fcpu_gist.txt 
+#SBATCH -p small 
+#SBATCH -N 1
+#SBATCH -A ASC21002
+#SBATCH -n 1
+#SBATCH --tasks-per-node 1 
+#SBATCH -t 4:00:00
+#SBATCH --mail-user=will.ruys@gmail.com
+#SBATCH --mail-type=end
+
+source /scratch1/06081/wlruys/miniconda3/etc/profile.d/conda.sh
+conda activate new
+source set_env_cpu.sh
+
+for t in `seq 0 1 5`
+do
+    for j in 4096
+    do
+        python faiss_gist.py -c $j | tee faiss_gist_$j.out
+    done
+done 
+

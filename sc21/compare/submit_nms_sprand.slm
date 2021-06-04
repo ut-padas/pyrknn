@@ -1,0 +1,29 @@
+#!/bin/bash
+#SBATCH -J lnms_sprand
+#SBATCH -e lnms_sprand.err 
+#SBATCH -o lnms_sprand.txt 
+#SBATCH -p small 
+#SBATCH -N 1
+#SBATCH -A ASC21002
+#SBATCH -n 1
+#SBATCH --tasks-per-node 1 
+#SBATCH -t 4:00:00
+#SBATCH --mail-user=will.ruys@gmail.com
+#SBATCH --mail-type=end
+
+source /scratch1/06081/wlruys/miniconda3/etc/profile.d/conda.sh
+conda activate new
+source set_env_cpu.sh
+
+for t in 5 10
+do
+    for l in 100000
+    do
+        for j in 50 100
+        do
+            python run_nms_sparse_weak.py -efC $j -nnz $t -dim $l | tee lnms_sprand_${t}_${l}_${j}.out
+        done
+    done
+done 
+
+

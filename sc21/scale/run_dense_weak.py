@@ -43,7 +43,7 @@ def get_gauss_data(rank, N, d, nq):
 
     #Load query set 
     np.random.seed(10)
-    data = np.random.randn(N, d)
+    data = np.random.rand(N, d)
     data = np.asarray(data, dtype=np.float32)
     Q  = data[:nq]
 
@@ -123,7 +123,7 @@ def run():
 
     #Compute true solution with brute force on nq subset
     #C = X.copy()
-    tree = RKDT(data=X, levels=0, leafsize=2048, location="HOST")
+    tree = RKDT(data=X, levels=0, leafsize=1024, location="HOST")
     truth = tree.distributed_exact(Q, k)
     t = time.time() - t
 

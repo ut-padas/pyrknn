@@ -66,26 +66,25 @@ if __name__ == '__main__':
   #if not os.path.exists(folder):
   #  os.makedirs(folder)
 
-  cpu_rank_list = [2, 4, 8, 16, 32, 64, 128, 256]
-  gpu_rank_list = [16, 32, 64]
+  cpu_rank_list = [4, 8, 16, 32, 64, 128, 256]
+  gpu_rank_list = [16]
   local_iterations = [1] #[2, 5, 10]
 
   #NOTE: Submit arguments
   #ranks, threads, dataset, iter, blocksize, blockleaf, levels, k, leafsize, ltrees
-
+  levels = 30
+  """
   levels = 20
   #Run URL GPU
   for rank in gpu_rank_list:
     for ltrees in local_iterations:
       submit(rank, 4, "kdd", 4, 64, 6, levels, 32, 9500, ltrees, True, overlap=1, merge=1)
-   
+  """ 
   
   #Run URL CPU
   for ranks in cpu_rank_list:
     for ltrees in local_iterations:
-      submit(ranks, 56, "kdd", 4, 64, 256, levels, 32, 9500, ltrees, False, overlap=False, merge=True)
-
-
+      submit(ranks, 56, "kdd", 2, 512, 256, levels, 32, 16384, ltrees, False, overlap=0, merge=1)
  
   """ 
   levels = 21

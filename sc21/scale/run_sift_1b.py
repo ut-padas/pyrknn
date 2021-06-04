@@ -16,8 +16,8 @@ from joblib import Memory
 import argparse
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
-parser.add_argument('-n', type=int, default=2**23)
-parser.add_argument('-d', type=int, default=15)
+parser.add_argument('-n', type=int, default=488281)
+parser.add_argument('-d', type=int, default=128)
 parser.add_argument('-iter', type=int, default=10)
 parser.add_argument('-dataset', default="gauss")
 parser.add_argument('-bs', type=int, default=64)
@@ -26,7 +26,7 @@ parser.add_argument('-cores', type=int, default=4)
 parser.add_argument('-use_gpu', type=bool, default=0)
 parser.add_argument('-levels', type=int, default=13)
 parser.add_argument('-k', type=int, default=32)
-parser.add_argument('-leafsize', type=int, default=512)
+parser.add_argument('-leafsize', type=int, default=1024)
 parser.add_argument('-ltrees', type=int, default=1)
 parser.add_argument('-q', type=int, default=100)
 parser.add_argument('-merge', type=int, default=1)
@@ -37,21 +37,27 @@ args = parser.parse_args()
 
 mem = Memory("./mycache")
 
-
 def get_gauss_data(rank, N, d, nq):
+
+    filename = "/scratch1/06081/wlruys/datasets/sift/bigann_base.bvecs"
     t = time.time()
+    d    =128
+    vsz = 4+d
+    start = rank*N
+    nc = N;   #how many to read
+    print(start, nc)
+    v = np.fromfile(filename, dtype=np.uint8,count=nc*vsz,offset= start*vsz)
+    data = np.reshape(v,(nc,d+4))
+    data = data[:,4:]
+    data = np.asarray(data, dtype=np.float32)
 
     #Load query set 
-    np.random.seed(10)
-    data = np.random.randn(N, d)
-    data = np.asarray(data, dtype=np.float32)
-    Q  = data[:nq]
+    if rank == 0:
+        Q  = data[:nq]
+    else:
+        Q = None
 
-    if rank > 0:
-        del data
-        np.random.seed(None)
-        data = np.random.randn(N, d)
-        data = np.asarray(data, dtype=np.float32)
+    Q = comm.bcast(Q, root=0)
 
     t = time.time() - t
     print("It took ", t, " (s) to load the dataset")
@@ -143,6 +149,10 @@ def run():
     else:
         approx = forest.all_search(k, ntrees=args.iter, ltrees = args.ltrees, truth=truth, cores=args.cores, blocksize=args.bs, blockleaf=args.bl, merge_flag=args.merge)
 
+
+    print(approx)
+
+    print(truth)
     if rank == 0:
         timer.print()
         print("=======")

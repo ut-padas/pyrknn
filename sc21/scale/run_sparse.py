@@ -13,8 +13,6 @@ import os
 from sklearn.datasets import load_svmlight_file
 from joblib import Memory
 
-from scipy.sparse import csr_matrix
-
 import argparse
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
@@ -66,54 +64,6 @@ def get_kdd12_data():
     print("It took ", t, " (s) to load the dataset")
     return data[0]
 
-def gen_random_sparse_csr(N,M,avg_nnz,idtype=np.int32,vltype=np.float32):
-    '''
-    Generate a real random sparse matrix of N-by-M dimensions with avz_nnz
-    nonzeros per row:  total memory ~ N*avz_nnz
-    The values are normally distributed
-    The nonzeros are uniformly distributed
-    
-    Does not allow empty rows, (at least )
-    
-    
-    Parameters
-    ----------
-    N : int
-        number of rows
-    M : int
-        number of columns (full matrix)
-    avg_nnz : int
-        average number of nonzeros _per_row_
-    idtype : type, optional
-        type for indeces The default is np.int32.
-    vltype : type, optional
-        type for matrix values. The default is np.float32.
-    Returns
-    -------
-    X : sparse N-by-M  matrix
-        CSR format.
-        
-    Example:
-    N=10
-    avg_nnz_per_row = 4
-    M = 9
-    idtype = np.int32
-    vltype = np.float32
-    X = gen_random_sparse_csr(N,M,avg_nnz_per_row)
-    print(X.toarray())
-    '''
-    
-    nnz_arr = np.random.randint(2, 2*avg_nnz, size=N,dtype=idtype)
-    nnz = np.sum(nnz_arr)
-    cols = np.random.randint(M, size=nnz, dtype=idtype)
-    rows = np.block( [0, np.cumsum(nnz_arr)])
-    vals = np.random.randn(nnz).astype(vltype)
-
-    X =csr_matrix((vals, cols, rows), shape=(N,M) )
-    print(X.indices)
-    X.sort_indices()
-    print(X.indices)
-    return X
 
 if args.dataset == "url":
     get_data = get_url_data 
@@ -142,38 +92,35 @@ def run():
     if rank == 0:
         print("Starting to Read Data", flush=True)
 
-    N = 1000
-    d = 1000
-    avg_nnz = 2
-    
-    nq = 5
-    np.random.seed(10)
-    X = gen_random_sparse_csr(N,d,avg_nnz)
-    Q = X[:nq]
+    t = time.time()
+    X = get_data()
+    t = time.time() - t 
 
-    if rank>0:
-        np.random.seed(None)
-        X = gen_random_sparse_csr(N, d, avg_nnz)
-
-    t = 0
     if rank == 0:
         print("Finished Reading Data: ", X.shape, flush=True)
         print("Reading data took: ", t," seconds", flush=True)
 
-    print("====")
-    print(X.indptr)
-    print(X.indices)
-    print(X.data)
-
-    N, d = X.shape
     Nmax = 2**27
     X = X[:Nmax]
+
+    N, d = X.shape
+    #Grab queries from start
+    nq = 20
+    Q = X[:nq]
 
     #Convert Q to the correct datatype
     q_data = np.asarray(Q.data, dtype=np.float32)
     q_indices = np.asarray(Q.indices, dtype=np.int32)
     q_indptr = np.asarray(Q.indptr, dtype=np.int32)
     Q = sp.csr_matrix( (q_data, q_indices, q_indptr), shape=(nq, d))
+
+    #Grab local portion
+    n_local = N//size
+
+    start = (rank)*n_local
+    end   = (rank+1)*n_local
+
+    X = X[start:end]
 
     if rank == 0:
         print("Finished Preprocessing Data", flush=True)
