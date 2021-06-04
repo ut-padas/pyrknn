@@ -283,7 +283,7 @@ def accuracy_check(a, b):
         err+= np.sum(miss_array)
         relative_distance = max(relative_distance, np.abs(knndist[i] - b_dist[i, kb-1])/knndist[i])
     """
-    err = 0 
+    err = 0.0
     for i in range(N):
 
         miss_array_id = [1 if approx_id[i, j] in truth_id[i, :] else 0 for j in range(k)]

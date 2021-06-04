@@ -1192,6 +1192,9 @@ class RKDT:
         timer.pop("Build Local Tree")
 
 
+    #TODO: Simplify without extra copy.
+    #TODO: Merge in shared orthogonal directions. 
+
     def search_local(self, k):
         timer = Primitives.Profiler()
 

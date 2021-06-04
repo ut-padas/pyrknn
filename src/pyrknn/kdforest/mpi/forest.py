@@ -307,10 +307,10 @@ class RKDForest:
                 tree.build_local()
                 neighbors = tree.search_local(k)
             elif (not self.gpu_flag) and (self.sparse_flag):
-                #NOTE: Lots of checks to try to track down segfault. S
-                #Lets force this to work. 
-                print(rank, "Running on CPU", flush=True)
-                print(rank, len(tree.global_ids), flush=True)
+                #NOTE: Lots of checks to try to track down segfault in MKL projection step. Can it be reproduced without AVX512?. 
+                #Lets force this to worki for the moment. 
+                #print(rank, "Running on CPU", flush=True)
+                #print(rank, len(tree.global_ids), flush=True)
                 flag = True
                 while(flag):
                     try:
