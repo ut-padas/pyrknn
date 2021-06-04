@@ -1,0 +1,933 @@
+I_MPI_STARTUP_MODE=pmi_shm_netmod
+SLURM_NODELIST=c196-011
+LMOD_FAMILY_COMPILER_VERSION=18.0.5
+TACC_GIT_BIN=/opt/apps/git/2.24.1/bin
+MKLROOT=/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl
+MANPATH=/opt/apps/cuda/10.1/doc/man:/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/man:/opt/intel/documentation_2018/en/man/common:/opt/intel/documentation_2018/en/debugger/gdb-igfx/man:/opt/intel/documentation_2018/en/debugger/gdb-ia/man:/usr/local/man:/usr/share/man:/usr/X11R6/man:/usr/kerberos/man:/usr/man:/opt/apps/pmix/3.1.4/share/man:/opt/apps/git/2.24.1/share/man:/usr/local/share/man:/opt/ddn/ime/share/man
+__XALT_STATE_PID__=3416:c196-011.frontera.tacc.utexas.edu
+TACC_CMAKE_BIN=/opt/apps/cmake/3.16.1/bin
+TACC_IMPI_DIR=/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi
+SLURM_JOB_NAME=idv62235
+XDG_SESSION_ID=78918
+HOSTNAME=c196-011
+SLURMD_NODENAME=c196-011
+SLURM_TOPOLOGY_ADDR=c196-011
+TACC_XALT_DIR=/opt/apps/xalt/xalt/
+_ModuleTable003_=MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iY3VkYS8xMC4xIix9LGdpdD17WyJmbiJdPSIvb3B0L2FwcHMvbW9kdWxlZmlsZXMvZ2l0LzIuMjQuMS5sdWEiLFsiZnVsbE5hbWUiXT0iZ2l0LzIuMjQuMSIsWyJsb2FkT3JkZXIiXT0xLHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09ImdpdCIsfSxod2xvYz17WyJmbiJdPSIvb3B0L2FwcHMvbW9kdWxlZmlsZXMvaHdsb2MvMS4xMS4xMi5sdWEiLFsiZnVsbE5hbWUiXT0iaHdsb2MvMS4xMS4xMiIsWyJsb2FkT3JkZXIiXT01LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Imh3bG9jLzEuMTEuMTIi
+TACC_INTEL_INC=/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/include/intel64
+SLURM_PRIO_PROCESS=0
+SLURM_NODE_ALIASES=(null)
+I_MPI_F77=ifort
+INTEL_LICENSE_FILE=/home1/06081/USER/intel/licenses:/opt/intel/licenses:/opt/intel/compilers_and_libraries_2018.5.274/linux/licenses
+IPPROOT=/opt/intel/compilers_and_libraries_2018.5.274/linux/ipp
+MPICH_HOME=/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi
+SHELL=/bin/bash
+TERM=xterm-256color
+TACC_INTEL_DIR=/opt/intel/compilers_and_libraries_2018.5.274/linux
+__LMOD_REF_COUNT_MODULEPATH=/opt/apps/cuda10_1/modulefiles:1;/opt/apps/intel18/impi18_0/modulefiles:1;/opt/apps/intel18/modulefiles:1;/opt/apps/modulefiles:1
+TACC_PMIX_BIN=/opt/apps/pmix/3.1.4/bin
+NO_HOSTSORT=1
+HISTSIZE=1000
+LMOD_ROOT=/opt/apps/lmod
+IDEV_SETUP_BYPASS=1.0
+I_MPI_FABRICS=shm:ofa
+SLURM_JOB_QOS=qdefault
+TACC_IMPI_BIN=/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/intel64/bin
+SSH_CLIENT=129.114.44.12 39278 22
+LMOD_SYSTEM_DEFAULT_MODULES=TACC
+XALT_EXECUTABLE_TRACKING=yes
+TMPDIR=/tmp
+TACC_CUDA_DOC=/opt/apps/cuda/10.1/doc
+STOCKYARD2=/work2/06081/USER
+TACC_PMIX_DIR=/opt/apps/pmix/3.1.4
+SLURM_TOPOLOGY_ADDR_PATTERN=node
+CONDA_SHLVL=0
+XALT_DIR=/opt/apps/xalt/xalt
+LIBRARY_PATH=/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/../tbb/lib/intel64_lin/gcc4.4:/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.5.274/linux/tbb/lib/intel64/gcc4.7:/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.5.274/linux/ipp/lib/intel64
+TACC_HWLOC_LIB=/opt/apps/hwloc/1.11.12/lib
+TACC_PMIX_INC=/opt/apps/pmix/3.1.4/include
+LD_PRELOAD=/opt/apps/xalt/xalt/lib64/libxalt_init.so
+__LMOD_REF_COUNT_COMPILER_PATH=/opt/apps/xalt/xalt/bin:1
+FPATH=/opt/apps/lmod/lmod/init/ksh_funcs
+LMOD_PKG=/opt/apps/lmod/lmod
+TACC_FAMILY_COMPILER_VERSION=18.0.5
+QTDIR=/usr/lib64/qt-3.3
+I_MPI_ADJUST_BCAST=1:16384-0
+QTINC=/usr/lib64/qt-3.3/include
+LMOD_VERSION=8.4.17
+SSH_TTY=/dev/pts/0
+SLURM_TACC_RUNLIMIT_MINS=30
+I_MPI_JOB_FAST_STARTUP=1
+__LMOD_REF_COUNT_LOADEDMODULES=git/2.24.1:1;autotools/1.2:1;cmake/3.16.1:1;pmix/3.1.4:1;hwloc/1.11.12:1;xalt/2.10.2:1;TACC:1;intel/18.0.5:1;impi/18.0.5:1;cuda/10.1:1
+QT_GRAPHICSSYSTEM_CHECKED=1
+TACC_IMPI_INC=/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/intel64/include
+TACC_INTEL_BIN=/opt/intel/compilers_and_libraries_2018.5.274/linux/bin/intel64
+USER=USER
+TACC_CUDA_BIN=/opt/apps/cuda/10.1/bin
+CUDA_HOME=/opt/apps/cuda/10.1/lib64
+SLURM_NNODES=1
+IDEV_QDEL=scancel
+LS_COLORS=rs=0:di=38;5;27:ln=38;5;51:mh=44;38;5;15:pi=40;38;5;11:so=38;5;13:do=38;5;5:bd=48;5;232;38;5;11:cd=48;5;232;38;5;3:or=48;5;232;38;5;9:mi=05;48;5;232;38;5;15:su=48;5;196;38;5;15:sg=48;5;11;38;5;16:ca=48;5;196;38;5;226:tw=48;5;10;38;5;16:ow=48;5;10;38;5;21:st=48;5;21;38;5;15:ex=38;5;34:*.tar=38;5;9:*.tgz=38;5;9:*.arc=38;5;9:*.arj=38;5;9:*.taz=38;5;9:*.lha=38;5;9:*.lz4=38;5;9:*.lzh=38;5;9:*.lzma=38;5;9:*.tlz=38;5;9:*.txz=38;5;9:*.tzo=38;5;9:*.t7z=38;5;9:*.zip=38;5;9:*.z=38;5;9:*.Z=38;5;9:*.dz=38;5;9:*.gz=38;5;9:*.lrz=38;5;9:*.lz=38;5;9:*.lzo=38;5;9:*.xz=38;5;9:*.bz2=38;5;9:*.bz=38;5;9:*.tbz=38;5;9:*.tbz2=38;5;9:*.tz=38;5;9:*.deb=38;5;9:*.rpm=38;5;9:*.jar=38;5;9:*.war=38;5;9:*.ear=38;5;9:*.sar=38;5;9:*.rar=38;5;9:*.alz=38;5;9:*.ace=38;5;9:*.zoo=38;5;9:*.cpio=38;5;9:*.7z=38;5;9:*.rz=38;5;9:*.cab=38;5;9:*.jpg=38;5;13:*.jpeg=38;5;13:*.gif=38;5;13:*.bmp=38;5;13:*.pbm=38;5;13:*.pgm=38;5;13:*.ppm=38;5;13:*.tga=38;5;13:*.xbm=38;5;13:*.xpm=38;5;13:*.tif=38;5;13:*.tiff=38;5;13:*.png=38;5;13:*.svg=38;5;13:*.svgz=38;5;13:*.mng=38;5;13:*.pcx=38;5;13:*.mov=38;5;13:*.mpg=38;5;13:*.mpeg=38;5;13:*.m2v=38;5;13:*.mkv=38;5;13:*.webm=38;5;13:*.ogm=38;5;13:*.mp4=38;5;13:*.m4v=38;5;13:*.mp4v=38;5;13:*.vob=38;5;13:*.qt=38;5;13:*.nuv=38;5;13:*.wmv=38;5;13:*.asf=38;5;13:*.rm=38;5;13:*.rmvb=38;5;13:*.flc=38;5;13:*.avi=38;5;13:*.fli=38;5;13:*.flv=38;5;13:*.gl=38;5;13:*.dl=38;5;13:*.xcf=38;5;13:*.xwd=38;5;13:*.yuv=38;5;13:*.cgm=38;5;13:*.emf=38;5;13:*.axv=38;5;13:*.anx=38;5;13:*.ogv=38;5;13:*.ogx=38;5;13:*.aac=38;5;45:*.au=38;5;45:*.flac=38;5;45:*.mid=38;5;45:*.midi=38;5;45:*.mka=38;5;45:*.mp3=38;5;45:*.mpc=38;5;45:*.ogg=38;5;45:*.ra=38;5;45:*.wav=38;5;45:*.axa=38;5;45:*.oga=38;5;45:*.spx=38;5;45:*.xspf=38;5;45:
+LD_LIBRARY_PATH=/opt/apps/cuda/10.1/lib64:/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/intel64/lib:/opt/intel/debugger_2018/libipt/intel64/lib:/opt/intel/debugger_2018/iga/lib:/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/../tbb/lib/intel64_lin/gcc4.4:/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.5.274/linux/tbb/lib/intel64/gcc4.7:/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64_lin:/opt/intel/compilers_and_libraries_2018.5.274/linux/ipp/lib/intel64:/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64:/opt/apps/gcc/6.3.0/lib64:/opt/apps/gcc/6.3.0/lib:/opt/apps/hwloc/1.11.12/lib:/opt/apps/pmix/3.1.4/lib
+PSTLROOT=/opt/intel/compilers_and_libraries_2018.5.274/linux/pstl
+__TRACKER__=1
+XALT_DATE_TIME=2021_06_04_01_36_36_4832
+CONDA_EXE=/scratch1/06081/USER/miniconda3/bin/conda
+TACC_NODE_TYPE=rtx
+SLURM_TACC_NODES=1
+TACC_XALT_BIN=/opt/apps/xalt/xalt/bin
+SLURM_JOBID=3072203
+_ModuleTable004_=LH0saW1waT17WyJmbiJdPSIvb3B0L2FwcHMvaW50ZWwxOC9tb2R1bGVmaWxlcy9pbXBpLzE4LjAuNS5sdWEiLFsiZnVsbE5hbWUiXT0iaW1waS8xOC4wLjUiLFsibG9hZE9yZGVyIl09OSxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0wLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJpbXBpIix9LGludGVsPXtbImZuIl09Ii9vcHQvYXBwcy9tb2R1bGVmaWxlcy9pbnRlbC8xOC4wLjUubHVhIixbImZ1bGxOYW1lIl09ImludGVsLzE4LjAuNSIsWyJsb2FkT3JkZXIiXT04LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTAsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09ImludGVsLzE4Iix9LHBtaXg9e1siZm4iXT0iL29wdC9hcHBzL21vZHVsZWZpbGVzL3Bt
+CPATH=/opt/intel/compilers_and_libraries_2018.5.274/linux/pstl/include:/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/include:/opt/intel/compilers_and_libraries_2018.5.274/linux/tbb/include:/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/include:/opt/intel/compilers_and_libraries_2018.5.274/linux/ipp/include
+IFC_BIN=/opt/intel/compilers_and_libraries_2018.5.274/linux/bin/intel64
+TACC_MKL_LIB=/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/lib/intel64
+TACC_GIT_DIR=/opt/apps/git/2.24.1
+__PERSONAL_PATH__=1
+MY_SSH_ARGS=-A
+TACC_HWLOC_BIN=/opt/apps/hwloc/1.11.12/bin
+__LMOD_REF_COUNT__LMFILES_=/opt/apps/modulefiles/git/2.24.1.lua:1;/opt/apps/modulefiles/autotools/1.2.lua:1;/opt/apps/modulefiles/cmake/3.16.1.lua:1;/opt/apps/modulefiles/pmix/3.1.4.lua:1;/opt/apps/modulefiles/hwloc/1.11.12.lua:1;/opt/apps/modulefiles/xalt/2.10.2.lua:1;/opt/apps/modulefiles/TACC.lua:1;/opt/apps/modulefiles/intel/18.0.5.lua:1;/opt/apps/intel18/modulefiles/impi/18.0.5.lua:1;/opt/apps/modulefiles/cuda/10.1.lua:1
+TACC_CUDA_LIB=/opt/apps/cuda/10.1/lib64
+SLURM_COMMAND=sbatch
+SLURM_NTASKS=16
+SLURM_TACC_JOBNAME=idv62235
+PYRKNN_USE_CUDA=1
+LMOD_FAMILY_MPI_VERSION=18.0.5
+_CE_CONDA=
+ARCHIVER=ranch.tacc.utexas.edu
+NLSPATH=/opt/intel/debugger_2018/gdb/intel64/share/locale/%l_%t/%N:/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/lib/intel64/locale/%l_%t/%N:/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64/locale/%l_%t/%N
+__LMOD_REF_COUNT_I_MPI_ROOT=/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi:1
+PATH=/opt/apps/xalt/xalt/bin:/opt/apps/cuda/10.1/bin:/tmprpm/intel18/impi/18.0.5/bin:/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/intel64/bin:/opt/intel/compilers_and_libraries_2018.5.274/linux/bin/intel64:/opt/apps/gcc/6.3.0/bin:/scratch1/06081/USER/miniconda3/condabin:/opt/apps/hwloc/1.11.12/bin:/opt/apps/pmix/3.1.4/bin:/opt/apps/cmake/3.16.1/bin:/opt/apps/autotools/1.2/bin:/opt/apps/git/2.24.1/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/opt/ddn/ime/bin:/opt/dell/srvadmin/bin:.:/work2/06081/USER/frontera/workspace/install/Runtime/scripts/user:/work2/06081/USER/frontera/workspace/install/Runtime/scripts/utils:/work2/06081/USER/frontera/workspace/install/Bindings/c/bin:/work2/06081/USER/frontera/workspace/install/Runtime/scripts/user:/work2/06081/USER/frontera/workspace/install/Runtime/scripts/utils:/work2/06081/USER/frontera/workspace/install/Bindings/c/bin
+MAIL=/var/spool/mail/USER
+TACC_SYSTEM=frontera
+_ModuleTable001_=X01vZHVsZVRhYmxlXz17WyJNVHZlcnNpb24iXT0zLFsiY19yZWJ1aWxkVGltZSJdPWZhbHNlLFsiY19zaG9ydFRpbWUiXT1mYWxzZSxkZXB0aFQ9e30sZmFtaWx5PXtbIk1QSSJdPSJpbXBpIixbImNvbXBpbGVyIl09ImludGVsIix9LG1UPXtUQUNDPXtbImZuIl09Ii9vcHQvYXBwcy9tb2R1bGVmaWxlcy9UQUNDLmx1YSIsWyJmdWxsTmFtZSJdPSJUQUNDIixbImxvYWRPcmRlciJdPTcscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iVEFDQyIsfSxhdXRvdG9vbHM9e1siZm4iXT0iL29wdC9hcHBzL21vZHVsZWZpbGVzL2F1dG90b29scy8xLjIubHVhIixbImZ1bGxOYW1lIl09ImF1dG90b29scy8xLjIiLFsibG9hZE9y
+__LMOD_REF_COUNT_NLSPATH=/opt/intel/debugger_2018/gdb/intel64/share/locale/%l_%t/%N:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/lib/intel64/locale/%l_%t/%N:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64/locale/%l_%t/%N:1
+SLURM_TASKS_PER_NODE=16
+ICC_BIN=/opt/intel/compilers_and_libraries_2018.5.274/linux/bin/intel64
+STOCKYARD=/work/06081/USER
+RUNNING_IDEV=1
+SLURM_WORKING_CLUSTER=frontera:129.114.44.4:6820:8704:102
+TACC_GIT_LIB=/opt/apps/git/2.24.1/lib
+_=/bin/env
+EIGEN_ROOT=/work/06081/USER/maverick2/eigen
+WORK=/work/06081/USER/frontera
+SLURM_JOB_ID=3072203
+TACC_PMIX_LIB=/opt/apps/pmix/3.1.4/lib
+TACC_HWLOC_INC=/opt/apps/hwloc/1.11.12/include
+TBBROOT=/opt/intel/compilers_and_libraries_2018.5.274/linux/tbb
+PWD=/scratch1/06081/USER/sc21/Author-Kit
+INPUTRC=/etc/inputrc
+CUDA_LIB=/opt/apps/cuda/10.1/lib64
+I_MPI_FALLBACK=0
+SLURM_JOB_USER=USER
+SLURM_QUEUE=rtx-dev
+SLURM_TACC_NCORES_SET=1
+I_MPI_ADJUST_ALLTOALL=3
+XMODIFIERS=@im=ibus
+_LMFILES_=/opt/apps/modulefiles/git/2.24.1.lua:/opt/apps/modulefiles/autotools/1.2.lua:/opt/apps/modulefiles/cmake/3.16.1.lua:/opt/apps/modulefiles/pmix/3.1.4.lua:/opt/apps/modulefiles/hwloc/1.11.12.lua:/opt/apps/modulefiles/xalt/2.10.2.lua:/opt/apps/modulefiles/TACC.lua:/opt/apps/modulefiles/intel/18.0.5.lua:/opt/apps/intel18/modulefiles/impi/18.0.5.lua:/opt/apps/modulefiles/cuda/10.1.lua
+COMPSS_HOME=/work2/06081/USER/frontera/workspace/install
+LANG=en_US.UTF-8
+__LMOD_REF_COUNT_PYTHONPATH=/work2/06081/USER/frontera/workspace/install/Bindings/python:1
+MODULEPATH=/opt/apps/cuda10_1/modulefiles:/opt/apps/intel18/impi18_0/modulefiles:/opt/apps/intel18/modulefiles:/opt/apps/modulefiles
+_ModuleTable_Sz_=6
+LOADEDMODULES=git/2.24.1:autotools/1.2:cmake/3.16.1:pmix/3.1.4:hwloc/1.11.12:xalt/2.10.2:TACC:intel/18.0.5:impi/18.0.5:cuda/10.1
+SLURM_JOB_UID=853809
+SLURM_NODEID=0
+idev_has_user_PERL5LIB=no
+__BASHRC_SOURCED__=1
+SLURM_TACC_ACCOUNT=ASC21002
+SLURM_SUBMIT_DIR=/scratch1/06081/USER/sc21/Author-Kit
+TACC_VEC_FLAGS=-xCORE-AVX2
+I_MPI_F90=ifort
+LMOD_CMD=/opt/apps/lmod/lmod/libexec/lmod
+SLURM_TASK_PID=3413
+SLURM_NPROCS=16
+GIT_TEMPLATE_DIR=/opt/apps/git/2.24.1/share/git-core/templates
+_ModuleTable005_=aXgvMy4xLjQubHVhIixbImZ1bGxOYW1lIl09InBtaXgvMy4xLjQiLFsibG9hZE9yZGVyIl09NCxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0xLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJwbWl4Iix9LHhhbHQ9e1siZm4iXT0iL29wdC9hcHBzL21vZHVsZWZpbGVzL3hhbHQvMi4xMC4yLmx1YSIsWyJmdWxsTmFtZSJdPSJ4YWx0LzIuMTAuMiIsWyJsb2FkT3JkZXIiXT02LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09InhhbHQiLH0sfSxtcGF0aEE9eyIvb3B0L2FwcHMvY3VkYTEwXzEvbW9kdWxlZmlsZXMiLCIvb3B0L2FwcHMvaW50ZWwxOC9pbXBpMThfMC9tb2R1bGVmaWxlcyIsIi9vcHQvYXBwcy9p
+I_MPI_CC=icc
+GSKNN_DIR=/work/06081/USER/maverick2/rnn/
+DAALROOT=/opt/intel/compilers_and_libraries_2018.5.274/linux/daal
+SLURM_CPUS_ON_NODE=16
+TACC_CUDA_INC=/opt/apps/cuda/10.1/include
+SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass
+TACC_MKL_INC=/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/include
+SLURM_PROCID=0
+ENVIRONMENT=BATCH
+_CE_M=
+CXX=icpc
+TACC_AUTOTOOLS_DIR=/opt/apps/autotools/1.2
+SLURM_JOB_NODELIST=c196-011
+HOME=/home1/06081/USER
+SHLVL=4
+__LMOD_SET_FPATH=1
+TACC_DOMAIN=frontera
+SLURM_LOCALID=0
+__XALT_INITIAL_STATE__=LD_PRELOAD
+TACC_FAMILY_COMPILER=intel
+I_MPI_CXX=icpc
+__LMOD_REF_COUNT_PATH=/opt/apps/xalt/xalt/bin:1;/opt/apps/cuda/10.1/bin:1;/tmprpm/intel18/impi/18.0.5/bin:1;/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/intel64/bin:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/bin/intel64:1;/opt/apps/gcc/6.3.0/bin:1;/scratch1/06081/USER/miniconda3/condabin:1;/opt/apps/hwloc/1.11.12/bin:1;/opt/apps/pmix/3.1.4/bin:1;/opt/apps/cmake/3.16.1/bin:1;/opt/apps/autotools/1.2/bin:1;/opt/apps/git/2.24.1/bin:1;/usr/lib64/qt-3.3/bin:1;/usr/local/bin:1;/bin:1;/usr/bin:1;/opt/ddn/ime/bin:1;/opt/dell/srvadmin/bin:1;.:1;/work2/06081/USER/frontera/workspace/install/Runtime/scripts/user:1;/work2/06081/USER/frontera/workspace/install/Runtime/scripts/utils:1;/work2/06081/USER/frontera/workspace/install/Bindings/c/bin:1
+TACC_INTEL_LIB=/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64
+PROD=1
+__LMOD_REF_COUNT_CPATH=/opt/intel/compilers_and_libraries_2018.5.274/linux/pstl/include:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/include:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/tbb/include:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/include:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/ipp/include:1
+TACC_CUDA_DIR=/opt/apps/cuda/10.1
+IFC_LIB=/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64
+_ModuleTable002_=ZGVyIl09Mixwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0xLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJhdXRvdG9vbHMiLH0sY21ha2U9e1siZm4iXT0iL29wdC9hcHBzL21vZHVsZWZpbGVzL2NtYWtlLzMuMTYuMS5sdWEiLFsiZnVsbE5hbWUiXT0iY21ha2UvMy4xNi4xIixbImxvYWRPcmRlciJdPTMscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iY21ha2UiLH0sY3VkYT17WyJmbiJdPSIvb3B0L2FwcHMvbW9kdWxlZmlsZXMvY3VkYS8xMC4xLmx1YSIsWyJmdWxsTmFtZSJdPSJjdWRhLzEwLjEiLFsibG9hZE9yZGVyIl09MTAscHJvcFQ9e2FyY2g9e1siZ3B1Il09MSx9LH0sWyJzdGFja0RlcHRoIl09
+SLURM_CLUSTER_NAME=frontera
+SLURM_JOB_CPUS_PER_NODE=16
+SLURM_JOB_GID=803659
+SLURM_GTIDS=0
+TACC_HWLOC_DIR=/opt/apps/hwloc/1.11.12
+__LMOD_REF_COUNT_INCLUDE=/opt/apps/cuda/10.1/include:1
+SLURM_SUBMIT_HOST=login2.frontera.tacc.utexas.edu
+BASH_ENV=/etc/tacc/tacc_functions
+idev_ip=c196-011
+I_MPI_FC=ifort
+SLURM_JOB_PARTITION=rtx-dev
+LOGNAME=USER
+ICC_LIB=/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64
+TACC_FAMILY_MPI=impi
+CONDA_PYTHON_EXE=/scratch1/06081/USER/miniconda3/bin/python
+XALT_SAMPLING=yes
+PYTHONPATH=/work2/06081/USER/frontera/workspace/install/Bindings/python:/work2/06081/USER/frontera/workspace/install/Bindings/python/
+CVS_RSH=ssh
+QTLIB=/usr/lib64/qt-3.3/lib
+LMOD_SETTARG_TITLE_BAR=yes
+SSH_CONNECTION=129.114.44.12 39278 129.114.44.101 22
+XDG_DATA_DIRS=/home1/06081/USER/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+CLASSPATH=:/work2/06081/USER/frontera/workspace/install/Runtime/compss-engine.jar:/work2/06081/USER/frontera/workspace/install/Runtime/compss-engine.jar
+SLURM_JOB_ACCOUNT=ASC21002
+MODULESHOME=/opt/apps/lmod/lmod
+SLURM_JOB_NUM_NODES=1
+__LMOD_REF_COUNT_LIBRARY_PATH=/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/../tbb/lib/intel64_lin/gcc4.4:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/lib/intel64_lin:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/tbb/lib/intel64/gcc4.7:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/lib/intel64_lin:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64_lin:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/ipp/lib/intel64:1
+LESSOPEN=||/usr/bin/lesspipe.sh %s
+LMOD_SETTARG_FULL_SUPPORT=yes
+__LMOD_REF_COUNT_LD_LIBRARY_PATH=/opt/apps/cuda/10.1/lib64:1;/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/intel64/lib:1;/opt/intel/debugger_2018/libipt/intel64/lib:1;/opt/intel/debugger_2018/iga/lib:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/../tbb/lib/intel64_lin/gcc4.4:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/daal/lib/intel64_lin:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/tbb/lib/intel64/gcc4.7:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/lib/intel64_lin:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64_lin:2;/opt/intel/compilers_and_libraries_2018.5.274/linux/ipp/lib/intel64:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/compiler/lib/intel64:1;/opt/apps/gcc/6.3.0/lib64:1;/opt/apps/gcc/6.3.0/lib:1;/opt/apps/hwloc/1.11.12/lib:1;/opt/apps/pmix/3.1.4/lib:1
+COMPILER_PATH=/opt/apps/xalt/xalt/bin
+PKG_CONFIG_PATH=/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl/bin/pkgconfig
+OMP_NUM_THREADS=1
+MGPU_ROOT=/work/06081/USER/maverick2/moderngpu/src/
+PROMPT_COMMAND=${X_SET_TITLE_BAR:-:} "$USER@${SHOST}:${PWD/#$HOME/~}"
+__Init_Default_Modules=1
+CUB_ROOT=/work/06081/USER/maverick2/cub/
+LMOD_FAMILY_COMPILER=intel
+__LMOD_REF_COUNT_LD_PRELOAD=/opt/apps/xalt/xalt/lib64/libxalt_init.so:1
+TACC_IMPI_LIB=/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/intel64/lib
+DISPLAY=localhost:10.0
+XDG_RUNTIME_DIR=/run/user/853809
+TACC_FAMILY_MPI_VERSION=18.0.5
+__LMOD_REF_COUNT_INTEL_LICENSE_FILE=/home1/06081/USER/intel/licenses:1;/opt/intel/licenses:1;/opt/intel/compilers_and_libraries_2018.5.274/linux/licenses:1
+CC=icc
+TACC_AUTOTOOLS_BIN=/opt/apps/autotools/1.2/bin
+ARCHIVE=/home/06081/USER
+IDEV_PWD=/scratch1/06081/USER/sc21/Author-Kit
+LMOD_DIR=/opt/apps/lmod/lmod/libexec
+__LMOD_REF_COUNT_MANPATH=/opt/apps/cuda/10.1/doc/man:1;/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi/man:1;/opt/intel/documentation_2018/en/man/common:1;/opt/intel/documentation_2018/en/debugger/gdb-igfx/man:1;/opt/intel/documentation_2018/en/debugger/gdb-ia/man:1;/usr/local/man:1;/usr/share/man:2;/usr/X11R6/man:1;/usr/kerberos/man:1;/usr/man:1;/opt/apps/pmix/3.1.4/share/man:1;/opt/apps/git/2.24.1/share/man:1;/usr/local/share/man:1;/opt/ddn/ime/share/man:2
+INCLUDE=/opt/apps/cuda/10.1/include
+_ModuleTable006_=bnRlbDE4L21vZHVsZWZpbGVzIiwiL29wdC9hcHBzL21vZHVsZWZpbGVzIix9LFsic3lzdGVtQmFzZU1QQVRIIl09Ii9vcHQvYXBwcy9tb2R1bGVmaWxlcyIsfQ==
+DEBUG=0
+__LMOD_Priority_PATH=/opt/apps/xalt/xalt/bin:-100
+GIT_EXEC_PATH=/opt/apps/git/2.24.1/libexec/git-core
+TACC_MPI_GETMODE=impi_hydra
+SLURM_TACC_NNODES_SET=1
+TACC_MKL_DIR=/opt/intel/compilers_and_libraries_2018.5.274/linux/mkl
+LMOD_FAMILY_MPI=impi
+SCRATCH=/scratch1/06081/USER
+SLURM_TACC_CORES=16
+WORK2=/work2/06081/USER/frontera
+TACC_CMAKE_DIR=/opt/apps/cmake/3.16.1
+I_MPI_ROOT=/opt/intel/compilers_and_libraries_2018.6.288/linux/mpi
+BASH_FUNC_sbatch()=() {  echo -e "\nNOTIFICATION: sbatch not available on compute nodes. Use a login node.\n"
+}
+BASH_FUNC_module()=() {  if [ -z "${LMOD_SH_DBG_ON+x}" ]; then
+ case "$-" in 
+ *v*x*)
+ __lmod_sh_dbg='vx'
+ ;;
+ *v*)
+ __lmod_sh_dbg='v'
+ ;;
+ *x*)
+ __lmod_sh_dbg='x'
+ ;;
+ esac;
+ fi;
+ if [ -n "${__lmod_sh_dbg:-}" ]; then
+ set +$__lmod_sh_dbg;
+ echo "Shell debugging temporarily silenced: export LMOD_SH_DBG_ON=1 for Lmod's output" 1>&2;
+ fi;
+ eval $($LMOD_CMD bash "$@") && eval $(${LMOD_SETTARG_CMD:-:} -s sh);
+ __lmod_my_status=$?;
+ if [ -n "${__lmod_sh_dbg:-}" ]; then
+ echo "Shell debugging restarted" 1>&2;
+ set -$__lmod_sh_dbg;
+ unset __lmod_sh_dbg;
+ fi;
+ return $__lmod_my_status
+}
+BASH_FUNC_ml()=() {  eval $($LMOD_DIR/ml_cmd "$@")
+}
++ lsb_release -a
+LSB Version:	:core-4.1-amd64:core-4.1-noarch:cxx-4.1-amd64:cxx-4.1-noarch:desktop-4.1-amd64:desktop-4.1-noarch:languages-4.1-amd64:languages-4.1-noarch:printing-4.1-amd64:printing-4.1-noarch
+Distributor ID:	CentOS
+Description:	CentOS Linux release 7.8.2003 (Core)
+Release:	7.8.2003
+Codename:	Core
++ uname -a
+Linux c196-011.frontera.tacc.utexas.edu 3.10.0-1127.13.1.el7.x86_64 #1 SMP Tue Jun 23 15:46:38 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
++ lscpu
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                32
+On-line CPU(s) list:   0-31
+Thread(s) per core:    2
+Core(s) per socket:    8
+Socket(s):             2
+NUMA node(s):          2
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 79
+Model name:            Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz
+Stepping:              1
+CPU MHz:               2761.761
+CPU max MHz:           3000.0000
+CPU min MHz:           1200.0000
+BogoMIPS:              4199.95
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              20480K
+NUMA node0 CPU(s):     0-7,16-23
+NUMA node1 CPU(s):     8-15,24-31
+Flags:                 fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb cat_l3 cdp_l3 invpcid_single intel_ppin intel_pt ssbd ibrs ibpb stibp tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm cqm rdt_a rdseed adx smap xsaveopt cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local dtherm ida arat pln pts md_clear spec_ctrl intel_stibp flush_l1d
++ cat /proc/meminfo
+MemTotal:       131729936 kB
+MemFree:        127660936 kB
+MemAvailable:   127141548 kB
+Buffers:               0 kB
+Cached:           149924 kB
+SwapCached:            0 kB
+Active:           135260 kB
+Inactive:         120912 kB
+Active(anon):     106344 kB
+Inactive(anon):    53760 kB
+Active(file):      28916 kB
+Inactive(file):    67152 kB
+Unevictable:           0 kB
+Mlocked:               0 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:                 0 kB
+Writeback:             0 kB
+AnonPages:        106348 kB
+Mapped:            64528 kB
+Shmem:             53856 kB
+Slab:            2136260 kB
+SReclaimable:     182936 kB
+SUnreclaim:      1953324 kB
+KernelStack:       11120 kB
+PageTables:         8620 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    65864968 kB
+Committed_AS:     544700 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:      780472 kB
+VmallocChunk:   34291765244 kB
+Percpu:            11904 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:     20480 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+DirectMap4k:    36743784 kB
+DirectMap2M:    95244288 kB
+DirectMap1G:     4194304 kB
++ inxi -F -c0
+./collect_environment.sh: line 14: inxi: command not found
++ lsblk -a
+NAME              MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+sda                 8:0    0 223.6G  0 disk 
+├─sda1              8:1    0     1M  0 part 
+├─sda2              8:2    0     1G  0 part /boot
+└─sda3              8:3    0 222.6G  0 part 
+  ├─rootvg01-lv01 253:0    0   100G  0 lvm  /
+  ├─rootvg01-var  253:1    0     4G  0 lvm  /var
+  └─rootvg01-tmp  253:2    0 118.6G  0 lvm  /tmp
+loop0               7:0    0         0 loop 
+loop1               7:1    0         1 loop 
+loop2               7:2    0         1 loop 
+loop3               7:3    0         1 loop 
+loop4               7:4    0         1 loop 
+loop5               7:5    0         0 loop 
+loop6               7:6    0         0 loop 
+loop7               7:7    0         0 loop 
+loop8               7:8    0         0 loop 
+loop9               7:9    0         0 loop 
+loop100             7:100  0         0 loop 
+loop101             7:101  0         0 loop 
+loop102             7:102  0         0 loop 
+loop103             7:103  0         0 loop 
+loop104             7:104  0         0 loop 
+loop105             7:105  0         0 loop 
+loop106             7:106  0         0 loop 
+loop107             7:107  0         0 loop 
+loop108             7:108  0         0 loop 
+loop109             7:109  0         0 loop 
+loop110             7:110  0         0 loop 
+loop111             7:111  0         0 loop 
+loop112             7:112  0         0 loop 
+loop113             7:113  0         0 loop 
+loop114             7:114  0         0 loop 
+loop115             7:115  0         0 loop 
+loop116             7:116  0         0 loop 
+loop117             7:117  0         0 loop 
+loop118             7:118  0         0 loop 
+loop119             7:119  0         0 loop 
+loop120             7:120  0         0 loop 
+loop121             7:121  0         0 loop 
+loop122             7:122  0         0 loop 
+loop123             7:123  0         0 loop 
+loop124             7:124  0         0 loop 
+loop125             7:125  0         0 loop 
+loop126             7:126  0         0 loop 
+loop127             7:127  0         0 loop 
+loop128             7:128  0         0 loop 
+loop129             7:129  0         0 loop 
+loop130             7:130  0         0 loop 
+loop131             7:131  0         0 loop 
+loop132             7:132  0         0 loop 
+loop133             7:133  0         0 loop 
+loop134             7:134  0         0 loop 
+loop135             7:135  0         0 loop 
+loop136             7:136  0         0 loop 
+loop137             7:137  0         0 loop 
+loop138             7:138  0         0 loop 
+loop139             7:139  0         0 loop 
+loop140             7:140  0         0 loop 
+loop141             7:141  0         0 loop 
+loop142             7:142  0         0 loop 
+loop143             7:143  0         0 loop 
+loop144             7:144  0         0 loop 
+loop145             7:145  0         0 loop 
+loop146             7:146  0         0 loop 
+loop147             7:147  0         0 loop 
+loop148             7:148  0         0 loop 
+loop149             7:149  0         0 loop 
+loop150             7:150  0         0 loop 
+loop151             7:151  0         0 loop 
+loop152             7:152  0         0 loop 
+loop153             7:153  0         0 loop 
+loop154             7:154  0         0 loop 
+loop155             7:155  0         0 loop 
+loop156             7:156  0         0 loop 
+loop157             7:157  0         0 loop 
+loop158             7:158  0         0 loop 
+loop159             7:159  0         0 loop 
+loop160             7:160  0         0 loop 
+loop161             7:161  0         0 loop 
+loop162             7:162  0         0 loop 
+loop163             7:163  0         0 loop 
+loop164             7:164  0         0 loop 
+loop165             7:165  0         0 loop 
+loop166             7:166  0         0 loop 
+loop167             7:167  0         0 loop 
+loop168             7:168  0         0 loop 
+loop169             7:169  0         0 loop 
+loop170             7:170  0         0 loop 
+loop171             7:171  0         0 loop 
+loop172             7:172  0         0 loop 
+loop173             7:173  0         0 loop 
+loop174             7:174  0         0 loop 
+loop175             7:175  0         0 loop 
+loop176             7:176  0         0 loop 
+loop177             7:177  0         0 loop 
+loop178             7:178  0         0 loop 
+loop179             7:179  0         0 loop 
+loop180             7:180  0         0 loop 
+loop181             7:181  0         0 loop 
+loop182             7:182  0         0 loop 
+loop183             7:183  0         0 loop 
+loop184             7:184  0         0 loop 
+loop185             7:185  0         0 loop 
+loop186             7:186  0         0 loop 
+loop187             7:187  0         0 loop 
+loop188             7:188  0         0 loop 
+loop189             7:189  0         0 loop 
+loop190             7:190  0         0 loop 
+loop191             7:191  0         0 loop 
+loop192             7:192  0         0 loop 
+loop193             7:193  0         0 loop 
+loop194             7:194  0         0 loop 
+loop195             7:195  0         0 loop 
+loop196             7:196  0         0 loop 
+loop197             7:197  0         0 loop 
+loop198             7:198  0         0 loop 
+loop199             7:199  0         0 loop 
+loop200             7:200  0         0 loop 
+loop201             7:201  0         0 loop 
+loop202             7:202  0         0 loop 
+loop203             7:203  0         0 loop 
+loop204             7:204  0         0 loop 
+loop205             7:205  0         0 loop 
+loop206             7:206  0         0 loop 
+loop207             7:207  0         0 loop 
+loop208             7:208  0         0 loop 
+loop209             7:209  0         0 loop 
+loop210             7:210  0         0 loop 
+loop211             7:211  0         0 loop 
+loop212             7:212  0         0 loop 
+loop213             7:213  0         0 loop 
+loop214             7:214  0         0 loop 
+loop215             7:215  0         0 loop 
+loop216             7:216  0         0 loop 
+loop217             7:217  0         0 loop 
+loop218             7:218  0         0 loop 
+loop219             7:219  0         0 loop 
+loop220             7:220  0         0 loop 
+loop221             7:221  0         0 loop 
+loop222             7:222  0         0 loop 
+loop223             7:223  0         0 loop 
+loop224             7:224  0         0 loop 
+loop225             7:225  0         0 loop 
+loop226             7:226  0         0 loop 
+loop227             7:227  0         0 loop 
+loop228             7:228  0         0 loop 
+loop229             7:229  0         0 loop 
+loop230             7:230  0         0 loop 
+loop231             7:231  0         0 loop 
+loop232             7:232  0         0 loop 
+loop233             7:233  0         0 loop 
+loop234             7:234  0         0 loop 
+loop235             7:235  0         0 loop 
+loop236             7:236  0         0 loop 
+loop237             7:237  0         0 loop 
+loop238             7:238  0         0 loop 
+loop239             7:239  0         0 loop 
+loop240             7:240  0         0 loop 
+loop241             7:241  0         0 loop 
+loop242             7:242  0         0 loop 
+loop243             7:243  0         0 loop 
+loop244             7:244  0         0 loop 
+loop245             7:245  0         0 loop 
+loop246             7:246  0         0 loop 
+loop247             7:247  0         0 loop 
+loop248             7:248  0         0 loop 
+loop249             7:249  0         0 loop 
+loop250             7:250  0         0 loop 
+loop251             7:251  0         0 loop 
+loop252             7:252  0         0 loop 
+loop253             7:253  0         0 loop 
+loop254             7:254  0         0 loop 
+loop255             7:255  0         0 loop 
+loop256             7:256  0         0 loop 
+loop257             7:257  0         0 loop 
+loop258             7:258  0         0 loop 
+loop259             7:259  0         0 loop 
+loop260             7:260  0         0 loop 
+loop261             7:261  0         0 loop 
+loop262             7:262  0         0 loop 
+loop263             7:263  0         0 loop 
+loop264             7:264  0         0 loop 
+loop265             7:265  0         0 loop 
+loop266             7:266  0         0 loop 
+loop267             7:267  0         0 loop 
+loop268             7:268  0         0 loop 
+loop269             7:269  0         0 loop 
+loop270             7:270  0         0 loop 
+loop271             7:271  0         0 loop 
+loop272             7:272  0         0 loop 
+loop273             7:273  0         0 loop 
+loop274             7:274  0         0 loop 
+loop275             7:275  0         0 loop 
+loop276             7:276  0         0 loop 
+loop277             7:277  0         0 loop 
+loop278             7:278  0         0 loop 
+loop279             7:279  0         0 loop 
+loop280             7:280  0         0 loop 
+loop281             7:281  0         0 loop 
+loop282             7:282  0         0 loop 
+loop283             7:283  0         0 loop 
+loop284             7:284  0         0 loop 
+loop285             7:285  0         0 loop 
+loop286             7:286  0         0 loop 
+loop287             7:287  0         0 loop 
+loop288             7:288  0         0 loop 
+loop289             7:289  0         0 loop 
+loop290             7:290  0         0 loop 
+loop291             7:291  0         0 loop 
+loop292             7:292  0         0 loop 
+loop293             7:293  0         0 loop 
+loop294             7:294  0         0 loop 
+loop295             7:295  0         0 loop 
+loop296             7:296  0         0 loop 
+loop297             7:297  0         0 loop 
+loop298             7:298  0         0 loop 
+loop299             7:299  0         0 loop 
+loop300             7:300  0         0 loop 
+loop301             7:301  0         0 loop 
+loop302             7:302  0         0 loop 
+loop303             7:303  0         0 loop 
+loop304             7:304  0         0 loop 
+loop305             7:305  0         0 loop 
+loop306             7:306  0         0 loop 
+loop307             7:307  0         0 loop 
+loop308             7:308  0         0 loop 
+loop309             7:309  0         0 loop 
+loop310             7:310  0         0 loop 
+loop311             7:311  0         0 loop 
+loop312             7:312  0         0 loop 
+loop313             7:313  0         0 loop 
+loop314             7:314  0         0 loop 
+loop315             7:315  0         0 loop 
+loop316             7:316  0         0 loop 
+loop317             7:317  0         0 loop 
+loop318             7:318  0         0 loop 
+loop319             7:319  0         0 loop 
+loop320             7:320  0         0 loop 
+loop321             7:321  0         0 loop 
+loop322             7:322  0         0 loop 
+loop323             7:323  0         0 loop 
+loop324             7:324  0         0 loop 
+loop325             7:325  0         0 loop 
+loop326             7:326  0         0 loop 
+loop327             7:327  0         0 loop 
+loop328             7:328  0         0 loop 
+loop329             7:329  0         0 loop 
+loop330             7:330  0         0 loop 
+loop331             7:331  0         0 loop 
+loop332             7:332  0         0 loop 
+loop333             7:333  0         0 loop 
+loop334             7:334  0         0 loop 
+loop335             7:335  0         0 loop 
+loop336             7:336  0         0 loop 
+loop337             7:337  0         0 loop 
+loop338             7:338  0         0 loop 
+loop339             7:339  0         0 loop 
+loop340             7:340  0         0 loop 
+loop341             7:341  0         0 loop 
+loop342             7:342  0         0 loop 
+loop343             7:343  0         0 loop 
+loop344             7:344  0         0 loop 
+loop345             7:345  0         0 loop 
+loop346             7:346  0         0 loop 
+loop347             7:347  0         0 loop 
+loop348             7:348  0         0 loop 
+loop349             7:349  0         0 loop 
+loop350             7:350  0         0 loop 
+loop351             7:351  0         0 loop 
+loop352             7:352  0         0 loop 
+loop353             7:353  0         0 loop 
+loop354             7:354  0         0 loop 
+loop355             7:355  0         0 loop 
+loop356             7:356  0         0 loop 
+loop357             7:357  0         0 loop 
+loop358             7:358  0         0 loop 
+loop359             7:359  0         0 loop 
+loop360             7:360  0         0 loop 
+loop361             7:361  0         0 loop 
+loop362             7:362  0         0 loop 
+loop363             7:363  0         0 loop 
+loop364             7:364  0         0 loop 
+loop365             7:365  0         0 loop 
+loop366             7:366  0         0 loop 
+loop367             7:367  0         0 loop 
+loop368             7:368  0         0 loop 
+loop369             7:369  0         0 loop 
+loop370             7:370  0         0 loop 
+loop371             7:371  0         0 loop 
+loop372             7:372  0         0 loop 
+loop373             7:373  0         0 loop 
+loop374             7:374  0         0 loop 
+loop375             7:375  0         0 loop 
+loop376             7:376  0         0 loop 
+loop377             7:377  0         0 loop 
+loop378             7:378  0         0 loop 
+loop379             7:379  0         0 loop 
+loop380             7:380  0         0 loop 
+loop381             7:381  0         0 loop 
+loop382             7:382  0         0 loop 
+loop383             7:383  0         0 loop 
+loop384             7:384  0         0 loop 
+loop385             7:385  0         0 loop 
+loop386             7:386  0         0 loop 
+loop387             7:387  0         0 loop 
+loop388             7:388  0         0 loop 
+loop389             7:389  0         0 loop 
+loop390             7:390  0         0 loop 
+loop391             7:391  0         0 loop 
+loop392             7:392  0         0 loop 
+loop393             7:393  0         0 loop 
+loop394             7:394  0         0 loop 
+loop395             7:395  0         0 loop 
+loop396             7:396  0         0 loop 
+loop397             7:397  0         0 loop 
+loop398             7:398  0         0 loop 
+loop399             7:399  0         0 loop 
+loop400             7:400  0         0 loop 
+loop401             7:401  0         0 loop 
+loop402             7:402  0         0 loop 
+loop403             7:403  0         0 loop 
+loop404             7:404  0         0 loop 
+loop405             7:405  0         0 loop 
+loop406             7:406  0         0 loop 
+loop407             7:407  0         0 loop 
+loop408             7:408  0         0 loop 
+loop409             7:409  0         0 loop 
+loop410             7:410  0         0 loop 
+loop411             7:411  0         0 loop 
+loop412             7:412  0         0 loop 
+loop413             7:413  0         0 loop 
+loop414             7:414  0         0 loop 
+loop415             7:415  0         0 loop 
+loop416             7:416  0         0 loop 
+loop417             7:417  0         0 loop 
+loop418             7:418  0         0 loop 
+loop419             7:419  0         0 loop 
+loop420             7:420  0         0 loop 
+loop421             7:421  0         0 loop 
+loop422             7:422  0         0 loop 
+loop423             7:423  0         0 loop 
+loop424             7:424  0         0 loop 
+loop425             7:425  0         0 loop 
+loop426             7:426  0         0 loop 
+loop427             7:427  0         0 loop 
+loop428             7:428  0         0 loop 
+loop429             7:429  0         0 loop 
+loop430             7:430  0         0 loop 
+loop431             7:431  0         0 loop 
+loop432             7:432  0         0 loop 
+loop433             7:433  0         0 loop 
+loop434             7:434  0         0 loop 
+loop435             7:435  0         0 loop 
+loop436             7:436  0         0 loop 
+loop437             7:437  0         0 loop 
+loop438             7:438  0         0 loop 
+loop439             7:439  0         0 loop 
+loop440             7:440  0         0 loop 
+loop441             7:441  0         0 loop 
+loop442             7:442  0         0 loop 
+loop443             7:443  0         0 loop 
+loop444             7:444  0         0 loop 
+loop445             7:445  0         0 loop 
+loop446             7:446  0         0 loop 
+loop447             7:447  0         0 loop 
+loop448             7:448  0         0 loop 
+loop449             7:449  0         0 loop 
+loop450             7:450  0         0 loop 
+loop451             7:451  0         0 loop 
+loop452             7:452  0         0 loop 
+loop453             7:453  0         0 loop 
+loop454             7:454  0         0 loop 
+loop455             7:455  0         0 loop 
+loop456             7:456  0         0 loop 
+loop457             7:457  0         0 loop 
+loop458             7:458  0         0 loop 
+loop459             7:459  0         0 loop 
+loop460             7:460  0         0 loop 
+loop461             7:461  0         0 loop 
+loop462             7:462  0         0 loop 
+loop463             7:463  0         0 loop 
+loop464             7:464  0         0 loop 
+loop465             7:465  0         0 loop 
+loop466             7:466  0         0 loop 
+loop467             7:467  0         0 loop 
+loop468             7:468  0         0 loop 
+loop469             7:469  0         0 loop 
+loop470             7:470  0         0 loop 
+loop471             7:471  0         0 loop 
+loop472             7:472  0         0 loop 
+loop473             7:473  0         0 loop 
+loop474             7:474  0         0 loop 
+loop475             7:475  0         0 loop 
+loop476             7:476  0         0 loop 
+loop477             7:477  0         0 loop 
+loop478             7:478  0         0 loop 
+loop479             7:479  0         0 loop 
+loop480             7:480  0         0 loop 
+loop481             7:481  0         0 loop 
+loop482             7:482  0         0 loop 
+loop483             7:483  0         0 loop 
+loop484             7:484  0         0 loop 
+loop485             7:485  0         0 loop 
+loop486             7:486  0         0 loop 
+loop487             7:487  0         0 loop 
+loop488             7:488  0         0 loop 
+loop489             7:489  0         0 loop 
+loop490             7:490  0         0 loop 
+loop491             7:491  0         0 loop 
+loop492             7:492  0         0 loop 
+loop493             7:493  0         0 loop 
+loop494             7:494  0         0 loop 
+loop495             7:495  0         0 loop 
+loop496             7:496  0         0 loop 
+loop497             7:497  0         0 loop 
+loop498             7:498  0         0 loop 
+loop499             7:499  0         0 loop 
+loop500             7:500  0         0 loop 
+loop501             7:501  0         0 loop 
+loop502             7:502  0         0 loop 
+loop503             7:503  0         0 loop 
+loop504             7:504  0         0 loop 
+loop505             7:505  0         0 loop 
+loop506             7:506  0         0 loop 
+loop507             7:507  0         0 loop 
+loop508             7:508  0         0 loop 
+loop509             7:509  0         0 loop 
+loop510             7:510  0         0 loop 
+loop511             7:511  0         0 loop 
+loop10              7:10   0         0 loop 
+loop11              7:11   0         0 loop 
+loop12              7:12   0         0 loop 
+loop13              7:13   0         0 loop 
+loop14              7:14   0         0 loop 
+loop15              7:15   0         0 loop 
+loop16              7:16   0         0 loop 
+loop17              7:17   0         0 loop 
+loop18              7:18   0         0 loop 
+loop19              7:19   0         0 loop 
+loop20              7:20   0         0 loop 
+loop21              7:21   0         0 loop 
+loop22              7:22   0         0 loop 
+loop23              7:23   0         0 loop 
+loop24              7:24   0         0 loop 
+loop25              7:25   0         0 loop 
+loop26              7:26   0         0 loop 
+loop27              7:27   0         0 loop 
+loop28              7:28   0         0 loop 
+loop29              7:29   0         0 loop 
+loop30              7:30   0         0 loop 
+loop31              7:31   0         0 loop 
+loop32              7:32   0         0 loop 
+loop33              7:33   0         0 loop 
+loop34              7:34   0         0 loop 
+loop35              7:35   0         0 loop 
+loop36              7:36   0         0 loop 
+loop37              7:37   0         0 loop 
+loop38              7:38   0         0 loop 
+loop39              7:39   0         0 loop 
+loop40              7:40   0         0 loop 
+loop41              7:41   0         0 loop 
+loop42              7:42   0         0 loop 
+loop43              7:43   0         0 loop 
+loop44              7:44   0         0 loop 
+loop45              7:45   0         0 loop 
+loop46              7:46   0         0 loop 
+loop47              7:47   0         0 loop 
+loop48              7:48   0         0 loop 
+loop49              7:49   0         0 loop 
+loop50              7:50   0         0 loop 
+loop51              7:51   0         0 loop 
+loop52              7:52   0         0 loop 
+loop53              7:53   0         0 loop 
+loop54              7:54   0         0 loop 
+loop55              7:55   0         0 loop 
+loop56              7:56   0         0 loop 
+loop57              7:57   0         0 loop 
+loop58              7:58   0         0 loop 
+loop59              7:59   0         0 loop 
+loop60              7:60   0         0 loop 
+loop61              7:61   0         0 loop 
+loop62              7:62   0         0 loop 
+loop63              7:63   0         0 loop 
+loop64              7:64   0         0 loop 
+loop65              7:65   0         0 loop 
+loop66              7:66   0         0 loop 
+loop67              7:67   0         0 loop 
+loop68              7:68   0         0 loop 
+loop69              7:69   0         0 loop 
+loop70              7:70   0         0 loop 
+loop71              7:71   0         0 loop 
+loop72              7:72   0         0 loop 
+loop73              7:73   0         0 loop 
+loop74              7:74   0         0 loop 
+loop75              7:75   0         0 loop 
+loop76              7:76   0         0 loop 
+loop77              7:77   0         0 loop 
+loop78              7:78   0         0 loop 
+loop79              7:79   0         0 loop 
+loop80              7:80   0         0 loop 
+loop81              7:81   0         0 loop 
+loop82              7:82   0         0 loop 
+loop83              7:83   0         0 loop 
+loop84              7:84   0         0 loop 
+loop85              7:85   0         0 loop 
+loop86              7:86   0         0 loop 
+loop87              7:87   0         0 loop 
+loop88              7:88   0         0 loop 
+loop89              7:89   0         0 loop 
+loop90              7:90   0         0 loop 
+loop91              7:91   0         0 loop 
+loop92              7:92   0         0 loop 
+loop93              7:93   0         0 loop 
+loop94              7:94   0         0 loop 
+loop95              7:95   0         0 loop 
+loop96              7:96   0         0 loop 
+loop97              7:97   0         0 loop 
+loop98              7:98   0         0 loop 
+loop99              7:99   0         0 loop 
++ lsscsi -s
+[0:0:0:0]    disk    ATA      INTEL SSDSC2KB24 0100  /dev/sda    240GB
++ module list
++ '[' -z '' ']'
++ case "$-" in
++ __lmod_sh_dbg=x
++ '[' -n x ']'
++ set +x
+Shell debugging temporarily silenced: export LMOD_SH_DBG_ON=1 for Lmod's output
+
+Currently Loaded Modules:
+  1) git/2.24.1      3) cmake/3.16.1   5) hwloc/1.11.12   7) TACC           9) impi/18.0.5
+  2) autotools/1.2   4) pmix/3.1.4     6) xalt/2.10.2     8) intel/18.0.5  10) cuda/10.1   (g)
+
+  Where:
+   g:  built for GPU
+
+ 
+
+Shell debugging restarted
++ unset __lmod_sh_dbg
++ return 0
++ nvidia-smi
+Fri Jun  4 01:37:27 2021       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 460.32.03    Driver Version: 460.32.03    CUDA Version: 11.2     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Quadro RTX 5000     On   | 00000000:02:00.0 Off |                  Off |
+|  0%   31C    P8     7W / 230W |      0MiB / 16125MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  Quadro RTX 5000     On   | 00000000:03:00.0 Off |                  Off |
+|  0%   30C    P8     7W / 230W |      0MiB / 16125MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   2  Quadro RTX 5000     On   | 00000000:82:00.0 Off |                  Off |
+|  0%   32C    P8    13W / 230W |      0MiB / 16125MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   3  Quadro RTX 5000     On   | 00000000:83:00.0 Off |                  Off |
+|  0%   30C    P8     3W / 230W |      0MiB / 16125MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
++ lshw -short -quiet -sanitize
++ cat
+./collect_environment.sh: line 19: lshw: command not found
++ lspci
+./collect_environment.sh: line 19: lspci: command not found
