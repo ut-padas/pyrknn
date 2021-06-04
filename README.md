@@ -1,38 +1,33 @@
+## PYRKNN: A Distributed Randomized Projection Forest for KNN Graph Construction. 
 
-To build:
-- Change paths to dependencies in set_env.sh
-- Run make 
+In PyRKNN we provide support for All-Nearest-Neighbor searches for 32-bit floating point data both dense and sparse in CSR format. 
 
-Current build dependencies are: 
-
-Libraries: GSKNN, ModernGPU, Eigen
-
-Python: mpi4py, numpy, numba, cupy, scipy, sklearn, cython
-
-Main functions to perform an all-to-all nearest neighbor search are:
-- RKDForest.all_search()
-- RKDForest.overlap_search() 
 
 
 
 Installation Notes:
 --
-
-GPU Sparse Kernel requires <= CUDA/10.1. Several of the calls are deprecated in CUDA 11 and have a new interface. 
-
-Numba works on Frontera with CUDA/10.0
-
-Set: CUDA_HOME=$TACC_CUDA_DIR
-
-You might need to set: NUMBA_CUDA_DRIVER=/usr/lib64/libcuda.so.1
+The Python interface requires mpi4py, numpy, cupy, scipy, and numba. 
+Sklearn is required to run the examples and tests. 
 
 
-# TODO
-**Will**: Run max int32 problem Dense synthetic\
-**Will**: Strong scaling for largest 1B SIFT and 100M  SIFT runs,  dense CPU \
-**George/Ali**: Criteo \
-**George**: scalable correct synthetic sparse \
-**Chao**: GPU/CPU Dense discrepency, bug  
+
+At the moment, the code must be built with either full GPU & CPU support or only CPU support. 
+
+CPU Support requires: GSKNN, MKL, and Eigen. 
+GPU Support requires <= CUDA/10.1 (to build the Sparse Kernels), MODERN_GPU
+
+To build with only CPU support set the PYRKNN_USE_CUDA cuda flag to 0. 
+
+Directories to these dependencies must be set. See set_env.sh and set_env_cpu.sh for examples. 
+
+
+Additional Notes:
+----
+
+You might need to set: NUMBA_CUDA_DRIVER=/usr/lib64/libcuda.so.1 if running on Frontera. 
+
+
 
 
 
