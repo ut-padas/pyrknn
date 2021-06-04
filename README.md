@@ -19,7 +19,8 @@ Sklearn is required to run the examples and tests.
 
 At the moment, the code must be built with either full GPU & CPU support or only CPU support. 
 
-CPU Support requires: GSKNN (https://github.com/ChenhanYu/rnn) , MKL, and Eigen (https://gitlab.com/libeigen/eigen). 
+CPU Support requires: GSKNN (https://github.com/ChenhanYu/rnn) , MKL, and Eigen (https://gitlab.com/libeigen/eigen).
+
 GPU Support requires <= CUDA/10.1, moderngpu (https://moderngpu.github.io/intro.html) 
 
 To build with only CPU support set the PYRKNN_USE_CUDA=0. 
