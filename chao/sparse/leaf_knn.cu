@@ -223,7 +223,7 @@ void compute_distance(dvec<int> &Q_rowPtr, dvec<int> &Q_colIdx, dvec<float> &Q_v
       rowPtrQ, colIdxQ, valQ, nnzQ,
       rowPtrR, colIdxR, valR, nnzR,
       rowPtrD, colIdxD, valD, nnzD,
-      handle.info, handle.sparse, handle.mat, t_gemm, t_setup);
+      t_gemm, t_setup);
   sparse += 1.*nnzD/D.size();
   t.stop(); t_sss += t.elapsed_time();
 

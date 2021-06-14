@@ -3,8 +3,8 @@ LIB=libutil_new.so
 
 default: $(LIB)
 
-CC=g++ -std=c++11
-CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++11
+CC=g++ -std=c++14
+CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++14
 
 OBJS=rand.o timer.o timer_gpu.o print.o dprint.o copy.o 
 

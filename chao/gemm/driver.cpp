@@ -25,17 +25,71 @@ void init_random(SpMat &A, int M, int N, float sparsity) {
 }
 
 
-void gemm_ssd_gpu(int, int, int, int*, int*, float*, int, float*, float*);
-
 void gemm_gpu(int, int, int, const float*, const float*, float*);
 
-void test_gemm() {
-  int m = 7, n = 5, k = 9;
-  Mat A = Mat::Random(m, k), B = Mat::Random(k, n);
+void test_gemm(int m, int n, int k) {
+  Mat A = Mat::Random(k, m), B = Mat::Random(k, n);
   Mat C(m, n);
   gemm_gpu(m, n, k, A.data(), B.data(), C.data());
-  std::cout<<"Error of gemm(): "<<(C-A*B).norm()<<std::endl;
+  std::cout<<"Error of gemm_gpu: "<<(C-A.transpose()*B).norm()<<std::endl;
 }
+
+void gemm_sdd_gpu(int, int, int, int*, int*, float*, int, float*, float*);
+
+void test_gemm_sdd(int m, int n, int k, float sparsity) {
+
+  SpMat A(m, k);
+  init_random(A, m, k, sparsity);
+  //A.setIdentity();
+
+  Mat B = Mat::Random(k, n);
+  //Mat B = Mat::Identity(k, n);
+  Mat C = A * B;
+
+  Mat C_gpu(m, n);
+  gemm_sdd_gpu(m, n, k, A.outerIndexPtr(), A.innerIndexPtr(), A.valuePtr(), A.nonZeros(),
+      B.data(), C_gpu.data());
+ 
+  /*std::cout<<"A:\n"<<A<<"\n"
+    <<"B:\n"<<B<<"\n"
+    <<"C:\n"<<C<<"\n"
+    <<"C_gpu:\n"<<C_gpu<<"\n";
+    */
+  std::cout<<"Error of gemm_sdd_gpu: "<<(C-C_gpu).norm()<<"\n";
+}
+
+void gemm_sss_gpu(int, int, int, float,
+    int*, int*, float*, int, 
+    int*, int*, float*, int,
+    int*&, int*&, float*&, int&);
+
+void test_gemm_sss(int m, int n, int k, float sparsity) {
+  SpMat A(m, k);
+  init_random(A, m, k, sparsity);
+
+  SpMat B(k, n);
+  init_random(B, k, n, sparsity);
+
+  SpMat C = -2*A*B;
+
+  int *rowPtr, *colIdx, nnz;
+  float *val;
+
+  //std::cout<<"Before gemm_sss_gpu()"<<std::endl;
+  gemm_sss_gpu(m, n, k, -2.0,
+      A.outerIndexPtr(), A.innerIndexPtr(), A.valuePtr(), A.nonZeros(),
+      B.outerIndexPtr(), B.innerIndexPtr(), B.valuePtr(), B.nonZeros(),
+      rowPtr, colIdx, val, nnz);
+  //std::cout<<"After gemm_sss_gpu()"<<std::endl;
+
+  Eigen::Map<SpMat> C_gpu(m,n,nnz,rowPtr,colIdx,val);
+  std::cout<<"Error of gemm_sss_gpu: "<<(C-C_gpu).norm()<<"\n";
+
+  delete []rowPtr;
+  delete []colIdx;
+  delete []val;
+}
+
 
 int main(int argc, char *argv[]) {
   
@@ -62,28 +116,11 @@ int main(int argc, char *argv[]) {
            <<"k: "<<k<<std::endl
            <<"sparsity: "<<sparsity<<std::endl
            <<"======================\n\n";
-
-  SpMat A(m, k);
-  init_random(A, m, k, sparsity);
-  //A.setIdentity();
-
-  Mat B = Mat::Random(k, n);
-  //Mat B = Mat::Identity(k, n);
-  Mat C = A * B;
-
-  Mat C_gpu(m, n);
-  gemm_ssd_gpu(m, n, k, A.outerIndexPtr(), A.innerIndexPtr(), A.valuePtr(), A.nonZeros(),
-      B.data(), C_gpu.data());
-
   
-  /*std::cout<<"A:\n"<<A<<"\n"
-    <<"B:\n"<<B<<"\n"
-    <<"C:\n"<<C<<"\n"
-    <<"C_gpu:\n"<<C_gpu<<"\n";
-    */
-  std::cout<<"Error: "<<(C-C_gpu).norm()<<"\n";
+  test_gemm(m, n, k);
+  test_gemm_sdd(m, n, k, sparsity);
+  test_gemm_sss(m, n, k, sparsity);
 
-  test_gemm();
 
   return 0;
 }

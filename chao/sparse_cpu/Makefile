@@ -1,7 +1,7 @@
 
 EXE=driver
 LIB=libspknncpu.so
-OMP=OMP_NUM_THREADS=112 KMP_AFFINITY=compact
+OMP=OMP_NUM_THREADS=56 KMP_AFFINITY=compact
 
 DEP=../readSVM/libreadSVM_new.so 
 
@@ -11,7 +11,7 @@ DEBUG?=0
 BACKEND?=backend_eigen.cpp
 
 CFLAG=-Wall -I $(EIGEN_ROOT) -std=c++11 -shared -fPIC 
-LFLAG=-L./ -lspknncpu -L../readSVM/ -lreadSVM_new
+LFLAG=-L./ -lspknncpu -L../readSVM/ -lreadSVM_new 
 
 ifeq ($(DEBUG), 1)
   $(info ----------------------)
@@ -38,7 +38,7 @@ ifeq ($(findstring frontera,$(shell uname -n)),frontera)
   $(info -------------------------)
 	CC=icc
 	CFLAG+=-mkl -qopenmp -xCORE-AVX512
-	LFLAG+=-mkl -qopenmp
+	LFLAG+=-mkl -qopenmp #-ltbbmalloc_proxy
 	BACKEND=backend_mkl.cpp
 else
   $(info ---------------------------)
@@ -86,14 +86,14 @@ benchmark: $(EXE)
 	#$(EXE) -n 524288 -d 10000 -sparse 0.0001 -k 64 -t 1 -bl 10 -bp 64 -bt 1 -l 8
 	#$(EXE) -dataset test -k 64 -t 1 -bl 512 -bp 64 -bt 1 -l 8
 	#
-	#$(EXE) -dataset url -l 12 -k 64 -t 3 -bl 512 -bp 300 -bt 1
+	#$(EXE) -dataset url -l 10 -k 64 -t 3 -bl 512 -bp 300 -bt 1
 	#$(EXE) -dataset avazu -l 18 -k 5 -t 200 -bl 1024 -bp 256 -bt 1
 	#$(EXE) -dataset kdd -k 8
 	#$(EXE) -dataset criteo -k 8
-	#$(OMP) $(EXE) -dataset url -k 64 -l 10 -bt 1 -t 1
-	#$(OMP) $(EXE) -dataset avazu -l 16 -k 64 -bt 1 -t 3
-	#$(OMP) $(EXE) -dataset criteo -k 64 -l 15 -bt 1 -t 1
-	$(OMP) $(EXE) -dataset kdd -k 64 -l 13 -bt 1 -t 3
+	$(OMP) $(EXE) -dataset url -k 64 -l 10 -bt 1 -t 1
+	#$(OMP) $(EXE) -dataset avazu -l 14 -k 64 -bt 1 -t 3
+	#$(OMP) $(EXE) -dataset criteo -k 64 -l 14 -bt 1 -t 3
+	#$(OMP) $(EXE) -dataset kdd -k 64 -l 14 -bt 1 -t 3
 
 clean:
 	rm -f *.o $(EXE) $(LIB)

@@ -24,10 +24,10 @@ def submit(level, nThread, itr, data):
     f.writelines("#SBATCH -p %s\n" % machine)
     f.writelines("#SBATCH -N 1\n")
     f.writelines("#SBATCH -n 1\n")
-    f.writelines("#SBATCH -t 48:00:00\n")
+    f.writelines("#SBATCH -t 24:00:00\n")
     f.writelines("#SBATCH --mail-user=chenchao.nk@gmail.com\n")
     f.writelines("#SBATCH --mail-type=end\n")
-    f.writelines("hostname")
+    f.writelines("hostname\n")
     f.writelines("%s %s\n" % (OMP, CMD))
     
     #f.writelines("OMP_NUM_THREADS=%d ./driver -dataset url -l 64 -l %d -bt 1 -t 400\n" % nThread, level)
@@ -39,17 +39,17 @@ def submit(level, nThread, itr, data):
 
 if __name__ == '__main__':
 
-  #for level in range(13, 18):
-    #submit(level, 56, 500, 'avazu');
+  #for level in range(13, 17):
+   # submit(level, 56, 500, 'avazu');
   
-  #for level in range(9, 15):
-    #submit(level, 56, 500, 'url');
+  #for level in range(9, 14):
+   # submit(level, 56, 500, 'url');
   
-  #for level in range(12, 17):
-   # submit(level, 56, 10000, 'criteo');
+  for level in range(12, 17):
+    submit(level, 56, 10000, 'criteo');
   
-  for level in range(13, 15):
-    submit(level, 112, 10000, 'kdd');
+  #for level in range(12, 13):
+   # submit(level, 112, 1000, 'kdd');
   
   #for level in range(17, 18):
    # submit(level, 56, 2000, 'kdd');
@@ -61,6 +61,10 @@ if __name__ == '__main__':
   #for nt in [56, 32, 16, 8, 4, 2, 1]:
    # submit(11, nt, 5, 'url')
    # submit(10, nt, 5, 'url')
+    
+  #for nt in [56, 32, 16, 8, 4, 2, 1]:
+   # submit(13, nt, 5, 'criteo')
+   # submit(14, nt, 5, 'criteo')
     
     
   os.system("squeue -u chaochen")
