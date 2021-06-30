@@ -127,7 +127,7 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id, float* Norms, 
     int ind_tmp, row_tmp, col_tmp, read_j_Id, read_i_Id, ind_read_i, ind_read_j, nnz_j, ind_norm_i, ind_norm_j; 
     int i_tmp = i;
 
-    //for (int i_tmp = 0; i_tmp < m/2; i_tmp++){
+    for (int nnz_march = i; nnz_march < nnz_i; nnz_march += m){
  
       // for loop over the column points
       for (int j_tmp = 0; j_tmp < m+1; j_tmp++){
@@ -167,8 +167,8 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id, float* Norms, 
         for (int pos = 0; pos < nnz_j; pos++){
        		if (j < nnz_i){
             k = C[ind_read_j + pos];
-            //if (j < nnz_i && ind_g_j == 7 && ind_g_i == 7) printf(" c_i = %d, c_i = %d , %d , row_tmp = %d , row_Id=  %d \n", k, si[max_nnz * row_tmp + j], j, row_tmp, row_Id);
-            if (j < nnz_i) c_tmp[ind] += (k == si[max_nnz * row_tmp + j]) * V[ind_read_j + pos] * V[ind_read_i + j];
+
+            if (j < nnz_i) c_tmp[ind] += (k == si[max_nnz * row_tmp + j + nnz_march]) * V[ind_read_j + pos] * V[ind_read_i + j + nnz_march];
 
         }
         } 
@@ -203,7 +203,7 @@ __global__ void compute_dist(int* R, int* C, float* V, int* G_Id, float* Norms, 
         //__syncthreads();
                  
 }
-
+}
    
 }
 
