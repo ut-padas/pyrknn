@@ -44,7 +44,7 @@ typedef std::vector<unsigned> ivec;
 
 //reorder for pointer to array
 template <typename T>
-void gather(T *ID, const unsigned int *perm, const unsigned int n)
+void hgather(T *ID, const unsigned int *perm, const unsigned int n)
 {
     // Data type must be 4 bytes (e.g., float, int/unsigned).
     assert(sizeof(T) == sizeof(float));
@@ -52,7 +52,7 @@ void gather(T *ID, const unsigned int *perm, const unsigned int n)
     //Create temporary copy to store permutation
     T *copy = new T[n];
 
-    par::copy(n, (float *)ID, (float *)copy);
+    par::hcopy(n, (float *)ID, (float *)copy);
 #pragma omp parallel for
     for (size_t i = 0; i < n; i++)
         ID[i] = copy[perm[i]];
@@ -63,23 +63,23 @@ void gather(T *ID, const unsigned int *perm, const unsigned int n)
 
 //reorder for pointer to array, without allocation
 template <typename T>
-void gather(T *ID, const int *perm, const size_t n, T *copy)
+void hgather(T *ID, const int *perm, const size_t n, T *copy)
 {
     // Data type must be 4 bytes (e.g., float, int/unsigned).
     assert(sizeof(T) == sizeof(float));
 
     //Create temporary copy to store permutation
 
-    par::copy(n, (float *)ID, (float *)copy);
+    par::hcopy(n, (float *)ID, (float *)copy);
 #pragma omp parallel for
     for (size_t i = 0; i < n; i++)
         ID[i] = copy[perm[i]];
 }
 
-void gather(float* data, const int* perm, const int n, const int d){
+void hgather(float* data, const int* perm, const int n, const int d){
     float* copy = new float[n];
     for(int i = 0; i < d; i++){
-        par::copy(n, (float*) data + n*i, (float*) copy);
+        par::hcopy(n, (float*) data + n*i, (float*) copy);
 
         #pragma omp parallel for
         for(int j = 0; j < n; j++){
@@ -89,11 +89,11 @@ void gather(float* data, const int* perm, const int n, const int d){
 }
 
 //reorder for vectors
-void gather(ivec &order, const ivec &perm)
+void hgather(ivec &order, const ivec &perm)
 {
     size_t n = perm.size();
     ivec copy(n);
-    par::copy(n, (float *)order.data(), (float *)copy.data());
+    par::hcopy(n, (float *)order.data(), (float *)copy.data());
 #pragma omp parallel for
     for (size_t i = 0; i < n; i++)
         order[i] = copy[perm[i]];
@@ -102,11 +102,11 @@ void gather(ivec &order, const ivec &perm)
 //reorder for vectors
 
 template<typename T>
-void gather(T* order, const ivec &perm)
+void hgather(T* order, const ivec &perm)
 {
     size_t n = perm.size();
     ivec copy(n);
-    par::copy(n, (float *)order, (float *)copy.data());
+    par::hcopy(n, (float *)order, (float *)copy.data());
 
     #pragma omp parallel for
     for (size_t i = 0; i < n; i++)
@@ -144,20 +144,20 @@ void build_tree(float *X, unsigned *order, unsigned *firstPt, const unsigned int
     }
 
     // return offsets of leaf nodes
-    par::copy(firstPoint[L].size(), (float *)firstPoint[L].data(), (float *)firstPt);
+    par::hcopy(firstPoint[L].size(), (float *)firstPoint[L].data(), (float *)firstPt);
     //std::cout << firstPoint[L].size() << std::endl;
     // initial ordering
-    par::iota(order, order + n, 0);
+    par::hiota(order, order + n, 0);
     //print(order, n, "order");
     // permutation of one level
     ivec perm(n);
     for (size_t i = 0; i < L; i++)
     {
         // apply accumulated permutation of previous levels
-        gather(X + i * n, order, n);
+        hgather(X + i * n, order, n);
 
         // initialize permuation
-        par::iota(perm.begin(), perm.end(), 0);
+        par::hiota(perm.begin(), perm.end(), 0);
 
         // partition nodes at this level
         const ivec &offset = firstPoint[i];
@@ -172,7 +172,7 @@ void build_tree(float *X, unsigned *order, unsigned *firstPt, const unsigned int
             std::nth_element(&perm[offset[j]], &perm[(offset[j] + offset[j + 1]) / 2], &perm[offset[j + 1]],
                              [&X, i, n](unsigned a, unsigned b) { return X[a+i*n] < X[b+i*n]; });
         }
-        gather(order, perm);
+        hgather(order, perm);
     }
 }
 

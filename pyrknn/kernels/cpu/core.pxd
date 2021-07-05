@@ -1,7 +1,6 @@
 # distutils: language = c++
 
 from libcpp.vector cimport vector
-
 cdef extern from "impl/exact/exact.hpp" nogil:
     cdef void exact_knn(int, int, int, int*, int*, float*, int, int, int, int*, int*, float*, int*, int, int*, float*) except + 
 

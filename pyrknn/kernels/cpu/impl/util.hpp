@@ -13,7 +13,7 @@ int current_time_nanoseconds();
 namespace par {
 
 template <typename T>
-void compute_range(T n, T &from , T &to) {
+void hcompute_range(T n, T &from , T &to) {
   int tid = omp_get_thread_num();
   int nThread = omp_get_num_threads();
   T block = n / nThread;
@@ -24,41 +24,41 @@ void compute_range(T n, T &from , T &to) {
 
 
 template <typename T>
-void iota(T begin, T end, int val) {
+void hiota(T begin, T end, int val) {
 #pragma parallel
   {
     unsigned m = end - begin;
     unsigned from, to;
-    compute_range(m, from, to);
+    hcompute_range(m, from, to);
     std::iota(begin+from, begin+to, val+from);
   }
 }
 
 
 template <class UnaryOperation>
-void transform(const float *begin, const float *end, float *output, UnaryOperation op) {
+void htransform(const float *begin, const float *end, float *output, UnaryOperation op) {
 #pragma parallel
   {
     unsigned m = end - begin;
     unsigned from, to;
-    compute_range(m, from, to);
+    hcompute_range(m, from, to);
     std::transform(begin+from, begin+to, output+from, op);
   }
 }
 
 
 template <typename T>
-void fill(T begin, T end, int val) {
+void hfill(T begin, T end, int val) {
 #pragma parallel
   {
     unsigned m = end - begin;
     unsigned from, to;
-    compute_range(m, from, to);
+    hcompute_range(m, from, to);
     std::fill(begin+from, begin+to, val);
   }
 }
 
-void copy(unsigned n, float *src, float *dst) {
+void hcopy(unsigned n, float *src, float *dst) {
   cblas_scopy(n, src, 1, dst, 1);
 }
 

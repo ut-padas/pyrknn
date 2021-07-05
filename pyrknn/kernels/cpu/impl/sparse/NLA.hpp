@@ -7,7 +7,6 @@
 
 void orthonormalize(fMatrix&);
 
-
 void GEMM_SDD(Points &P, fMatrix &R, fMatrix &X);
   
 void GEMM_SDD(unsigned m, unsigned n, unsigned k, int *rowPtr, int *colIdx, float *val, 
