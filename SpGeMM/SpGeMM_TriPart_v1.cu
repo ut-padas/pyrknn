@@ -422,11 +422,11 @@ int main(int argc, char **argv)
     int *h_C, *d_C;
     int *h_R, *d_R;
     int *h_G_Id, *d_G_Id;
-    int M = 1024*2048;
-    int leaves = 2048;
+    int M = 1024*2048 * 4;
+    int leaves = 2048 * 4;
     d = 100000;
     int k = 32;
-    nnzperrow = 256;
+    nnzperrow = 64;
     int max_nnz = nnzperrow;
     int leaf_size = M / leaves; 
     
