@@ -22,15 +22,15 @@ endif()
 file(GLOB EXACT_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB EXACT_HDR ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
-add_library(exact STATIC ${EXACT_SRC})
+add_library(exact SHARED ${EXACT_SRC})
 
 target_include_directories(exact PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(exact PROPERTIES PUBLIC_HEADER "${EXACT_HDR}")
 set_target_properties(exact PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(exact PUBLIC ${EXACT_HDR})
 find_package(Eigen3)
-target_include_directories(exact PUBLIC ../../../../../extern/eigen/)
-target_include_directories(exact PUBLIC ../../../../../extern/eigen/Eigen/)
+target_include_directories(exact PUBLIC ../../../../../../extern/eigen/)
+target_include_directories(exact PUBLIC ../../../../../../extern/eigen/Eigen/)
 
 install(
         TARGETS exact

@@ -1,6 +1,6 @@
 [submodule "extern/gsknn"]
 	path = extern/gsknn
-	url = ../../ChenhanYu/rnn.git
+	url = ../../dialecticDolt/rnn.git
 [submodule "extern/eigen"]
 	path = extern/eigen
 	url = https://gitlab.com/libeigen/eigen

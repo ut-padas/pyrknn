@@ -12,6 +12,13 @@ find_package(Cython REQUIRED)
 #-- Look for MKL
 #set(BLA_VENDOR intel10_64lp) 
 find_package(BLAS REQUIRED)
+
+if (BLAS_FOUND)
+    link_libraries(${BLAS_LIBRARIES})
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS} -mkl_rt")
+endif()
+
+
 find_package(MPI REQUIRED)
 
 include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
@@ -25,11 +32,11 @@ if(OpenMP_FOUND)
 endif()
 
 #-- Install GSKNN
-find_package(GSKNN)
+#find_package(GSKNN)
 add_subdirectory(extern/gsknn)
 
 #-- Install CPU Dense & Sparse
-add_subdirectory(pyrknn/kernels/gpu/impl/readSVM)
-add_subdirectory(pyrknn/kernels/cpu/impl/exact)
-add_subdirectory(pyrknn/kernels/cpu/impl/sparse)
-add_subdirectory(pyrknn/kernels/cpu)
+add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)
+add_subdirectory(src/pyrknn/kernels/cpu/impl/exact)
+add_subdirectory(src/pyrknn/kernels/cpu/impl/sparse)
+add_subdirectory(src/pyrknn/kernels/cpu)

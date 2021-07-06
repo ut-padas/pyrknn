@@ -41,3 +41,4 @@ export DEBUG=1
 export PYRKNN_USE_CUDA=1
 export PROD=1
 
+export LD_PRELOAD=$CONDA_PREFIX/lib/libmkl_core.so:$CONDA_PREFIX/lib/libmkl_sequential.so:$CONDA_PREFIX/lib/libmkl_intel_lp64.so:$CONDA_PREFIX/lib/libmkl_avx512.so
