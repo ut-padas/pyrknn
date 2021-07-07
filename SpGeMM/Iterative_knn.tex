@@ -1,0 +1,59 @@
+\documentclass{article}
+
+
+%\input{preamble.tex}
+
+
+\usepackage{graphicx}
+
+%\input{tikz.tex}
+
+
+\begin{document}
+
+
+\section{Iterative $k$-nearest neighbor}
+
+In this algorithm, we do not use any temporary storage for storing distances. We fused the 
+distance calculation with the merge such that it marches over the distance matrix and updates the neighbors of the 
+points. Due to the symmetry of the matrix, we just go over half of the matrix. The general partitioning is as in the figure. 
+\begin{center}
+    \includegraphics[width=\textwidth]{figs/fig1.png}
+\end{center}
+    
+
+\begin{enumerate}
+    \item Triangular blocks : Since the points for each blocks are the same for 
+    columns and rows, we can take advantage of just one shared memory array. Moreover, the points for each 
+    block is independent of others and thus , we can update the neighbors for all blocks and leaves simultaneously. 
+    \item Square blocks : In order to choose the coloring of the blocks, at each iteration, we use a permutation of 
+    block Ids such that it was not repeated before. This is a one time preprocessing step that has been done sequentially.
+    This is the maximum number of blocks that we can update at each iteration 
+    such that the points do not interfere with each other. \\
+    \item Merging : In this kind of partitioning , by assuming $m$ to be the size of blocks , we have to sort a 
+    $2m$-sized array . The common bitonic sort need to have $2m$ number of threads to sort such an array. Note that 
+    at each iteration of the sorting , only $m$ number of task is performed. Thus, this tasks can be handled by $m$ 
+    number of threads if the correct indices is just assigned. Therefore, I have precomputed the 
+    indices for such a sort in exact number of steps sequentially and I used it through the code for all the blocks.  
+    Then, at each step of the sort , I can sort and merge both vertical and horizontal arrays for the blocks at the same time.  
+\end{enumerate}
+
+\subsection{Problems}
+\begin{enumerate}
+    \item High number of sorts rather than a big sort : around $75 \%$ of the time is for the merge part. 
+    \item At least $N-1$ iterations is needed where $N$ is $\frac{pointsperleaf}{m}$ ( commonly $m$ is 32).
+    \item Timings are worse than the temporary storing method that we build the whole matrix for some leaves 
+    and then merge it. I expected that this method will win for big number of $pointsperleaf$ , however it takes more time even 
+    in that part. 
+\end{enumerate}
+
+\subsection{Plan} 
+Probably a striped partitioning is better due to bigger array for merging rather than a square block i.e. below and use multiple 
+arrays for storing neighbors since I am using almost no gpu memory.   
+
+\begin{center}
+    \includegraphics[width=0.7\textwidth]{figs/fig2.png}
+\end{center}
+
+
+\end{document}
