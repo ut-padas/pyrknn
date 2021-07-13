@@ -4,7 +4,7 @@
 #-- Configure Modules (TACC)
 
 module load intel/18
-
+module load cuda
 
 #-- Configure GSKNN
 
@@ -35,7 +35,10 @@ export CUDA_HOME=$TACC_CUDA_LIB
 export GSKNN_DIR=$STOCKYARD/maverick2/rnn/
 export CUB_ROOT=$STOCKYARD/maverick2/cub/
 export MGPU_ROOT=$STOCKYARD/maverick2/moderngpu/src/
-export EIGEN_ROOT=$STOCKYARD/maverick2/eigen
+export EIGEN_ROOT=/maverick2/eigen
+
+
+export CUDA_ARCH="75"
 
 export DEBUG=1
 export PYRKNN_USE_CUDA=1
