@@ -11,7 +11,8 @@ import time
 
 import cython
 
-from core_sparse cimport *
+cdef extern from "impl/sparse/spknn.hpp" nogil:
+    cdef void spknn(int*, int*, int*, float*, int, int, int, int, int, int*, float*, int, int, int, int) except +
 
 def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     n, d = X.shape

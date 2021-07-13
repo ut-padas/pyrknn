@@ -3,7 +3,53 @@ cmake_minimum_required(VERSION 3.9.1)
 set(CMAKE_CXX_STANDARD 14)
 
 #--Setup Project
-project(pyrknn LANGUAGES C CXX)
+project(pyrknn LANGUAGES C CXX CUDA)
+
+#-- Define Macros
+
+macro(subdirlist result curdir)
+    file(GLOB children RELATIVE ${curdir} ${curdir}/*)
+    set(dirlist "")
+    foreach(child ${children})
+        if(IS_DIRECTORY ${curdir}/${child})
+            list(APPEND dirlist ${child})
+        endif()
+    endforeach()
+    set(${result} ${dirlist})
+endmacro()
+
+macro(descend_headers return_list)
+    file(GLOB_RECURSE new_list *.h)
+    set(dir_list "")
+    foreach(file_path ${new_list})
+        get_filename_component(dir_Path ${file_path} PATH)
+        set(dir_list ${dir_list} ${dir_path})
+    endforeach()
+    list(REMOVE_DUPLICATES dir_list)
+    set(${return_list} ${dir_list})
+endmacro()
+
+macro(descend_shared return_list)
+    file(GLOB_RECURSE new_list *.so)
+    set(dir_list "")
+    foreach(file_path ${new_list})
+        get_filename_component(dir_Path ${file_path} PATH)
+        set(dir_list ${dir_list} ${dir_path})
+    endforeach()
+    list(REMOVE_DUPLICATES dir_list)
+    set(${return_list} ${dir_list})
+endmacro()
+
+macro(descend_static return_list)
+    file(GLOB_RECURSE new_list *.a)
+    set(dir_list "")
+    foreach(file_path ${new_list})
+        get_filename_component(dir_Path ${file_path} PATH)
+        set(dir_list ${dir_list} ${dir_path})
+    endforeach()
+    list(REMOVE_DUPLICATES dir_list)
+    set(${return_list} ${dir_list})
+endmacro()
 
 #-- Look for Required Python/Cython 
 find_package(PythonExtensions REQUIRED)
@@ -11,17 +57,18 @@ find_package(Cython REQUIRED)
 
 #-- Look for MKL
 #set(BLA_VENDOR intel10_64lp) 
+#TODO: Ensure MKL is found (not openblas due to sparse library requirement)
 find_package(BLAS REQUIRED)
 
 if (BLAS_FOUND)
     link_libraries(${BLAS_LIBRARIES})
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS} -mkl_rt")
+    #This is still missing something.... currently need to Preload with mkl Python modules. 
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 endif()
 
-
+#-- Look for MPI
+# Note: This is currenntly required
 find_package(MPI REQUIRED)
-
-include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
 
 #--
 find_package(OpenMP)
@@ -37,6 +84,14 @@ add_subdirectory(extern/gsknn)
 
 #-- Install CPU Dense & Sparse
 add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)
-add_subdirectory(src/pyrknn/kernels/cpu/impl/exact)
-add_subdirectory(src/pyrknn/kernels/cpu/impl/sparse)
 add_subdirectory(src/pyrknn/kernels/cpu)
+
+#--Install GPU Dense & Sparse
+add_subdirectory(src/pyrknn/kernels/gpu)
+
+
+
+
+
+
+

@@ -7,7 +7,7 @@ import scipy as sp
 from ...kernels.cpu import core as cpu
 
 if os.environ["PYRKNN_USE_CUDA"] == '1':
-    from ...kernels.gpu import core as gpu
+    from ...kernels.gpu import core_gpu as gpu
     from ...kernels.gpu import core_sparse as gpu_sparse
     from numba import cuda
     import cupy as cp

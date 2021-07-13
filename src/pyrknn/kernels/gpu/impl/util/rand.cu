@@ -2,8 +2,6 @@
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 #include <thrust/iterator/counting_iterator.h>
-#include <thrust/random/linear_congruential_engine.h>
-#include <thrust/random/normal_distribution.h>
 
 struct prg : public thrust::unary_function<unsigned int, float> {
   float a, b;
@@ -13,11 +11,8 @@ struct prg : public thrust::unary_function<unsigned int, float> {
 
   __host__ __device__
   float operator()(const unsigned int n) const {
-    thrust::minstd_rand rng;
-    thrust::random::normal_distribution<float> dist(a, b);
-
-    //thrust::default_random_engine rng;
-    //thrust::uniform_real_distribution<float> dist(a, b);
+    thrust::default_random_engine rng;
+    thrust::uniform_real_distribution<float> dist(a, b);
     rng.discard(n);
     return dist(rng);
   }

@@ -28,9 +28,11 @@ target_include_directories(exact PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(exact PROPERTIES PUBLIC_HEADER "${EXACT_HDR}")
 set_target_properties(exact PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(exact PUBLIC ${EXACT_HDR})
-find_package(Eigen3)
+target_include_directories(exact PUBLIC ${MPI_C_INCLUDE_PATH})
 target_include_directories(exact PUBLIC ../../../../../../extern/eigen/)
 target_include_directories(exact PUBLIC ../../../../../../extern/eigen/Eigen/)
+
+target_link_libraries(exact ${MPI_C_LIBRARIES})
 
 install(
         TARGETS exact

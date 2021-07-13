@@ -3,7 +3,7 @@ find_package(BLAS REQUIRED)
 find_package(MPI REQUIRED)
 
 
-include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
+#include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
 
 find_package(OpenMP)
 if(OpenMP_FOUND)

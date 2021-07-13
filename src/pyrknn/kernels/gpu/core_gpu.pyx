@@ -11,7 +11,11 @@ import time
 
 import cython
 
-from core cimport *
+from libcpp cimport bool
+
+cdef extern from "impl/dense/denknn.hpp" nogil:
+    cdef void denknn(int*, float*, int, int, int, int, int*, float*, int, int, int) except +
+    cdef void merge_neighbors_python(float*, int*, float*, int*, int, int, int, int) except +
 
 def dense_knn(gids, X, levels, ntrees, k, blocksize, device):
    

@@ -66,16 +66,16 @@ SpMat read_dataset(std::string dataset) {
   Timer t; t.start();
   if (dataset.compare("url")==0)
     //P = read_csr_binary("/scratch/06108/chaochen/url_1day_csr.bin");
-    P = read_csr_binary("/scratch1/06081/wlruys/datasets/url/url_122day_csr.bin");
-    //P = read_csr_binary("/scratch1/06081/wlruys/datasets/url/url_csr.bin");
+    //P = read_csr_binary("/scratch/06108/chaochen/url_10day_csr.bin");
+    //P = read_csr_binary("/scratch/06108/chaochen/url_csr.bin");
+    P = read_csr_binary("/work/06108/chaochen/shared/url_csr.bin");
   else if (dataset.compare("avazu")==0)
-    P = read_csr_binary("/scratch1/06081/wlruys/datasets/avazu/avazu_real_csr.bin");
-  else if (dataset.compare("avazu_small")==0)
-    P = read_csr_binary("/scratch1/06081/wlruys/datasets/avazu/avazu_small_csr.bin");
-  else if (dataset.compare("avazu_t")==0)
-    P = read_csr_binary("/scratch1/06081/wlruys/datasets/avazu/avazu_t_csr.bin");
-  else if (dataset.compare("avazu_real")==0)
-    P = read_csr_binary("/scratch1/06081/wlruys/datasets/avazu/avazu_real_csr.bin");
+    //P = read_csr_binary("/scratch/06108/chaochen/avazu_csr.bin");
+    P = read_csr_binary("/work/06108/chaochen/shared/avazu_csr.bin");
+  else if (dataset.compare("avazu_app")==0)
+    P = read_csr_binary("/scratch/06108/chaochen/avazu_app_csr.bin");
+  else if (dataset.compare("avazu_app_t")==0)
+    P = read_csr_binary("/scratch/06108/chaochen/avazu_app_t_csr.bin");
   else if (dataset.compare("test")==0) {
     int m = 524288; 
     int n = 10000;
