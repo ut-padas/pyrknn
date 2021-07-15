@@ -434,7 +434,7 @@ __global__ void knn_kernel_sq(int* R, int* C, float* V, int* G_Id, float* Norms 
     //if (b_i * m + i == 31) printf("0 %.4f , %d, at %d \n", SM_dist_v[i * 2 * m + j], SM_v[i * 2 * m + j], j);
     //if (b_i * m + i == 31) printf("0 %.4f , %d, at %d \n", SM_dist_v[i * 2 * m + j + m], SM_v[i * 2 * m + j + m], j+m);
     // combined merge 
-
+    /*
       // start combined merge for 2m length 
 
       int size = 2 * m;
@@ -534,7 +534,7 @@ __global__ void knn_kernel_sq(int* R, int* C, float* V, int* G_Id, float* Norms 
      KNN_Id[ind_write_v] = SM_v[i * 2 * m + j];
    }
     
-
+    */
     /*
 
     // horizontal merge
@@ -936,8 +936,8 @@ int main(int argc, char **argv)
     int *h_C, *d_C;
     int *h_R, *d_R;
     int *h_G_Id, *d_G_Id;
-    int M = 2048 * 2048;
-    int leaves = 2048;
+    int M = 2048 * 4096;
+    int leaves = 4096;
     d = 100000;
     int k = 32;
     nnzperrow = 32;
