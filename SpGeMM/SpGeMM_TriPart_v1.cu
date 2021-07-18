@@ -331,7 +331,7 @@ void gen_R(int M, int nnzperrow, int *R, int *G_Id, int d) {
    R[m] = tot_nnz;
    G_Id[m-1] = m-1;
   } 
-  //std::random_shuffle(&G_Id[0], &G_Id[M]);
+  std::random_shuffle(&G_Id[0], &G_Id[M]);
   /*
   for (int m = 0; m < M; m++){ 
   printf("G_Id[%d] = %d \n", m , G_Id[m]);
@@ -437,11 +437,11 @@ int main(int argc, char **argv)
     int *h_C, *d_C;
     int *h_R, *d_R;
     int *h_G_Id, *d_G_Id;
-    int M = 2048 * 2048;
-    int leaves = 2048;
+    int M = 4096 * 4096;
+    int leaves = 4096;
     d = 100000;
     int k = 32;
-    nnzperrow = 64;
+    nnzperrow = 32;
     int max_nnz = nnzperrow;
     int leaf_size = M / leaves; 
     
