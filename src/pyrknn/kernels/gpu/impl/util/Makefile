@@ -1,10 +1,9 @@
 
-LIB=libutil_new.so
+LIB=libutil.so
 
 default: $(LIB)
 
-CC=g++ -std=c++14
-CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++14
+CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC
 
 OBJS=rand.o timer.o timer_gpu.o print.o dprint.o copy.o 
 
@@ -21,10 +20,10 @@ dprint.o: dprint.cu
 	nvcc -c $< $(CFLAG)
 
 print.o: print.cpp
-	$(CC) -c $< -Wall -O3 -fPIC -I$(EIGEN_ROOT)
+	g++ -c $< -Wall -O3 -fPIC -I$(EIGEN_ROOT)
 
 timer.o: timer.cpp timer.hpp
-	$(CC) -c $< -Wall -O3 -fPIC
+	g++ -c $< -Wall -O3 -fPIC
 
 $(LIB): $(OBJS)
 	g++ -shared $^ -o $@ 
