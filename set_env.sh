@@ -4,7 +4,7 @@
 #-- Configure Modules (TACC)
 
 module load intel/18
-module load cuda
+module load cuda/10.1
 
 #-- Configure GSKNN
 

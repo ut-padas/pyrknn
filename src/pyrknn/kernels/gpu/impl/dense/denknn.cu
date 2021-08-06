@@ -113,7 +113,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
 
   // insert artificial points at infinity
   thrust::sequence(dID.begin()+n, dID.end(), -nExtra, 1); // negative id
-  thrust::fill(dP.begin()+n*d, dP.end(), -std::numeric_limits<float>::max());
+  thrust::fill(dP.begin()+n*d, dP.end(), std::numeric_limits<float>::max());
   
   //tprint(N, d, dP, "Points on GPU");
   
@@ -194,6 +194,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
       // shuffle
       gather(dP, N, d, perm);
       gather(dID, perm);
+      //print(dID, "dID");
       gather(order, perm);
     }
 

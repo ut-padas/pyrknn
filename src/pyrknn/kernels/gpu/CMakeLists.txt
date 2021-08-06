@@ -27,7 +27,6 @@ add_library(core_gpu MODULE ${core_gpu})
 
 python_extension_module(core_gpu)
 install(TARGETS core_gpu LIBRARY DESTINATION ${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/pyrknn/kernels/gpu/)
-install(TARGETS core_gpu LIBRARY DESTINATION pyrknn)
 target_include_directories(core_gpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(core_gpu ${PYTHON_LIBRARIES})

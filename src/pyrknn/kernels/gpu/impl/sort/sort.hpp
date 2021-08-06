@@ -6,6 +6,7 @@
 
 #include <thrust/device_vector.h>
 #include <moderngpu/kernel_segsort.hxx>
+#include "math.h"
 
 template <typename T>
 using dvec = thrust::device_vector<T>;
@@ -13,6 +14,16 @@ using dvec = thrust::device_vector<T>;
 typedef dvec<int> ivec;
 typedef dvec<float> fvec;
 
+__forceinline__  __device__ int signValue(float a) {
+    return ((!signbit(a)) << 1) - 1;
+}
+
+template<typename type_t>
+struct sign_less_t : public std::binary_function<type_t, type_t, bool> {
+  __device__ __host__ bool operator()(type_t a, type_t b) const {
+    return  (a < b && !isinf(a)) || ( !isnan(a) && (isnan(b) || isinf(b) ) );
+  }
+};
 
 template <typename T>
 void sort_matrix_rows_mgpu(dvec<T> &A, dvec<int> &idx, int N, dvec<int> &segments, int m) {
@@ -21,7 +32,7 @@ void sort_matrix_rows_mgpu(dvec<T> &A, dvec<int> &idx, int N, dvec<int> &segment
   int *vals = thrust::raw_pointer_cast(idx.data());
   int *segs = thrust::raw_pointer_cast(segments.data());
   cudaProfilerStart();
-  mgpu::segmented_sort_indices(keys, vals, N, segs, m, mgpu::less_t<T>(), handle.mgpu_ctx());
+  mgpu::segmented_sort_indices(keys, vals, N, segs, m, sign_less_t<T>(), handle.mgpu_ctx());
   cudaProfilerStop();
 }
 

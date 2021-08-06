@@ -23,6 +23,7 @@ endif()
 
 target_compile_options(merge PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda -DPROD>)
 
+target_compile_options(merge PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 target_include_directories(merge PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(merge PUBLIC ../../../../../../extern/eigen/)
 target_include_directories(merge PUBLIC ../../../../../../extern/eigen/Eigen/)

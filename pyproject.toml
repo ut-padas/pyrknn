@@ -1,0 +1,15 @@
+[build-system]
+requires = [
+    "setuptools>=47",
+    "wheel",
+    "scikit-build",
+    "cmake",
+    "pip",
+    "cython",
+    "ninja",
+    "numpy",
+    "scipy",
+    "numba",
+    "mpi4py",
+    "scikit-learn"
+]

@@ -1,20 +1,26 @@
+
+from .config import *
+
 import numpy as np
 import numba
 import os
 
 import scipy as sp
 
-from ...kernels.cpu import core as cpu
+from ..kernels.cpu import core as cpu
 
-if os.environ["PYRKNN_USE_CUDA"] == '1':
-    from ...kernels.gpu import core_gpu as gpu
-    from ...kernels.gpu import core_sparse as gpu_sparse
+use_cuda = PYRKNN_USE_CUDA
+numba_threads = PYRKNN_NUMBA_THREADS
+
+if use_cuda:
+    from ..kernels.gpu import core_gpu as gpu
+    from ..kernels.gpu import core_sparse as gpu_sparse
     from numba import cuda
     import cupy as cp
 else:
     import numpy as cp
-    from ...kernels.cpu import core as gpu
-    from ...kernels.cpu import core as gpu_sparse
+    from ..kernels.cpu import core as gpu
+    from ..kernels.cpu import core as gpu_sparse
 
 import time
 
@@ -183,7 +189,6 @@ def direct_knn(ids, R, Q, k, loc="HOST", cores=8):
         #print("Running Sparse Exact")
         return cpu.sparse_exact(ids, R, Q, k, cores)
     
-
 def batched_knn(gidsList, RList, QList, k):
    if env == "CPU":
         return cpu.batched_knn(gidsList, RList, QList, k, cores)
@@ -237,7 +242,37 @@ def similarity_check(a, b):
 
     return truth_sim, approx_sim
 
-def accuracy_check(a, b):
+
+def accuracy_stride(truth, approx, k_list=None, id_only=False,):
+
+    accuracy_list = []
+    error_list = []
+    sim_list = []
+
+    truth_list = truth[0]
+    truth_dist = truth[1]
+
+    approx_list = approx[0]
+    approx_dist = approx[1]
+
+    k_max = approx_dist.shape[1]
+
+    if k_list is None:
+        k_list = [2, 0.25*k_max, 0.5*k_max, 0.75*k_max, k_max]
+        k_list = [int(i) for i in k_list]
+
+    for k in k_list:
+        k_truth = (truth_list[:, :k], truth_dist[:, :k])
+        k_approx = (approx_list[:, :k], approx_dist[:, :k])
+        accuracy = check_accuracy(k_truth, k_approx, id_only)
+        accuracy_list.append(accuracy[0])
+        error_list.append(accuracy[1])
+        sim_list.append(accuracy[2])
+
+    return accuracy_list, error_list, sim_list
+
+
+def check_accuracy(a, b):
     """Compute how accurate the nearest neighbors are.
 
     Arguments:
@@ -270,19 +305,6 @@ def accuracy_check(a, b):
     truth_id = a_list
     truth_dist = a_dist 
     
-    #knndist = a_dist[:, k-1]
-    #err = 0
-    #relative_distance = 0
-    
-    """
-    for i in range(Na):
-        miss_array_id   = [1 if a_list[i, j] in b_list[i] else 0 for j in range(k)]
-        miss_array_dist = [1 if b_dist[i, j] < knndist[i] else 0 for j in range(k)]
-        miss_array = np.logical_or(miss_array_id, miss_array_dist)
-        #miss_array = miss_array_id
-        err+= np.sum(miss_array)
-        relative_distance = max(relative_distance, np.abs(knndist[i] - b_dist[i, kb-1])/knndist[i])
-    """
     err = 0.0
     for i in range(N):
 
@@ -292,22 +314,20 @@ def accuracy_check(a, b):
         err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
 
 
-    perc = err/(Na*ka)
+    mean_sim = np.mean(approx_dist.ravel())
+    last_array = np.abs(approx_dist[:, -1] - truth_dist[:, -1])/truth_dist[:, -1]
+    mean_rel_err = np.mean(last_array)
+    hit_rate = err/(Na*ka)
 
-    return perc, 0
+    return hit_rate, mean_rel_err, mean_sim
 
 def dist_select(k, data, ids, comm):
     return cpu.dist_select(k, data, ids, comm)
 
 def cpu_sparse_knn(gids, X, levels, ntrees, k, blocksize, cores=8):
-    #print(gids.shape, X.shape,levels, ntrees, k, blocksize, cores, flush=True)
-    #print(X.nnz, np.min(X.indptr), np.max(X.indptr),flush=True)
     return cpu.sparse_knn(gids, X, levels, ntrees, k, blocksize, cores)
 
 def cpu_sparse_knn_3(gids, ptr, idx, val, nnz, levels, ntrees, k, blocksize, n, d, cores=8):
-    #cores = 56
-    #print(gids.shape, levels, nnz, ntrees, k, blocksize, cores, flush=True)
-    #print(np.min(ptr), np.max(ptr),flush=True)
     return cpu.sparse_knn_3(gids, ptr, idx, val, nnz, levels, ntrees, k, blocksize, cores, n, d)
 
 def gpu_sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):

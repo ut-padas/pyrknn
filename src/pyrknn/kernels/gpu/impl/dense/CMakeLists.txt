@@ -22,7 +22,7 @@ else()
 endif()
 
 target_compile_options(denknngpu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda -DPROD>)
-
+target_compile_options(denknngpu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 target_include_directories(denknngpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(denknngpu PUBLIC ../../../../../../extern/eigen/)
 target_include_directories(denknngpu PUBLIC ../../../../../../extern/eigen/Eigen/)

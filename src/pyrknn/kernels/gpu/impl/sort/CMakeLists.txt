@@ -19,6 +19,7 @@ else()
 endif()
 
 target_compile_options(sort PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda>)
+target_compile_options(sort PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 
 target_include_directories(sort PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(sort PUBLIC ../../../../../../extern/eigen/)

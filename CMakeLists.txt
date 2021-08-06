@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.9.1)
 set(CMAKE_CXX_STANDARD 14)
 
 #--Setup Project
-project(pyrknn LANGUAGES C CXX CUDA)
+project(pyrknn LANGUAGES C CXX)
 
 #-- Define Macros
 
@@ -87,7 +87,10 @@ add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)
 add_subdirectory(src/pyrknn/kernels/cpu)
 
 #--Install GPU Dense & Sparse
-add_subdirectory(src/pyrknn/kernels/gpu)
+if(PYRKNN_USE_CUDA)
+    enable_language(CUDA)
+    add_subdirectory(src/pyrknn/kernels/gpu)
+endif()
 
 
 
