@@ -84,7 +84,6 @@ def main():
         license="GNU GPL3",
         packages=find_namespace_packages(where='src'),
         package_dir = {"":"src"},
-        install_requires=['cython', 'numpy', 'scipy', 'numba', 'mpi4py'],
         python_requires=">=3.8",
         cmake_args=cmake_args
     )
