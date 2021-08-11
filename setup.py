@@ -39,7 +39,7 @@ def main():
     'pyrknn_numba_threads' : numba_threads,
     }
 
-    with open('src/pyrknn/kdforest/config_in.py', 'r') as f_in:
+    with open('src/pyrknn/kdforest/config.in', 'r') as f_in:
         src = Template(f_in.read())
         configured = src.substitute(config_dict)
 
