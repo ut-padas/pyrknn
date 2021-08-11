@@ -1,6 +1,6 @@
-from pyrknn.kdforest.mpi.tree import *
-from pyrknn.kdforest.mpi.util import *
-from pyrknn.kdforest.mpi.forest import *
+from pyrknn.kdforest.tree import *
+from pyrknn.kdforest.util import *
+from pyrknn.kdforest.forest import *
 
 from mpi4py import MPI
 import numpy as np
@@ -46,7 +46,7 @@ rank = comm.Get_rank()
 k = 32
 t = 0
 nq = 1000
-import h5py 
+import h5py
 
 path = "/scratch1/06081/wlruys/datasets/glove/glove-50-angular.hdf5"
 f = h5py.File(path, 'r')
@@ -57,7 +57,7 @@ Q = X[:nq]
 N, d = X.shape
 
 timer = Profiler()
-record = Recorder() 
+record = Recorder()
 
 #Compute true solution with brute force on nq subset
 #C = X.copy()

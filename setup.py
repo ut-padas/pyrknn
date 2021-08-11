@@ -30,14 +30,14 @@ def main():
 
     if env_numba_threads := os.getenv("PYRKNN_NUMBA_THREADS"):
         numba_threads = env_numba_threads
-        
+
 
     #Configure GPU Support
 
     config_dict = {
     'pyrknn_cuda' : use_cuda,
     'pyrknn_numba_threads' : numba_threads,
-    } 
+    }
 
     with open('src/pyrknn/kdforest/config_in.py', 'r') as f_in:
         src = Template(f_in.read())
@@ -66,14 +66,18 @@ def main():
         mkl_preload.append(mkl_prefix+r"/lib/libmkl_intel_lp64.so")
         mkl_preload.append(mkl_prefix+r"/lib/libmkl_avx512.so")
 
-        os.environ["LD_PRELOAD"] += os.pathsep + os.pathsep.join(mkl_preload) 
+        if os.getenv("LD_PRELOAD"):
+            os.environ["LD_PRELOAD"] += os.pathsep + os.pathsep.join(mkl_preload)
+        else:
+            os.environ["LD_PRELOAD"] = os.pathsep + os.pathsep.join(mkl_preload)
 
-    #os.environ["GSKNN_ARCH_MAJOR"] = "x86_64"
-    #os.environ["GSKNN_ARCH_MINOR"] = "sandybridge"
+
+    os.environ["GSKNN_ARCH_MAJOR"] = "x86_64"
+    os.environ["GSKNN_ARCH_MINOR"] = "sandybridge"
 
     skbuild.setup(
         name="pyrknn",
-        version="0.0.5",
+        version="0.0.6",
         description="a minimal example package (cpu dense only)",
         author='Chao Chen, William Ruys',
         author_email="will@oden.utexas.edu",
