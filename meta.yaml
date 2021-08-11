@@ -21,6 +21,7 @@ requirements:
     - mpi4py
     - python
     - scikit-build
+    - scikit-learn
     - mkl
     - mkl-include
     - numpy
@@ -40,3 +41,4 @@ requirements:
     - mpich
     - mpi4py
     - cython
+    - scikit-learn
