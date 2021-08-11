@@ -55,8 +55,12 @@ endmacro()
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 #find_package(NumPy REQUIRED)
+
+
 set(Python3_ROOT_DIR "${CONDA_PREFIX}")
-find_package(Python3 3.8 REQUIRED COMPONENTS Interpreter NumPy)
+set(Python3_ROOT "${CONDA_PREFIX}")
+set(Python3_FIND_STRATEGY "LOCATION")
+find_package(Python3 3.8 EXACT REQUIRED COMPONENTS Interpreter NumPy)
 #include_directories(${NumPy_INCLUDE_DIRS})
 include_directories(${_Python3_NumPy_INCLUDE_DIR})
 
