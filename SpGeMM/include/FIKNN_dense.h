@@ -8,7 +8,7 @@
 
 __global__ void FIKNN_compute_norm_dense(float* data, int* G_Id, float* Norms, int ppl, int d);
 
-__global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn, float* KNN_dist, int* KNN_Id, int ppl, int d)
+__global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn, float* KNN_dist, int* KNN_Id, int ppl, int d);
 
 __global__ void FIKNN_kernel_A_dense(float *data, int* G_Id, float* Norms, int k_nn, float* KNN_dist, int* KNN_Id, int ppl, int d, int blockInd, int* sort_arr, int* sort_arr_part, int steps, float* d_knn_temp);
 

@@ -1,5 +1,5 @@
 
-#include "rnd_sparse.h"
+#include "rnd_gen.h"
 
 void gen_col_data(int M, int d, int *R, int *C, float *V) {
 
@@ -43,13 +43,15 @@ void gen_row(int M, int nnzperrow, int *R, int *G_Id, int d, bool var_nnz = true
 }
 
 
-void gen_rnd_dense(float *data, int M, int d){
+void gen_rnd_dense(float *data, int *G_Id, int M, int d){
 
   for (int i=0; i < M; i++){
     for (int j = 0; j < d; j++){
-    int ind = i * d + j
-    data[ind] = ((float) rand()) / (float) RAND_MAX;
+      int ind = i * d + j;
+      data[ind] = ((float) rand()) / (float) RAND_MAX;
     }
+    G_Id[i] = i;
   }
+  //std::random_shuffle(&G_Id[0], &G_Id[M]);
 }
 

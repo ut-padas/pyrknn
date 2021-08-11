@@ -1,5 +1,5 @@
 
-#include "knn_seq.h"
+#include "knn_seq_sparse.h"
 
 
 

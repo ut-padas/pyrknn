@@ -1,7 +1,7 @@
 
-#include "knn_seq.h"
-#include "TSKNN.h"
-#include "rnd_sparse.h"
+#include "knn_seq_sparse.h"
+#include "TSKNN_sparse.h"
+#include "rnd_gen.h"
 
 
 

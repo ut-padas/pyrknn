@@ -18,7 +18,7 @@ __global__ void FIKNN_compute_norm_dense(float* data, int* G_Id, float* Norms, i
   
   float norm_i = 0.0;
   
-  for (int n_i = 0; n_i < d; n_i++) norm_i += V[g_Id * d + n_i] * V[g_Id * d + n_i];
+  for (int n_i = 0; n_i < d; n_i++) norm_i += data[g_Id * d + n_i] * data[g_Id * d + n_i];
   int ind_write = leaf_id_g * ppl + row;
   Norms[ind_write] = norm_i;
 
@@ -26,7 +26,7 @@ __global__ void FIKNN_compute_norm_dense(float* data, int* G_Id, float* Norms, i
 
 __global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn, float* KNN_dist, int* KNN_Id, int ppl, int d){
 
-  __shared__ int SM[12000];
+  //__shared__ int SM[12000];
   //__shared__ float SM_dist[2048];
   //__shared__ int SM_Id[2048];
 
@@ -39,12 +39,12 @@ __global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn,
 
   int size_block = k_nn * (k_nn + 1) /2;
 
-  for (elem = ind; elem < size_block; elem += blockDim.x){
+  for (int elem = ind; elem < size_block; elem += blockDim.x){
 
     float tmp = -8 * elem + 4 * k_nn * (k_nn+1) - 7;
     int rowId = sqrt(tmp)/2.0 - 0.5;
-    rowId = m - 1 - rowId;
-    int colId = elem + rowId - k_nn * (k_nn + 1) / 2 + (k_nn - rowId) * ((m - rowId) + 1)/2;
+    rowId = k_nn - 1 - rowId;
+    int colId = elem + rowId - k_nn * (k_nn + 1) / 2 + (k_nn - rowId) * ((k_nn - rowId) + 1)/2;
 
     int g_rowId = leaf_id_g * ppl + block * k_nn + rowId;
     int g_colId = leaf_id_g * ppl + block * k_nn + colId;
@@ -58,13 +58,10 @@ __global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn,
 
     float c_tmp = 0.0;
 
-    ret = 0;
-    testInd = 0;
-
     //  inner product
 
     for (int mult_elem = 0; mult_elem < d; mult_elem++){
-      c_tmp += V[perm_i * d + mult_elem] * V[perm_j * d + mult_elem];
+      c_tmp += data[perm_i * d + mult_elem] * data[perm_j * d + mult_elem];
     }
 
     c_tmp = -2 * c_tmp + norm_ij;
@@ -86,7 +83,7 @@ __global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn,
 __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k_nn, float* KNN_dist, int* KNN_Id, int ppl, int d, int blockInd, int* sort_arr, int* sort_arr_part, int steps, float* d_knn_temp) {
 
 
-  __shared__ int SM[SM_SIZE_1];
+  //__shared__ int SM[SM_SIZE_1];
   __shared__ float SM_dist[SM_SIZE_2];
   __shared__ int SM_Id[SM_SIZE_2];
   __shared__ float res_dist[SM_SIZE_1];
@@ -139,47 +136,14 @@ __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k
         float norm_ij = norm_i + Norms[g_rowId_J];
         
         float c_tmp = 0.0;
-        int tmp_0, tmp_1, ind_jk, k, ret, testInd;
       
-        ret = 0;
-        testInd = 0;
         
         //inner product
         for (int pos_k = 0; pos_k < d; pos_k++){
 
           c_tmp += data[perm_i * d + pos_k] * data[perm_j * d + pos_k];
         } 
-        /*
-
-        // loop over the elements of j
         
-        for (int pos_k = 0; pos_k < nnz_j; pos_k++){
-          
-          k = C[ind0_j + pos_k];
-      
-          // Binary search
-      
-          for (int l = nnz_i - ret; l > 1; l /= 2){
-
-            tmp_0 = ret + l;
-            tmp_1 = nnz_i - 1;
-            testInd = (tmp_0 < tmp_1) ? tmp_0 : tmp_1;
-            //ret = (SM[testInd + shift_i] <= k) ? testInd : ret;
-            ret = (SM[testInd] <= k) ? testInd : ret;
-          
-          }
-
-          tmp_0 = ret + 1;
-          tmp_1 = nnz_i - 1;
-          testInd = (tmp_0 < tmp_1 ) ? tmp_0 : tmp_1;
-          //ret = (SM[testInd + shift_i] <= k) ? testInd : ret;
-          //ind_jk = (SM[ret + shift_i] == k) ? ret : -1;
-          ret = (SM[testInd] <= k) ? testInd : ret;
-          ind_jk = (SM[ret] == k) ? ret : -1;
-          c_tmp += (ind_jk != -1) ? V[ind0_j + pos_k] * V[ind0_i + ind_jk] : 0;
-
-        }
-        */      
         c_tmp = -2 * c_tmp + norm_ij;
         c_tmp = ( c_tmp > 0) ? sqrt(c_tmp) : 0.0;
 
@@ -378,6 +342,7 @@ __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k
 
 
 }
+
 /*
 __global__ void knn_kernel_v_reduced(float* KNN, int* KNN_Id, int k_nn, int m, int ppl, int blockInd, float* d_temp_knn,int* d_temp_knnId, int* sort_arr, int* sort_arr_part, int steps, int* G_Id){
 
@@ -572,9 +537,7 @@ __global__ void FIKNN_kernel_B_dense(float* KNN, int* KNN_Id, int k_nn, int ppl,
       
     }
   }
-  //__syncthreads();
   
-  //if (colId_leaf == 63) printf("sorted vertical tid = %d , %.4f , %d \n" , tid , SM_dist[tid], SM_Id[tid]);
   if (tid < k_nn) {
     int ind_knn = leaf_id_g * ppl * k_nn + colId_leaf * k_nn + tid;
     KNN[ind_knn] = SM_dist[tid];
@@ -585,6 +548,7 @@ __global__ void FIKNN_kernel_B_dense(float* KNN, int* KNN_Id, int k_nn, int ppl,
 
 }
 
+/*
 __global__ void sort_GIds(int* G_Id, int ppl){
 
   int tid = threadIdx.x;
@@ -635,7 +599,7 @@ __global__ void sort_GIds(int* G_Id, int ppl){
 
 }
 
-
+*/
 
 
 /*
@@ -878,7 +842,7 @@ void FIKNN_gpu_dense(float *data, int *G_Id, int M, int leaves, int k, float *kn
 
 
   int size_tri = (k > 32) ? 32 : k;
-  int blockDim_tri = size_tri * size_tri;
+  int blockDim_tri = size_tri * (size_tri+1) /2;
   if (blockDim_tri > SM_SIZE_1) blockDim_tri = SM_SIZE_1;
 
   dim3 dimBlock_tri(blockDim_tri, 1);	
@@ -945,7 +909,7 @@ void FIKNN_gpu_dense(float *data, int *G_Id, int M, int leaves, int k, float *kn
   checkCudaErrors(cudaMalloc((void **) &d_Norms, sizeof(float) * ppl * leaves));
   
   cudaMemGetInfo(&m2, &total);
-  checkCudaErrors(cudaMalloc((void **) &d_temp_knn, sizeof(float) * ppl * leaves * m));
+  checkCudaErrors(cudaMalloc((void **) &d_temp_knn, sizeof(float) * ppl * leaves * k));
   cudaMemGetInfo(&m3, &total);
 
   int steps;
@@ -958,12 +922,12 @@ void FIKNN_gpu_dense(float *data, int *G_Id, int M, int leaves, int k, float *kn
   
   checkCudaErrors(cudaEventRecord(t0, 0));
 
-  sort_GIds <<< Grid_GId, Block_GId >>> (G_Id, ppl);
+  //sort_GIds_dense <<< Grid_GId, Block_GId >>> (G_Id, ppl);
   checkCudaErrors(cudaDeviceSynchronize());
   
   FIKNN_compute_norm_dense <<< dimGrid_norm, dimBlock_norm >>>(data, G_Id, d_Norms, ppl, d);
   checkCudaErrors(cudaDeviceSynchronize());
-  FIKNN_tri_dense <<< dimGrid_tri, dimBlock_tri >>>(data, G_Id, d_Norms, k, knn, knn_Id, ppl, max_nnz, d, d_arr, d_arr_part, n_s);
+  FIKNN_tri_dense <<< dimGrid_tri, dimBlock_tri >>>(data, G_Id, d_Norms, k, knn, knn_Id, ppl, d);
   checkCudaErrors(cudaDeviceSynchronize());
   
   
@@ -980,7 +944,7 @@ void FIKNN_gpu_dense(float *data, int *G_Id, int M, int leaves, int k, float *kn
     
     int real_size = 2 * blocksize;
     
-    precomp_arbsize_sortId(d_arr, d_arr_part, real_size, N_pow2, steps, copy_size);
+    precomp_arbsize_sortId_dense(d_arr, d_arr_part, real_size, N_pow2, steps, copy_size);
 
     
     dim3 dimBlock_sq(blocksize, 1);
@@ -991,10 +955,10 @@ void FIKNN_gpu_dense(float *data, int *G_Id, int M, int leaves, int k, float *kn
     
     dim3 dimGrid_v(size_v, leaves);
          
-    FIKNN_kernel_A_dense <<< dimGrid_sq, dimBlock_sq >>>(data, G_Id, d_Norms, k, knn, knn_Id, ppl, max_nnz, d ,blockInd, d_arr, d_arr_part, steps, d_temp_knn);
+    FIKNN_kernel_A_dense <<< dimGrid_sq, dimBlock_sq >>>(data, G_Id, d_Norms, k, knn, knn_Id, ppl, d ,blockInd, d_arr, d_arr_part, steps, d_temp_knn);
     checkCudaErrors(cudaDeviceSynchronize());
     
-    FIKNN_kernel_B_dense <<< dimGrid_v, dimBlock_v >>> (knn, knn_Id, k, m, ppl, blockInd, d_temp_knn, G_Id);
+    FIKNN_kernel_B_dense <<< dimGrid_v, dimBlock_v >>> (knn, knn_Id, k, ppl, blockInd, d_temp_knn, G_Id);
     
     checkCudaErrors(cudaDeviceSynchronize());
   } 

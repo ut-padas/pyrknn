@@ -1,5 +1,5 @@
 
-#include "TSKNN.h"
+#include "TSKNN_sparse.h"
 
 
 __global__ void TSKNN_compute_norm(int* R, int* C, float* V, int* G_Id, float* Norms, int ppl) {

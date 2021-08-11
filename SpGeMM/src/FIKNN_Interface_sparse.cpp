@@ -1,7 +1,7 @@
 
-#include "knn_seq.h"
-#include "FIKNN_RecB.h"
-#include "rnd_sparse.h"
+#include "knn_seq_sparse.h"
+#include "FIKNN_sparse.h"
+#include "rnd_gen.h"
 
 int main(int argc, char **argv){
     
@@ -12,19 +12,20 @@ int main(int argc, char **argv){
     int *h_C, *d_C;
     int *h_R, *d_R;
     int *h_G_Id, *d_G_Id;
-    int M = 4096*2048;
-    int leaves = 2048;
+    int M = 2048*4096;
+    int leaves = 1024*16;
     int ppl = M / leaves;
     d = 100000;
-    int k = 32;
-    nnzperrow = 16;
-    bool var_nnz = false;
-    int max_nnz = nnzperrow;
+    int k = 64;
+    nnzperrow = 5;
+    bool var_nnz = true;
+    int max_nnz = (var_nnz) ? 2*nnzperrow : nnzperrow;
     
+    int max_nnz_pow2 = pow(2, ceil(log2(max_nnz)));
 
 
     bool print_pt = false;
-    bool print_res = true;
+    bool print_res = false;
     int test_leaf = 0;
     int test_pt = 3;
 
@@ -80,7 +81,7 @@ int main(int argc, char **argv){
     checkCudaErrors(cudaEventCreate(&t0));
     checkCudaErrors(cudaEventCreate(&t1));
     checkCudaErrors(cudaEventRecord(t0, 0));
-    FIKNN_gpu(d_R, d_C, d_V, d_G_Id, M, leaves, k, d_knn, d_knn_Id, max_nnz);
+    FIKNN_gpu(d_R, d_C, d_V, d_G_Id, M, leaves, k, d_knn, d_knn_Id, max_nnz_pow2);
 
     checkCudaErrors(cudaEventRecord(t1, 0));
     checkCudaErrors(cudaEventSynchronize(t1));
