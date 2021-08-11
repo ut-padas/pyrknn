@@ -55,9 +55,9 @@ endmacro()
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 find_package(NumPy REQUIRED)
-find_package(Python3 REQUIRED COMPONENTS NumPy)
+find_package(Python REQUIRED COMPONENTS NumPy)
 include_directories(${NumPy_INCLUDE_DIRS})
-include_directories(${_Python3_NumPy_INCLUDE_DIR})
+include_directories(${_Python_NumPy_INCLUDE_DIR})
 
 #-- Look for MKL
 #set(BLA_VENDOR intel10_64lp)
