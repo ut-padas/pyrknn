@@ -257,7 +257,7 @@ class RKDForest:
                 test = (rlist[:nq, ...], rdist[:nq, ...])
 
                 if k_acc_list is not None:
-                    if k_acc_list is "Default":
+                    if k_acc_list == "Default":
                         acc = Primitives.accuracy_stride(truth, test, None)
                     else:
                         acc = Primitives.accuracy_stride(truth, test, k_acc_list)
