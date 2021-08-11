@@ -56,7 +56,7 @@ find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 #find_package(NumPy REQUIRED)
 set(Python3_ROOT "${CONDA_PREFIX}")
-find_package(Python3 3.8 COMPONENTS Interpreter Development NumPy REQUIRED)
+find_package(Python3 3.8 COMPONENTS Interpreter REQUIRED)
 #include_directories(${NumPy_INCLUDE_DIRS})
 include_directories(${_Python3_NumPy_INCLUDE_DIR})
 
