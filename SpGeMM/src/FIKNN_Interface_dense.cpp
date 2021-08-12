@@ -13,8 +13,8 @@ int main(int argc, char **argv){
     int M = 1024*1024;
     int leaves = 1024;
     int ppl = M / leaves;
-    d = 64;
-    int k = 64;
+    d = 256;
+    int k = 256;
     
     bool print_pt = false;
     bool print_res = false;

@@ -15,7 +15,6 @@ __global__ void FIKNN_compute_norm_dense(float* data, int* G_Id, float* Norms, i
   int g_Id = G_Id[g_rowId];
   
   
-  
   float norm_i = 0.0;
   
   for (int n_i = 0; n_i < d; n_i++) norm_i += data[g_Id * d + n_i] * data[g_Id * d + n_i];
@@ -60,20 +59,19 @@ __global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn,
 
     //  inner product
 
-    for (int mult_elem = 0; mult_elem < d; mult_elem++){
-      c_tmp += data[perm_i * d + mult_elem] * data[perm_j * d + mult_elem];
-    }
-
+    //for (int mult_elem = 0; mult_elem < d; mult_elem++) c_tmp += data[perm_i * d + mult_elem] * data[perm_j * d + mult_elem];
+    
+   
     c_tmp = -2 * c_tmp + norm_ij;
     c_tmp = ( c_tmp > 0) ? sqrt(c_tmp) : 0.0;
 
     int ind_knn = leaf_id_g * ppl * k_nn + (block * k_nn + rowId) * k_nn + colId;
     int ind_knn_T = leaf_id_g * ppl * k_nn + (block * k_nn + colId) * k_nn + rowId;
-
     KNN_dist[ind_knn] = c_tmp;
     KNN_Id[ind_knn] = perm_j;
     if (colId > rowId) KNN_dist[ind_knn_T] = c_tmp;
     if (colId > rowId) KNN_Id[ind_knn_T] = perm_i;
+    //if (leaf_id_g == 0 && block * k_nn + rowId == 100) printf("pos = %d , (%.4f , %d ) \n", colId, c_tmp, perm_j);
   }
 
 
@@ -83,7 +81,7 @@ __global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn,
 __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k_nn, float* KNN_dist, int* KNN_Id, int ppl, int d, int blockInd, int* sort_arr, int* sort_arr_part, int steps, float* d_knn_temp) {
 
 
-  //__shared__ int SM[SM_SIZE_1];
+  __shared__ float SM[SM_SIZE_1];
   __shared__ float SM_dist[SM_SIZE_2];
   __shared__ int SM_Id[SM_SIZE_2];
   __shared__ float res_dist[SM_SIZE_1];
@@ -105,19 +103,17 @@ __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k
   //int nnz_i = ind1_i - ind0_i;
 
 
-  //for (int n_i = j; n_i< nnz_i; n_i += blockDim.x) SM[n_i] = C[ind0_i + n_i];
+  //for (int n_i = j; n_i< d; n_i += blockDim.x) SM[n_i] = data[perm_i * d + n_i];
    
   int num_batches = size_part / (size_sort);
   __syncthreads();
 
   for (int col_batch = 0; col_batch < num_batches; col_batch++){
     
+    
     for (int init_write = j; init_write < SM_SIZE_2; init_write += blockDim.x) SM_dist[init_write] = 1e30;
 
-
     for (int j_tmp = j; j_tmp < size_sort; j_tmp += blockDim.x){
-      //for (int pt = 0; pt < 2; pt++){
-      //int j_tmp = 2 * j + pt;
 
       int colId_leaf = k_nn * (blockInd) + col_batch * size_sort + j_tmp;
       
@@ -128,10 +124,6 @@ __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k
         int g_rowId_J = leaf_id_g * ppl + colId_leaf;
     
         int perm_j = G_Id[g_rowId_J];
-        //int ind0_j = R[perm_j];
-        //int ind1_j = R[perm_j+1];
-
-        //int nnz_j = ind1_j - ind0_j;
 
         float norm_ij = norm_i + Norms[g_rowId_J];
         
@@ -139,10 +131,7 @@ __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k
       
         
         //inner product
-        for (int pos_k = 0; pos_k < d; pos_k++){
-
-          c_tmp += data[perm_i * d + pos_k] * data[perm_j * d + pos_k];
-        } 
+        //for (int pos_k = 0; pos_k < d; pos_k++) c_tmp += SM[pos_k] * data[perm_j * d + pos_k]; 
         
         c_tmp = -2 * c_tmp + norm_ij;
         c_tmp = ( c_tmp > 0) ? sqrt(c_tmp) : 0.0;
@@ -154,23 +143,22 @@ __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k
         int ind_tmp = leaf_id_g * k_nn * size_tmp + row_l * size_tmp + colId_leaf - (k_nn) * (blockInd+1);
         
         d_knn_temp[ind_tmp] = c_tmp; //SM_dist[j_tmp];
-        //d_knnId_temp[ind_tmp] = perm_i;
         
         
         //__syncthreads();
       } else {
-        
+         
         SM_dist[j_tmp] = (j_tmp < k_nn) ? KNN_dist[leaf_id_g * ppl * k_nn + rowId_leaf * k_nn + j_tmp] : 1e30;
         SM_Id[j_tmp] = (j_tmp < k_nn) ? KNN_Id[leaf_id_g * ppl * k_nn + rowId_leaf * k_nn + j_tmp] : 0;
         
         
       }
       
-      
-      
+    
       
       
     }
+    
     __syncthreads();
     
     
@@ -264,7 +252,7 @@ __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k
     
     
     if (j < k_nn){
-      
+      //if (leaf_id_g == 0 && rowId_leaf == 100) printf(" pos = %d , (%.4f, %d) \n", j, SM_dist[j], SM_Id[j]);   
       res_dist[col_batch * k_nn + j] = SM_dist[j];
       res_Id[col_batch * k_nn + j] = SM_Id[j];
       
@@ -954,7 +942,7 @@ void FIKNN_gpu_dense(float *data, int *G_Id, int M, int leaves, int k, float *kn
     int size_v = ppl - (blockInd + 1) * k;
     
     dim3 dimGrid_v(size_v, leaves);
-         
+    //printf("blockInd = %d , size_part = %d , blockSize = %d , N_pow2 = %d , steps = %d \n", blockInd, size_part, blocksize, N_pow2, steps); 
     FIKNN_kernel_A_dense <<< dimGrid_sq, dimBlock_sq >>>(data, G_Id, d_Norms, k, knn, knn_Id, ppl, d ,blockInd, d_arr, d_arr_part, steps, d_temp_knn);
     checkCudaErrors(cudaDeviceSynchronize());
     
