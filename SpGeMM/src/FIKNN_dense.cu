@@ -59,7 +59,7 @@ __global__ void FIKNN_tri_dense(float* data, int* G_Id, float* Norms , int k_nn,
 
     //  inner product
 
-    //for (int mult_elem = 0; mult_elem < d; mult_elem++) c_tmp += data[perm_i * d + mult_elem] * data[perm_j * d + mult_elem];
+    for (int mult_elem = 0; mult_elem < d; mult_elem++) c_tmp += data[perm_i * d + mult_elem] * data[perm_j * d + mult_elem];
     
    
     c_tmp = -2 * c_tmp + norm_ij;
@@ -131,7 +131,7 @@ __global__ void FIKNN_kernel_A_dense(float* data, int* G_Id, float* Norms, int k
       
         
         //inner product
-        //for (int pos_k = 0; pos_k < d; pos_k++) c_tmp += SM[pos_k] * data[perm_j * d + pos_k]; 
+        for (int pos_k = 0; pos_k < d; pos_k++) c_tmp += SM[pos_k] * data[perm_j * d + pos_k]; 
         
         c_tmp = -2 * c_tmp + norm_ij;
         c_tmp = ( c_tmp > 0) ? sqrt(c_tmp) : 0.0;
