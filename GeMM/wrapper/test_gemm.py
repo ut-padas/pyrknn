@@ -5,18 +5,22 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
 
 import sys
+from knn_seq import *
+
 #sys.path.append("../SpGeMM")
 #import SpGeMM_2D_NoPerm as sgemm
 from cuda_wrapper.sparse import *
 
+mempool = cp.get_default_memory_pool()
+mempool.free_all_blocks()
 
 if 1: 
     cp.random.seed(1)
 
-LogNP =21; 
+LogNP = 21; 
 n=1<<LogNP   # NUMBER of POINTS
 
-LogPPL=10
+LogPPL=10;
 depth = max(0,LogNP-LogPPL)
 points_per_leaf = 1<< (LogNP-depth)  # POINTS per leaf
 
@@ -73,8 +77,9 @@ for k in range(1):
                              tot_pt, leaves, \
                              K, knndis_np.ravel(), knnidx_np.ravel(), \
                              maxnnz)
-        knndis_np = np.reshape(knndis_np_o, knndis_np.shape)
-        knnidx_np = np.reshape(knnidx_np_o, knnidx_np.shape)
+        
+        knndis_np = np.reshape(knndis_np_o, (n,K))
+        knnidx_np = np.reshape(knnidx_np_o, (n,K))
      
         toc = time()
         print('sgemm %d it too took %.2e secs'%(k, toc-tic))
@@ -89,53 +94,93 @@ if 1: # check accuracy for first leaf
     data    = cp.asnumpy(X.data)
     indptr  = cp.asnumpy(X.indptr)
     indices = cp.asnumpy(X.indices)
+    '''
+    tmp = indptr[1]
+    tmp1 = indptr[2]
+    print("pt 1")
+    print(indices[tmp:tmp1])
+    print(data[tmp:tmp1])
+    tmp = indptr[12]
+    tmp1 = indptr[13]
+    print("pt 12")
+    print(indices[tmp:tmp1])
+    print(data[tmp:tmp1])
+    '''
     hX = csr_matrix((data,indices,indptr), shape=(n,dim))
     # compute exact knns using sklearn
     nex = points_per_leaf
-    t = 1
+    t = 4
+    #D,I = f_knnSeq(indptr, indices, data, gids, K, t, points_per_leaf-1, points_per_leaf, dim) 
     nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(hX[t*nex:(t+1)*nex,:])
     knndis_ex, knnidx_ex = nbrs.kneighbors(hX[t*nex:(t+1)*nex,:])
     
     print('true')
-    print(knndis_ex[t, :]) 
-    print(knnidx_ex[t, :]) 
+    print(knndis_ex[t*nex:(t+1)*nex, :]) 
+    print(knnidx_ex[t*nex:(t+1)*nex, :]) 
+    
+   
+
+
+    '''
+    tmp = knndis_ex[t*nex:(t+1)*nex, :]
+    inds = knnidx_ex[t*nex:(t+1)*nex, :]
+    tmp2 = h_knndis[t*nex:(t+1)*nex, :]
+    #inds = h_knnidx[t*nex:(t+1)*nex, :]
+    for i in range(tmp.shape[0]):
+      for j in range(tmp.shape[1]):
+        if (abs(tmp[i,j] - tmp2[i,j]) > 1e-3):
+          pt1 = i
+          pt2 = inds[i,j]
+          
+          print("pt1 ", i)
+          i1 = indptr[pt1]
+          i2 = indptr[pt1+1]
+          j1 = indptr[pt2] 
+          j2 = indptr[pt2+1]
+          print(indices[i1:i2])
+          print("pt2 ", pt2)
+          print(indices[j1:j2])
+           
+    ''' 
+
     print('rec')
-    #print(h_knndis[t*nex:(t+1)*nex, :])
-    #print(h_knnidx[t*nex:(t+1)*nex, :])
-    print(h_knndis_o.shape)
-    print(h_knndis_o[t*K:(t+1)*(K)])
-    print(h_knnidx_o[t*K:(t+1)*(K)])
+    print(h_knndis[t*nex:(t+1)*nex, :])
+    print(h_knnidx[t*nex:(t+1)*nex, :])
+    '''
+    #print(h_knndis_o[t*K:(t+1)*(K)])
+    #print(h_knnidx_o[t*K:(t+1)*(K)])
     print('points')
+    tmp = indptr[points_per_leaf - 1]
+    ind = data[tmp]
+    nnz = indices[tmp+1]
+    
     idx0_p1 = indptr[t];
     idx1_p1 = indptr[t+1];
     
     tmp = int(h_knnidx_o[t*K + 1])
-    print(tmp)
     idx0_p2 = indptr[tmp]
     tmp = int(h_knnidx_o[t*K + 1]+1)
-    print(tmp)
     idx1_p2 = indptr[tmp];
+   
+    c1 = indices[idx0_p1:idx1_p1]
+    c2 = indices[idx0_p2:idx1_p2]
+    vec1 = np.zeros(dim) 
+    vec2 = np.zeros(dim) 
     
     d1 = data[idx0_p1:idx1_p1]
     d2 = data[idx0_p2:idx1_p2]
-    s = np.linalg.norm(d1)**2 + np.linalg.norm(d2)**2
-    print('sum norms', s**0.5)
-    print('sum norms', s)
-     
-    print('p 1')
-    print('column')
-    print(indices[idx0_p1:idx1_p1])
-    print('data')
-    print(data[idx0_p1:idx1_p1])
-     
-    print('p 2')
-    print('column')
-    print(indices[idx0_p2:idx1_p2])
-    print('data')
-    print(data[idx0_p2:idx1_p2])
+    vec1[c1] = d1
+    vec2[c2] = d2
 
-
+    tmp = np.inner(vec1, vec2)
+    
+    #print('sum norms', s**0.5)
+ 
+    print('res from seq py')
+    print(I)
+    print(D)
     #print(h_knnidx)
+    ''' 
      
     ex = knnidx_ex
     ap = h_knnidx
