@@ -14,6 +14,10 @@ import cython
 cdef extern from "impl/sparse/spknn.hpp" nogil:
     cdef void spknn(int*, int*, int*, float*, int, int, int, int, int, int*, float*, int, int, int, int) except +
 
+cdef extern from "impl/sfiknn/sfiknn.hpp" nogil:
+    cdef void sfiknn(int*, int*, float*, int*, int, int, float*, int*, int) except +
+
+
 def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     n, d = X.shape
 
@@ -45,3 +49,8 @@ def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     outDist = np.asarray(nDist)
 
     return (outID, outDist)
+
+
+
+def sparse_fiknn(gids, X, 	 
+

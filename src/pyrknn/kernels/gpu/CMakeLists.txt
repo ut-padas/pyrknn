@@ -13,6 +13,7 @@ add_subdirectory(impl/transpose)
 add_subdirectory(impl/reorder)
 add_subdirectory(impl/dense)
 add_subdirectory(impl/sparse)
+add_subdirectory(impl/fisknn)
 
 #-- Build Dense
 
@@ -77,11 +78,12 @@ target_include_directories(core_sparse PUBLIC impl/dense)
 target_include_directories(core_sparse PUBLIC impl/orthogonal)
 target_include_directories(core_sparse PUBLIC impl/merge)
 target_include_directories(core_sparse PUBLIC impl/readSVM)
+target_include_directories(core_sparse PUBLIC impl/fisknn)
 
 target_include_directories(core_sparse PUBLIC ${PYTHON_INCLUDE_DIRS})
 target_include_directories(core_sparse PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(core_sparse ${MPI_C_LIBRARIES})
 #target_link_libraries(core_sparse CUDA::cusparse CUDA::cusolver CUDA::cublas CUDA::cudart)
-target_link_libraries(core_sparse spknngpu merge util readSVM transpose gemm reorder orthogonal)
+target_link_libraries(core_sparse spknngpu merge util readSVM transpose gemm reorder orthogonal fisknn)
 

@@ -10,10 +10,6 @@ all: sparse
 sparse:
 	nvcc -shared -c ${INC_DIR} $(DEV_DIR)/FIKNN_sparse.cu -Xcompiler -fPIC
 
-dense:
-	nvcc -shared -c ${INC_DIR} $(DEV_DIR)/FIKNN_dense.cu -Xcompiler -fPIC
-
-
 clean:
 	rm -f *.o 
 
