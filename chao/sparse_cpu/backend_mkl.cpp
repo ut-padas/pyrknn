@@ -152,7 +152,7 @@ void scatter(Points &P, const ivec &perm, dvec &t) {
 
 
 void compute_row_norm(const Points &P, fvec &norm, double &t) {
-
+  
   sparse_matrix_t A2; // element-wise squared
   fvec A2_val(P.nonZeros()); 
   par::transform(P.val, P.val+P.nonZeros(), A2_val.data(), [](float x){return x*x;});
@@ -191,9 +191,16 @@ void compute_distance(const Points &P, const fvec &norm, fMatrix &D, dvec &t) {
   // manually symmetrize the product
   timer.start();
   int n = D.rows();
+#if 0
   for (int i=1; i<n; i++)
     for (int j=0; j<i; j++)
       D(i,j) = D(j,i);
+#else
+  // write one column (read one row) at a time
+  // D is in column major
+  for (int j=0; j<n-1; j++)
+    cblas_scopy(n-1-j, D.data()+(j+1)*n+j, n, D.data()+j*n+j+1, 1);
+#endif
   timer.stop(); t[2] += timer.elapsed_time();
 
   // rank-1 updates

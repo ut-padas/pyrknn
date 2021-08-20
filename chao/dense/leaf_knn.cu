@@ -16,7 +16,27 @@ void compute_row_norms(const fvec &P, fvec &P_norm, int m, int n) {
 
 void compute_distance(const fvec &P, const fvec &normP, const fvec &ones, fvec &Dist,
     int nLeaf, int N, int d, int blk, int m, int offset, float &t_gemm, float &t_rank) {
-  
+
+  // -----
+  // INPUT
+  // -----
+  // P: (permuted) coordinates of data points, (N*nLeaf)-by-d matrix in row major
+  // normP: squared two norm of all data points, length N*nLeaf
+  // ones: auxilliary array of one's, length N*nLeaf
+  // nLeaf: # of leaf nodes
+  // N: # of points in ONE leaf node
+  // d: dimension/number of coordinates of a data point
+  // blk: index of batch
+  // m: # of points in a batch for the compute_distance kernel
+  // offset: blk*m
+
+  // ------
+  // OUTPUT
+  // ------
+  // Dist: distances between a batch of points and all points in a leaf node (for all nodes), 
+  //        (m*nLeaf)-by-N matrix in row major
+  // t_gemm & t_rank: timings
+
   auto& handle = knnHandle_t::instance();
   const float alpha = -2;
   const float beta = 0;
@@ -86,10 +106,29 @@ void find_neighbors(fvec& Dist, const ivec &ID, ivec &idx, float *nborDist, int 
 }
 
 
-// N: # points in ONE leaf node
 void leaf_knn(const ivec &ID, const fvec &P, int N, int d, int nLeaf,
     int *nborID, float *nborDist, int k, int LD, int blkPoint, 
     float &t_dist, float &t_sort) {
+
+  // -----
+  // INPUT
+  // -----
+  // ID: (permuted) ID of data points
+  // P: (permuted) coordinates of data points
+  // N: # of points in ONE leaf node
+  // d: dimension/number of coordinates of a data point
+  // nLeaf: # of leaf nodes
+  // k: # of nearest neighbors to compute
+  // LD: # of columns of the two output matrix 'nborID' and 'nborDist'
+  // blkPoint: # of points in a batch for the compute_distance kernel
+
+  // ------
+  // OUTPUT
+  // ------
+  // nborID: IDs of KNN of all points
+  // nborDist: distances of KNN of all points
+  // t_dist & t_sort: timings
+
 
   float t_kernel = 0., t_gemm = 0., t_rank = 0., t_nbor = 0., t_norm = 0.;
   TimerGPU t0, t1; t0.start();

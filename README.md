@@ -1,64 +1,39 @@
+## PYRKNN: A Distributed Randomized Projection Forest for KNN Graph Construction. 
+
+In PyRKNN we provide support for All-Nearest-Neighbor searches for 32-bit floating point data both dense and sparse in CSR format. 
+
+The search routine is provided by RKDForest object, where location specifies whether the local search is conducted on the CPU "HOST" or GPU "GPU".  
+The routine can be called from within MPI. By default it assumes the global communicator, otherwise subcommunicators can be passed in to the forest constructor. 
+
+```
+forest = RKDForest(data=X, leafsize=leafsize, location="HOST", comm=MPI.COMM_WORLD)
+neighbors = forest.all_search(k)
+```
+
+
+
+Installation Notes:
+--
+The Python interface requires mpi4py, numpy, cupy, scipy, and numba>=0.52. 
+Sklearn is required to run the examples and tests. 
+
+At the moment, the code must be built with either full GPU & CPU support or only CPU support. 
+
+CPU Support requires: GSKNN (https://github.com/ChenhanYu/rnn) , MKL, and Eigen (https://gitlab.com/libeigen/eigen).
+
+GPU Support requires <= CUDA/10.1, moderngpu (https://moderngpu.github.io/intro.html) 
+
+To build with only CPU support set the PYRKNN_USE_CUDA=0. 
+
+Directories to these dependencies must be set. See set_env.sh and set_env_cpu.sh for examples. 
+
+
+Additional Notes:
+----
+
+You might need to set: NUMBA_CUDA_DRIVER=/usr/lib64/libcuda.so.1 if running on Frontera. 
 
 
 
 
-Will's Note (Updated Feb 15):
-Set the appropriate enviornment variables in `set_env.sh`. Run make to build. 
-Adding this to your PYTHON_PATH env variable i.e. `export PYTHON_PATH=$PYTHON_PATH:$(pwd)/prknn` should work.
-Then you can run the example script: example/test_accuracy.py
 
-Numba works on Frontera with CUDA/10.0
-Set: CUDA_HOME=$TACC_CUDA_DIR
-You might need to set: NUMBA_CUDA_DRIVER=/usr/lib64/libcuda.so.1
-
-TODO(p1)[Will] Fix build system.
-
-Currently missing in the current src (need to merge in):
-- Hongru's gpu kselect and scan
-- Will's CUDA median function
-
-
-##Outline of File Structure
-
-examples/
-
-    - For example scripts showing functionality. Eventually include scripts to reproduce results. 
-
-test/
-
-    - For now, just for debugging scripts. Ideally, clean this up and use a unittest module. (Save this for after PARLA implementation.)
-    - TODO(p1)[ALL] We need test and timing scripts for kernels
- 
-src/prknn/kernels/cpu
-
-    - cython wrapper for functions in impl (pxd, pyx, setup.py)
-
-src/prknn/kernels/cpu/impl/
-
-    - source files for cpp impl of kernels
-
-src/prknn/kernels/gpu/
-
-    - cython wrapper for functions in impl (pxd, pyx, setup.py)
-    - pure python gpu functions (NUMBA, CuPy, etc)
-
-src/prknn/kernels/gpu/impl
-
-    - source files for cpp/cuda impl of kernels
-
-src/prknn/kdforest/reference/
-
-    - Pure Python Implementation of KNN Scripts
-    - The important file here is: util.py, it contains kernels to be replaced with specific variants
-    - TODO(p1)[Will] Test and switch all kernels in util.py to specific variants
-
-src/prknn/kdforest/parla/
-
-    - Parla Tasking Implementation
-    - TODO(p2)[Will] Do this. (Side task: parallelize python parts within tasks using numba, avoid using dictionary to gather query ids)
-
-##A quick note on TODO format:
-
-Very informally, mostly so I can set reminders for myself to without going through the git issue system. 
-TODO(p#)[user] where # marks the priority of the work (vague 1 - 5) to be completed and user is assigned the work. User is optional.
-Unmarked is considered to have low priority

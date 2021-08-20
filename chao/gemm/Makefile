@@ -4,8 +4,8 @@ LIB=libgemm_new.so
 
 default: $(EXE)
 
-CFLAG=-Wall -O3 -I$(EIGEN_ROOT) -std=c++11
-VFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++11 -I../util/
+CFLAG=-Wall -O3 -I$(EIGEN_ROOT) -std=c++14
+VFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++14 -I../util/
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcuda -lcudart \
 			-L./ -lgemm_new -L../util -lutil_new
 

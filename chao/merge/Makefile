@@ -7,11 +7,11 @@ DEBUG?=0
 
 default: $(EXE)
 
-CC=g++ -std=c++11
-CFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++11
+CC=g++ -std=c++14
+CFLAG=-arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++14
 
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart \
-			-L../util -lutil
+			-L../util -lutil_new
 
 ifeq ($(PROD), 1)
 	CFLAG+=-DPROD

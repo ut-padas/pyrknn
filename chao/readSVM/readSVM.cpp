@@ -148,6 +148,7 @@ SpMat read_csr_binary(std::string filename) {
   int *colIdx = new int[nnz];
   ifile.read((char *)colIdx, nnz*sizeof(int));
   float *val = new float[nnz];
+  assert(val != NULL);
   ifile.read((char *)val, nnz*sizeof(float));
   ifile.close();
   SpMat A = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>

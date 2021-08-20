@@ -1,0 +1,12 @@
+[submodule "extern/gsknn"]
+	path = extern/gsknn
+	url = ../../dialecticDolt/rnn.git
+[submodule "extern/eigen"]
+	path = extern/eigen
+	url = https://gitlab.com/libeigen/eigen
+[submodule "extern/mgpu"]
+	path = extern/mgpu
+	url = https://github.com/moderngpu/moderngpu.git
+[submodule "extern/cub"]
+	path = extern/cub
+	url = https://github.com/NVIDIA/cub.git

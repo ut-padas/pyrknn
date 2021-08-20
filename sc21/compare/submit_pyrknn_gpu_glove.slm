@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH -J pyrg_glove_rel
+#SBATCH -e pyrg_glove_rel.err 
+#SBATCH -o pyrg_glove_rel.txt 
+#SBATCH -p rtx 
+#SBATCH -N 1
+#SBATCH -A ASC21002
+#SBATCH -n 1
+#SBATCH --tasks-per-node 1 
+#SBATCH -t 4:00:00
+#SBATCH --mail-user=will.ruys@gmail.com
+#SBATCH --mail-type=end
+
+source /scratch1/06081/wlruys/miniconda3/etc/profile.d/conda.sh
+conda activate new
+source set_env.sh
+
+for t in `seq 0 1 5`
+do
+    for l in 512 1024
+    do
+        for j in 1 5 10 20 30 40 50 60 70 80 90 100 110 120 150 200 250 
+        do
+            python pyrknn_glove.py -use_gpu True -ltrees $j -iter 1 -overlap 1 -cores 16 -leafsize $l | tee pyrknn_gpu_glove_$l_$j_$t.out
+        done
+    done
+done 

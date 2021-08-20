@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH -J fgpu
+#SBATCH -e fgpu_sift_s.err 
+#SBATCH -o fgpu_sift_s.txt 
+#SBATCH -p rtx 
+#SBATCH -N 1
+#SBATCH -A ASC21002
+#SBATCH -n 1
+#SBATCH --tasks-per-node 1 
+#SBATCH -t 4:00:00
+#SBATCH --mail-user=will.ruys@gmail.com
+#SBATCH --mail-type=end
+
+source /scratch1/06081/wlruys/miniconda3/etc/profile.d/conda.sh
+conda activate new
+source set_env_cpu.sh
+
+for t in `seq 0 1 5`
+do
+    for j in 1024 2048
+    do
+        python faiss_gpu_sift.py -c $j | tee faiss_gpu_sift_$j.out
+    done
+done 
+

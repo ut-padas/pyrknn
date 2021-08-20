@@ -8,8 +8,8 @@ DEP=../util/libutil_new.so ../readSVM/libreadSVM_new.so ../transpose/libtranspos
 DEBUG?=0
 
 CC=g++
-CFLAG=-Wall -I $(EIGEN_ROOT) -std=c++11
-VFLAG=-gencode arch=compute_70,code=sm_70 -shared -Xcompiler -fPIC -std=c++11
+CFLAG=-Wall -I $(EIGEN_ROOT) -std=c++14
+VFLAG=-gencode arch=compute_70,code=sm_70 -shared -Xcompiler -fPIC -std=c++14
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcusparse -lcublas -lcusolver -lcudart \
 		-L./ -lspknngpu_new -L../merge -lmerge_new -L../util/ -lutil_new \
 		-L../readSVM/ -lreadSVM_new -L../transpose -ltranspose_new -L../gemm -lgemm_new \
@@ -94,8 +94,8 @@ benchmark: $(EXE)
 	#$(EXE) -n 524288 -d 10000 -sparse 0.0001 -k 64 -t 1 -bl 10 -bp 64 -bt 1 -l 8
 	#$(EXE) -dataset test -k 64 -t 1 -bl 512 -bp 64 -bt 1 -l 8
 	#
-	$(EXE) -dataset url -l 12 -k 64 -t 3 -bl 512 -bp 300 -bt 1
-	#$(EXE) -dataset avazu -l 18 -k 5 -t 200 -bl 1024 -bp 256 -bt 1
+	#$(EXE) -dataset url -l 10 -k 64 -t 300 -bl 512 -bp 128 -bt 1
+	$(EXE) -dataset avazu -l 15 -k 5 -t 300 -bl 1024 -bp 128 -bt 1
 
 clean:
 	rm -f *.o $(EXE) $(LIB)

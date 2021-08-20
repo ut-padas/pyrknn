@@ -11,7 +11,8 @@ import time
 
 import cython
 
-from primitives_sparse cimport *
+cdef extern from "impl/sparse/spknn.hpp" nogil:
+    cdef void spknn(int*, int*, int*, float*, int, int, int, int, int, int*, float*, int, int, int, int) except +
 
 def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     n, d = X.shape
@@ -27,7 +28,18 @@ def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
     cdef int[:, :] nID = np.zeros([n, k], dtype=np.int32)+ -1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + 1e38
 
-    spknn(<int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <int> n, <int> d, <int> nnz, <int> levels, <int> ntrees, <int*> &nID[0, 0], <float*> &nDist[0,0], <int> k, <int> blockleaf, <int> blocksize, <int> device)
+    cdef int c_n = n 
+    cdef int c_d = d 
+    cdef int c_nnz = nnz
+    cdef int c_levels = levels 
+    cdef int c_k = k 
+    cdef int c_blockleaf = blockleaf 
+    cdef int c_blocksize = blocksize
+    cdef int c_device = device 
+    cdef int c_ntrees = ntrees
+
+    with nogil:
+        spknn(<int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <int> c_n, <int> c_d, <int> nnz, <int> c_levels, <int> c_ntrees, <int*> &nID[0, 0], <float*> &nDist[0,0], <int> c_k, <int> c_blockleaf, <int> c_blocksize, <int> c_device)
 
     outID = np.asarray(nID)
     outDist = np.asarray(nDist)

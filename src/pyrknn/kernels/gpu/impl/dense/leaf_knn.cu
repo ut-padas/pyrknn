@@ -3,6 +3,7 @@
 #include "knn_handle.hpp"
 #include "sort.hpp"
 #include "timer_gpu.hpp"
+#include "print.hpp"
 #include <typeinfo>
 
 #define CUDA_ERROR_CHECK_WILL(fun)                                                                   \
@@ -14,6 +15,7 @@ do{                                                                             
       exit(EXIT_FAILURE);                                                                       \
     }                                                                                           \
 }while(0);
+
 
 int is_device_pointer(const void *ptr)
 {
@@ -111,9 +113,11 @@ void find_neighbors(fvec& Dist, const ivec &ID, ivec &idx, float *nborDist, int 
   TimerGPU t; t.start();
   sort_matrix_rows_mgpu(Dist, idx, m*nLeaf, N);
   t.stop(); t_sort += t.elapsed_time();
-
+  //print(Dist, "Dist");
+  //print(idx,"idx"); 
   get_kcols_dist(Dist, nborDist, nLeaf, m, LD, k, N, offset);
   get_kcols_ID(idx, nborID, ID, nLeaf, m, LD, k, N, offset);
+  //print(nborID, "nborID");
 }
 
 

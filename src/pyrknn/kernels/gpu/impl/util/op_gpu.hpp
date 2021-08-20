@@ -18,6 +18,7 @@ struct prg: public thrust::unary_function<unsigned int, float> {
 
     //thrust::default_random_engine rng(seed);
     //thrust::uniform_real_distribution<float> dist(a, b);
+
     rng.discard(n);
     return dist(rng);
   }

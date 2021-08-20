@@ -4,7 +4,7 @@ LIB=libtranspose_new.so
 
 default: $(EXE)
 
-CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++11
+CFLAG=-O3 -arch=compute_70 -code=sm_70 -Xcompiler -fPIC -std=c++14
 LFLAG=-L$(TACC_CUDA_LIB) -L$(TACC_CUDA_LIB)/stubs/ -lcuda -lcudart \
 			-L./ -ltranspose_new -L../util -lutil_new
 

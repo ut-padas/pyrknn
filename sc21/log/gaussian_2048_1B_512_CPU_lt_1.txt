@@ -1,0 +1,66 @@
+Per Rank:
+Sphere Size, Local Size, Intrinsic Dim:
+(52428, 10) (524288, 512) (10,)
+
+Region Time(s)
+Projection: Rand, 0.002590179443359375
+Projection: QR, 0.4049522876739502
+Build: Generate Projection, 0.40404224395751953
+Dist Build: Compute Projection, 0.1483626365661621
+Dist Build: Get Global Size, 0.059990882873535156
+Dist Build: Distributed Select, 2.9384684562683105
+Dist Build: Reorder Projection, 0.675238847732544
+Dist Build: Reorder Global Ids, 0.061284780502319336
+Dist Build: Compute Targets - Prefix Sums, 0.17557764053344727
+Dist Build: Compute Targets - Balance, 0.005566120147705078
+Dist Build: Compute Targets - Exchange Recv, 2.5239288806915283
+Dist Build: Compute Targets, 2.705394744873047
+Dist Build: Communicate IDs - Allocate, 0.010249137878417969
+Dist Build: Communicate IDs - alltoall, 0.11998915672302246
+Dist Build: Communicate IDs, 0.13044452667236328
+Dist Build: Communicate Projections - Allocate, 0.15276789665222168
+Dist Build: Communicate Projections - alltoall, 0.9299192428588867
+Dist Build: Communicate Projections, 1.0829169750213623
+Dist Build:, 9.382247924804688
+Build Dist Tree, 11.631394147872925
+Collect Points: Organize Points - label, 1.9485540390014648
+Collect Points: Organize Points - sort, 0.05324983596801758
+Collect Points: Organize Points - reorder, 0.007099628448486328
+Collect Points: Organize Points, 2.0089359283447266
+Collect Points: Find Request Sizes, 0.7603273391723633
+Collect Points: Exchange Recv Sizes, 0.6073839664459229
+Collect Points: Communicate Requests, 0.37622570991516113
+Collect Points: Gather Requests, 1.044593095779419
+Collect Points: Communicate Data - Allocate, 0.0001361370086669922
+Collect Points: Communicate Data - AlltoAll, 9.183812141418457
+Collect Points: Communicate Data, 9.183984756469727
+Collect Points:, 13.997759342193604
+Distribute Coordinates, 13.997874021530151
+Generate Local Projection Vectors, 0.0036072731018066406
+Generate Local Projection, 0.12855219841003418
+Build Local Tree, 2.128139019012451
+Stack, 0.004403114318847656
+Compute, 35.4923152923584
+Reindex, 0.7402143478393555
+Search, 36.23721671104431
+Evaluate, 38.41136455535889
+Redistribute: Allocate, 0.0038652420043945312
+Redistribute: Label, 0.005267620086669922
+Redistribute: Sort, 0.03749895095825195
+Redistribute: Reorder, 0.6266722679138184
+Redistribute: Compute Targets, 0.0016074180603027344
+Redistribute: Exchange Recv, 2.553556442260742
+Redistribute: Alltoall GIDs, 0.44158506393432617
+Redistribute: Alltoall IDs, 1.9789936542510986
+Redistribute: Alltoall Dist, 1.8942952156066895
+Redistribute: Sort Output, 0.19701695442199707
+Redistribute: Reorder Output, 0.4367702007293701
+Redistribute, 8.17809772491455
+Forest: Redistribute, 8.184025287628174
+Forest: Merge, 1.2964255809783936
+Forest: Compare, 0.07333922386169434
+All Search, 73.59451746940613
+=======
+Record Book
+Recall [0.2828125, 0.5096875, 0.6503125, 0.7571875, 0.8225]
+

@@ -1,4 +1,6 @@
 
+Update: Currently reworking this to use CMake and Scikit-Build. Then it should be as easy as runing 'pip install'. 
+
 At the moment, this can be a hassle to build. I will fix this to use one makefile once the kernels stop changing so often. (and/or I have a chance to learn cmake properly) 
 
 Require a python enviornment with:

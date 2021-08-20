@@ -102,21 +102,21 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
   auto leftKColsID = thrust::make_permutation_iterator(dNborID.begin(), iter);
   auto leftKColsDist = thrust::make_permutation_iterator(dNborDist.begin(), iter);
   {
-    dvec<int> tmpNborID(n*k);
-    dvec<float> tmpNborDist(n*k);
-    thrust::copy_n(hNborID, n*k, tmpNborID.begin());
-    thrust::copy_n(hNborDist, n*k, tmpNborDist.begin());
-    thrust::copy_n(tmpNborID.begin(), n*k, leftKColsID);
-    thrust::copy_n(tmpNborDist.begin(), n*k, leftKColsDist);
+    //dvec<int> tmpNborID(n*k);
+    //dvec<float> tmpNborDist(n*k);
+    //thrust::copy_n(hNborID, n*k, tmpNborID.begin());
+    //thrust::copy_n(hNborDist, n*k, tmpNborDist.begin());
+    //thrust::copy_n(tmpNborID.begin(), n*k, leftKColsID);
+    //thrust::copy_n(tmpNborDist.begin(), n*k, leftKColsDist);
   }
   t0.stop(); t_copy2 = t0.elapsed_time();
 
   // insert artificial points at infinity
   thrust::sequence(dID.begin()+n, dID.end(), -nExtra, 1); // negative id
-  thrust::fill(dP.begin()+n*d, dP.end(), -std::numeric_limits<float>::max());
+  thrust::fill(dP.begin()+n*d, dP.end(), std::numeric_limits<float>::max());
   
   //tprint(N, d, dP, "Points on GPU");
-    /*
+  
   std::cout<<"\n========================"
            <<"\nPoints"
            <<"\n------------------------"
@@ -137,7 +137,6 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
            <<"\ncopy neighbor time: "<<t_copy2<<" s"
            <<"\n========================\n"
            <<std::endl;
-    */
   // -----------------------
   // timing
   // -----------------------
@@ -195,6 +194,7 @@ void denknn(const int* hID, const float *hP, int n, int d, int level, int nTree,
       // shuffle
       gather(dP, N, d, perm);
       gather(dID, perm);
+      //print(dID, "dID");
       gather(order, perm);
     }
 

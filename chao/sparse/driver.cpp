@@ -67,9 +67,11 @@ SpMat read_dataset(std::string dataset) {
   if (dataset.compare("url")==0)
     //P = read_csr_binary("/scratch/06108/chaochen/url_1day_csr.bin");
     //P = read_csr_binary("/scratch/06108/chaochen/url_10day_csr.bin");
-    P = read_csr_binary("/scratch/06108/chaochen/url_csr.bin");
+    //P = read_csr_binary("/scratch/06108/chaochen/url_csr.bin");
+    P = read_csr_binary("/work/06108/chaochen/shared/url_csr.bin");
   else if (dataset.compare("avazu")==0)
-    P = read_csr_binary("/scratch/06108/chaochen/avazu_csr.bin");
+    //P = read_csr_binary("/scratch/06108/chaochen/avazu_csr.bin");
+    P = read_csr_binary("/work/06108/chaochen/shared/avazu_csr.bin");
   else if (dataset.compare("avazu_app")==0)
     P = read_csr_binary("/scratch/06108/chaochen/avazu_app_csr.bin");
   else if (dataset.compare("avazu_app_t")==0)

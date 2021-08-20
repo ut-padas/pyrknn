@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH -J pyrmg_avazu_rel
+#SBATCH -e pyrmg_avazu_rel.err 
+#SBATCH -o pyrmg_avazu_rel.txt 
+#SBATCH -p normal
+#SBATCH -N 4
+#SBATCH -A ASC21002
+#SBATCH --tasks-per-node 4 
+#SBATCH -t 4:00:00
+#SBATCH --mail-user=will.ruys@gmail.com
+#SBATCH --mail-type=end
+
+source /scratch1/06081/wlruys/miniconda3/etc/profile.d/conda.sh
+conda activate new
+source set_env_cpu.sh
+
+for t in `seq 0 1 2`
+do
+    for l in 512
+    do
+        for j in 30 
+        do
+            mpirun -n 4 python pyrknn_avazu.py -ltrees $j -overlap 0 -cores 56 -leafsize $l | tee pyrknn_mgpu_deep_${l}_${j}_${t}.out
+        done
+    done
+done 
