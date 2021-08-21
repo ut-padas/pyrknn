@@ -15,7 +15,7 @@ cdef extern from "impl/sparse/spknn.hpp" nogil:
     cdef void spknn(int*, int*, int*, float*, int, int, int, int, int, int*, float*, int, int, int, int) except +
 
 cdef extern from "impl/sfiknn/sfiknn.hpp" nogil:
-    cdef void sfiknn(int*, int*, float*, int*, int, int, float*, int*, int) except +
+    cdef void FIKNN_sparse_gpu(int*, int*, float*, int*, int, int, float*, int*, int) except +
 
 
 def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
@@ -52,5 +52,32 @@ def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
 
 
 
-def sparse_fiknn(gids, X, 	 
+def sparse_fiknn(gids, X, leaves, k):
+   
+    assert(n == len(gids))
 
+    n,_ = X.shape
+
+    maxnnz = cp.max(cp.diff(X.indptr))
+    cdef int c_maxnnz = maxnnz
+
+    cdef int[:] hID = np.asarray(gids, dtype=np.int32)
+
+    cdef float[:] data = X.data
+    cdef int[:] idx = X.indices
+    cdef int[:] ptr = X.indptr
+    cdef int [:] nID = np.zeros([n*k], dtype=np.int32) + -1
+    cdef float [:] nDist = np.zeros([n*k], dtype = np.float32) + 1e38
+ 
+    cdef int c_n = n
+    cdef int c_k = k
+    cdef int c_leaves = leaves
+
+    with nogil:
+        FIKNN_sparse_gpu(<int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <int*> &gids[0], c_n, c_leaves, c_k, <float*> &nDist[0], <int*> &nID[0], c_maxnnz)
+    
+    outID = np.asarray(nID)
+    outDist = np.asarray(nDist)
+    
+    return (outID, outDist)
+    
