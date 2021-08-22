@@ -3,7 +3,7 @@
 #define SM_SIZE_2 2048
 #define SM_SIZE_SORT 8192
 
-#include "FIKNN_sparse.h"
+#include "sfiknn.hpp"
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <helper_cuda.h>

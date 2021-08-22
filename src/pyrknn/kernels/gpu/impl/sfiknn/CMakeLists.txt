@@ -1,5 +1,6 @@
 
 enable_language(CUDA)
+set(CUDA_DIR $ENV{CUDA_DIR})
 
 file(GLOB SFIKNN_SRC "${CMAKE_CURRENT_SOURCE_DIR}/*.cu")
 file(GLOB SFIKNN_HDR "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp")
@@ -18,6 +19,7 @@ endif()
 target_include_directories(sfiknn PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(sfiknn util)
+target_include_directories(sfiknn PUBLIC ${CUDA_DIR}/samples/common/inc)
 
 install(
         TARGETS sfiknn

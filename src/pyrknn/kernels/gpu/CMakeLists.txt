@@ -20,6 +20,7 @@ add_subdirectory(impl/sfiknn)
 include_directories(${CUDAToolkit_LIBRARY_DIR})
 include_directories(${CUDAToolkit_LIBRARY_ROOT})
 include_directories(${CUDAToolkit_INCLUDE_DIRS})
+include_directories(${CUDA_HOME}/samples/common/inc)
 
 add_cython_target(core_gpu core_gpu.pyx CXX PY3)
 add_library(core_gpu MODULE ${core_gpu})
