@@ -22,12 +22,10 @@ __global__ void FIKNN_compute_norm(int* R, int* C, float* V, int* G_Id, float* N
   for (int n_i = 0; n_i < nnz; n_i += 1) {
     norm_i += V[ind0_i + n_i] * V[ind0_i + n_i];
   }
-  int ind_write = blockIdx.y * ppl + row;
-  Norms[ind_write] = norm_i;
+  Norms[g_Id] = norm_i;
 }
 
-//__global__ void knn_kernel_tri(int* R, int* C, float* V, int* G_Id, float* Norms , int k_nn, float* KNN_dist, int* KNN_Id, int ppl, int max_nnz) {
-__global__ void knn_kernel_tri(int* R, int* C, float* V, int* G_Id, float* Norms , int k_nn, float* KNN_dist_tmp, int ppl, int max_nnz) {
+__global__ void knn_kernel_tri(int* R, int* C, float* V, int* G_Id, float* Norms , int k_nn, float* KNN_dist_tmp, int ppl, int max_nnz, int iternum) {
 
 
   __shared__ int SM[12288];
@@ -80,7 +78,7 @@ __global__ void knn_kernel_tri(int* R, int* C, float* V, int* G_Id, float* Norms
     int nnz_i = ind1_i - ind0_i;
     int nnz_j = ind1_j - ind0_j;
 
-    float norm_ij = Norms[g_rowId] + Norms[g_colId];
+    float norm_ij = Norms[perm_i] + Norms[perm_j];
 
     float c_tmp = 0.0;
     int tmp_0, tmp_1, ind_jk, k, ret, testInd;
@@ -116,13 +114,18 @@ __global__ void knn_kernel_tri(int* R, int* C, float* V, int* G_Id, float* Norms
 
     int ind_knn = leaf_id_g * ppl * k_nn + (block * k_nn + rowId) * k_nn + colId;
     int ind_knn_T = leaf_id_g * ppl * k_nn + (block * k_nn + colId) * k_nn + rowId;
-    //if (leaf_id_g == 0 && block * k_nn + rowId == 0) printf("init , D[%d] = %.4f, %d , write = %d , T = %d \n", colId, c_tmp, perm_j, ind_knn, ind_knn_T);  
-    KNN_dist_tmp[ind_knn] = c_tmp;
-    //KNN_Id[ind_knn] = perm_j;
+    
+    //int ind_knn = leaf_id_g * ppl * k_nn + (block * k_nn + rowId) * ppl + colId;
+    //int ind_knn_T = leaf_id_g * ppl * k_nn + (block * k_nn + colId) * ppl + rowId;
+    
+    KNN_dist_tmp[ind_knn] = (iternum >0 && colId == rowId) ? 1e30 : c_tmp;
     if (colId > rowId) KNN_dist_tmp[ind_knn_T] = c_tmp;
-    //if (colId > rowId) KNN_Id[ind_knn_T] = perm_i;
- 
-  
+
+    int test_pt = leaf_id_g * ppl + (block * k_nn + rowId);
+    int test_pt2 = leaf_id_g * ppl + (block * k_nn + colId);
+
+    //if (G_Id[test_pt] == 0) printf("D[%d] = %.4f , Id = %d , write_at = %d , iter = %d \n", test_pt2, KNN_dist_tmp[ind_knn], G_Id[test_pt2], ind_knn, iternum); 
+    //if (G_Id[test_pt2] == 0 && G_Id[test_pt] != 0) printf("D[%d] = %.4f , Id = %d , write_at = %d , iter = %d \n", test_pt, KNN_dist_tmp[ind_knn], G_Id[test_pt], ind_knn_T, iternum); 
   }
   
 }
@@ -141,7 +144,6 @@ __global__ void knn_kernel_A(int* R, int* C, float* V, int* G_Id, float* Norms, 
   int j = threadIdx.x;
   int size_sort = 2 * blockDim.x;
   
-  //int size_sort_step = size_sort - k_nn; 
   int size_part = ppl - (k_nn) * blockInd; 
 
   int rowId_leaf = k_nn * blockInd + row_l;
@@ -149,7 +151,8 @@ __global__ void knn_kernel_A(int* R, int* C, float* V, int* G_Id, float* Norms, 
   int perm_i = G_Id[g_rowId_I];
   int ind0_i = R[perm_i];
   int ind1_i = R[perm_i+1];
-  float norm_i = Norms[g_rowId_I];
+  //float norm_i = Norms[g_rowId_I];
+  float norm_i = Norms[perm_i];
   int nnz_i = ind1_i - ind0_i;
 
 
@@ -181,7 +184,8 @@ __global__ void knn_kernel_A(int* R, int* C, float* V, int* G_Id, float* Norms, 
 
         int nnz_j = ind1_j - ind0_j;
 
-        float norm_ij = norm_i + Norms[g_rowId_J];
+        //float norm_ij = norm_i + Norms[g_rowId_J];
+        float norm_ij = norm_i + Norms[perm_j];
         
         float c_tmp = 0.0;
         int tmp_0, tmp_1, ind_jk, k, ret, testInd;
@@ -227,26 +231,47 @@ __global__ void knn_kernel_A(int* R, int* C, float* V, int* G_Id, float* Norms, 
         
         int size_tmp = size_part - k_nn;
         int ind_tmp = leaf_id_g * k_nn * size_tmp + row_l * size_tmp + colId_leaf - (k_nn) * (blockInd+1);
-        
+            
         d_knn_temp[ind_tmp] = c_tmp; 
         //d_knnId_temp[ind_tmp] = perm_i;
         
         
       } else {
-        
-        SM_dist[j_tmp] = (j_tmp < k_nn) ? KNN_dist[leaf_id_g * ppl * k_nn + rowId_leaf * k_nn + j_tmp] : 1e30;
-        SM_Id[j_tmp] = (j_tmp < k_nn) ? KNN_Id[leaf_id_g * ppl * k_nn + rowId_leaf * k_nn + j_tmp] : 0;
-        
+        int ind_pt = G_Id[leaf_id_g * ppl+ rowId_leaf];
+        int ind_read = ind_pt * k_nn + j_tmp;
+        SM_dist[j_tmp] = (j_tmp < k_nn) ? KNN_dist[ind_read] : 1e30;
+        SM_Id[j_tmp] = (j_tmp < k_nn) ? KNN_Id[ind_read] : 0;
         
       }
       
       
+      //if (perm_i == 0) printf("read knn from B, D[%d] = %.4f , ind = %d \n", j_tmp, SM_dist[j_tmp], SM_Id[j_tmp]);
       
       
       
     }
     __syncthreads();
     
+    for (int j_tmp = j; j_tmp < size_sort; j_tmp += blockDim.x){
+      //for (int pt = 0; pt < 2; pt++){
+      //int j_tmp = 2 * j + pt;
+
+      int colId_leaf = k_nn * (blockInd) + col_batch * size_sort + j_tmp;
+      if (colId_leaf >= k_nn * (blockInd+1) && colId_leaf < ppl){
+        float val = SM_dist[j_tmp];
+        int index = SM_Id[j_tmp];
+        
+        for (int ind_check=0; ind_check < k_nn; ind_check++){
+          if (val == SM_dist[ind_check] && index == SM_Id[ind_check]){
+            SM_dist[j_tmp] = 1e30;
+            SM_Id[j_tmp] = -1;
+            break;
+          }
+        }
+      }
+    }
+    __syncthreads();      
+ 
     
     // sort and merge
 
@@ -404,10 +429,17 @@ __global__ void knn_kernel_A(int* R, int* C, float* V, int* G_Id, float* Norms, 
     
   
   if (j < k_nn){
-    int ind_knn = leaf_id_g * ppl * k_nn + rowId_leaf * k_nn + j;
-     
-    KNN_dist[ind_knn] = res_dist[j];
-    KNN_Id[ind_knn] = res_Id[j];
+   
+    //int ind_knn = leaf_id_g * ppl * k_nn + rowId_leaf * k_nn + j;
+    int ind_pt = leaf_id_g * ppl + rowId_leaf;
+    int ind_pt_g = G_Id[ind_pt];
+    int write_ind = ind_pt_g * k_nn + j;
+    
+    //if (ind_pt_g == 0) printf(" D[%d] = %.4f, ind = %d , write_ind = %d \n", j, res_dist[j], res_Id[j], write_ind);
+    
+    KNN_dist[write_ind] = res_dist[j];
+    KNN_Id[write_ind] = res_Id[j];
+    //if (ind_pt_g == 0) printf("res A , D[%d] = %.4f , id = %d , write_ind = %d \n", j,res_dist[j], res_Id[j], write_ind);
     
   }
 
@@ -539,34 +571,54 @@ __global__ void knn_kernel_B(float* KNN, int* KNN_Id, int k_nn, int ppl, int blo
   __shared__ float SM_dist[SM_SIZE_1];
   __shared__ int SM_Id[SM_SIZE_1];
 
-
   int tid = threadIdx.x;
 
   int col = blockIdx.x;
   int leaf_id_g = blockIdx.y;
   
   int colId_leaf = (init) ? col : col + k_nn * (blockInd + 1);
+  //int size_part = (init) ? ppl : ppl - (blockInd + 1) * (k_nn);
   int size_part = (init) ? ppl : ppl - (blockInd + 1) * (k_nn);
   
   if (tid < k_nn){
-    int ind_tmp = (init) ? (leaf_id_g * ppl + tid) * k_nn + col : leaf_id_g * k_nn * size_part + tid * size_part + col;
+    int ind_tmp = (init) ? leaf_id_g * ppl * k_nn + col * k_nn + tid : leaf_id_g * k_nn * size_part + tid * size_part + col;
+    //int ind_tmp = leaf_id_g * k_nn * size_part + tid * size_part + colId_leaf;
     SM_dist[tid] = d_temp_knn[ind_tmp];
-    int rowId_g = (init) ? leaf_id_g * ppl + tid : leaf_id_g * ppl + k_nn * blockInd + tid;  
+
+    int block = col / k_nn;
+    int rowId_g = (init) ? leaf_id_g * ppl + block * k_nn + tid : leaf_id_g * ppl + k_nn * blockInd + tid;  
     SM_Id[tid] = G_Id[rowId_g];
-    //if (leaf_id_g == 0 && init == 1 && col == 0) printf("Dist[%d] = %.4f , Id = %d , read = %d , read = %d \n", tid, SM_dist[tid], SM_Id[tid], ind_tmp); 
      
   } else {
-    int ind_knn = leaf_id_g * k_nn * ppl + colId_leaf * k_nn + tid - k_nn;
+
+    int ind_pt_knn = leaf_id_g * ppl + colId_leaf;
+    int ind_pt_knn_g = G_Id[ind_pt_knn];
+
+    int ind_knn = ind_pt_knn_g * k_nn + tid - k_nn;
     SM_dist[tid] = KNN[ind_knn];
     SM_Id[tid] = KNN_Id[ind_knn];
-    //if (leaf_id_g == 0 && init == 1 && col == 0) printf("Dist[%d] = %.4f , Id = %d , read = %d \n", tid, SM_dist[tid], SM_Id[tid], ind_knn); 
       
   }
 
 
   __syncthreads();
   
-  
+  if (tid < k_nn){
+    float val = SM_dist[tid];
+    int index = SM_Id[tid];
+    for (int ind_check = 0; ind_check < k_nn; ind_check++){
+      if (val == SM_dist[ind_check + k_nn] && index == SM_Id[ind_check + k_nn]){
+        SM_dist[tid] = 1e30;
+        SM_Id[tid] = -1;
+        break;
+      }
+    }
+    
+
+  }
+  __syncthreads(); 
+
+ 
   // sort 
   float tmp_f;
   int tmp_i;
@@ -610,11 +662,24 @@ __global__ void knn_kernel_B(float* KNN, int* KNN_Id, int k_nn, int ppl, int blo
     }
   }
   //__syncthreads();
+  int ind_pt = leaf_id_g * ppl + colId_leaf;    
+  int ind_pt_g = G_Id[ind_pt];
+  int write_ind = ind_pt_g * k_nn + tid;
   
+  //if (ind_pt_g == 0) printf("write B, Dist[%d] = %.4f , Id = %d , write_ind = %d \n", tid, KNN[write_ind],  KNN_Id[write_ind] , write_ind);
+   
   if (tid < k_nn) {
-    int ind_knn = leaf_id_g * ppl * k_nn + colId_leaf * k_nn + tid;
-    KNN[ind_knn] = SM_dist[tid];
-    KNN_Id[ind_knn] = SM_Id[tid];
+    
+    //int ind_pt = leaf_id_g * ppl * k_nn + colId_leaf * k_nn + tid;
+    /*
+    int ind_pt = leaf_id_g * ppl + colId_leaf;    
+    int ind_pt_g = G_Id[ind_pt];
+    int write_ind = ind_pt_g * k_nn + tid;
+    */
+    KNN[write_ind] = SM_dist[tid];
+    KNN_Id[write_ind] = SM_Id[tid];
+    
+    //if (ind_pt_g == 0) printf("write B, Dist[%d] = %.4f , Id = %d , write_ind = %d \n", tid, KNN[write_ind],  KNN_Id[write_ind] , write_ind);
     
   
   }
@@ -870,7 +935,8 @@ void precomp_arbsize_sortId(int* d_arr, int* d_arr_part, int N_true, int N_pow2,
 
 
 
-void FIKNN_sparse_gpu(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz){
+void FIKNN_sparse_gpu(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz, int iternum){
+
 
 
   int ppl = M/leaves;
@@ -890,11 +956,7 @@ void FIKNN_sparse_gpu(int *R, int *C, float *V, int *G_Id, int M, int leaves, in
   dim3 dimBlock_norm(t_b, 1);
   dim3 dimGrid_norm(num_batch_norm, leaves);
 
-  printf(" block Norms = (%d , %d) \n ", t_b, 1);
-  printf("Grid Norms = (%d , %d) \n ", num_batch_norm, leaves);
-
-
-
+  printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
 
   float *d_Norms;
 
@@ -906,16 +968,18 @@ void FIKNN_sparse_gpu(int *R, int *C, float *V, int *G_Id, int M, int leaves, in
   dim3 dimBlock_tri(blockDim_tri, 1);
   dim3 dimGrid_tri(num_blocks_tri, leaves);
 
-  printf("block TriPart = (%d , %d) \n ", blockDim_tri, 1);
-  printf("Grid TriPart = (%d , %d) \n ", num_blocks_tri, leaves);
 
 
   dim3 dimGrid_sq(k, leaves);
+  printf(" number of points = %d \n", M);
+  printf(" number of leaves = %d \n\n", leaves);
 
-  printf("Grid RecPart = (%d , %d) \n ", k, leaves);
+  printf(" dim GridThreads IterativePart = (%d , %d) \n", k, leaves);
+  printf(" dim BlockThreads  Norms = (%d , %d) \n", t_b, 1);
+  printf(" dim GridThreads Norms = (%d , %d) \n", num_batch_norm, leaves);
+  printf(" dim BlockThreads Diagonal Distances = (%d , %d) \n", blockDim_tri, 1);
+  printf(" dim GridThreads Diagonal Distances = (%d , %d) \n", num_blocks_tri, leaves);
 
-
-  
   int size_v_block = 2 * k;
   dim3 dimBlock_v(size_v_block, 1);
 
@@ -983,14 +1047,13 @@ void FIKNN_sparse_gpu(int *R, int *C, float *V, int *G_Id, int M, int leaves, in
   checkCudaErrors(cudaDeviceSynchronize());
 
   
-  knn_kernel_tri <<< dimGrid_tri, dimBlock_tri >>>(d_R, d_C, d_V, d_GId, d_Norms, k, d_temp_knn, ppl, max_nnz_pow2);
+  knn_kernel_tri <<< dimGrid_tri, dimBlock_tri >>>(d_R, d_C, d_V, d_GId, d_Norms, k, d_temp_knn, ppl, max_nnz_pow2, iternum);
   checkCudaErrors(cudaDeviceSynchronize());
 
   int size_v = ppl;
   dim3 dimGrid_v(size_v, leaves);
   
   knn_kernel_B <<< dimGrid_v, dimBlock_v >>> (d_knn, d_knn_Id, k, ppl, 0, d_temp_knn, d_GId, true);
-
   checkCudaErrors(cudaDeviceSynchronize());
   
   for (int blockInd = 0; blockInd < num_blocks_tri - 1; blockInd++){
@@ -1036,15 +1099,7 @@ void FIKNN_sparse_gpu(int *R, int *C, float *V, int *G_Id, int M, int leaves, in
   checkCudaErrors(cudaEventElapsedTime(&del_t1, t0, t1));
   checkCudaErrors(cudaMemcpy(knn, d_knn, sizeof(float) * M * k, cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMemcpy(knn_Id, d_knn_Id, sizeof(int) * M * k, cudaMemcpyDeviceToHost));
-
-
-  printf("\n Elapsed time (s) : %.4f \n ", del_t1/1000);
-
-  printf("\n Memory for sort %.4f GB \n", (free-m1)/1e9);
-  printf("\n Memory for norm %.4f GB \n", (m1-m2)/1e9);
-  printf("\n Memory for temp storage %.4f GB \n", (m2-m3)/1e9);
-
-
+  
 
   checkCudaErrors(cudaFree(d_Norms));
   checkCudaErrors(cudaFree(d_R));
@@ -1057,15 +1112,18 @@ void FIKNN_sparse_gpu(int *R, int *C, float *V, int *G_Id, int M, int leaves, in
   checkCudaErrors(cudaFree(d_arr_part));
   checkCudaErrors(cudaFree(d_arr));
 
-  //free(R);
-  //free(C);
-  //free(V);
-  //free(G_Id);
-
   checkCudaErrors(cudaEventDestroy(t0));
   checkCudaErrors(cudaEventDestroy(t1));
   cudaMemGetInfo(&free, &total);
   //printf("\n Memory free end %.4f GB \n", (total-free)/1e9);
+  printf(" Elapsed time (s) : %.4f \n\n", del_t1/1000);
+
+  printf(" Memory : storing norms = %.4f GB \n", (m1-m2)/1e9);
+  printf(" Memory : precomputing the sort indices = %.4f GB \n", (free-m1)/1e9);
+	printf(" Memory : temporary storage = %.4f GB \n", (m2-m3)/1e9);
+  
+  printf("----------------------------- End of the sfiknn -----------------------------\n\n");
+
 
 }
 
