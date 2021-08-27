@@ -34,11 +34,11 @@ def l2(q,r):
 
 def orthoproj(X,numdir):
     n,dim = X.shape
-    U = cp.random.randn(dim,numdir)
-    Q,_ =cp.linalg.qr(U,mode='reduced')
+    U = np.random.randn(dim,numdir)
+    Q,_ =np.linalg.qr(U,mode='reduced')
     U[:,:Q.shape[1]] = Q
-    Xr = X.dot(U.get())
-    Xr = cp.asarray(Xr)
+    Xr = X.dot(U)
+    #Xr = cp.asarray(Xr)
     return (Xr,U)
 
 def segpermute(arr,segsize,gperm):
@@ -54,9 +54,9 @@ def segpermute_f(arr,segsize,perm):
     n = len(arr)
     b = n//segsize
     print(n, b)
-    perm[:] = cp.argsort(arr.reshape(b,segsize), axis = 1).flatten()
-    offsets = cp.arange(0,n,segsize)
-    st = cp.tile(offsets, (segsize,1))
+    perm[:] = np.argsort(arr.reshape(b,segsize), axis = 1).flatten()
+    offsets = np.arange(0,n,segsize)
+    st = np.tile(offsets, (segsize,1))
     st = (st.T).ravel()
     perm[:] = perm[:] + st[:]
     

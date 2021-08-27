@@ -5,7 +5,7 @@ from time import time
 import cupyx.scipy.sparse as cpsp
 import sys
 import sys
-sys.path.append("/work2/07544/ghafouri/frontera/gits/pyrknn/GeMM/wrapper")
+sys.path.append("../../wrapper")
 
 from cuda_wrapper.sparse import *
 
@@ -98,9 +98,9 @@ def rkdt_a2a_it(X,gids,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense
     #perm = cp.empty_like(gids)
     #perm = cp.arange(n, dtype = cp.int32)
     for t in range(maxit):
-        gids = cp.arange(0, n,dtype=cp.int32)
+        gids = np.arange(0, n,dtype=np.int32)
         #gids = cp.arange(0,n,dtype=cp.int32)
-        perm = cp.arange(0, n,dtype=cp.int32)
+        perm = np.arange(0, n,dtype=np.int32)
         P,_ = ut.orthoproj(X,levels)
         segsize = n
         for i in range(0,levels):
@@ -120,7 +120,7 @@ def rkdt_a2a_it(X,gids,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense
         
         if not dense:
             print("\t Sparse knn : sfiknn version")
-            knndis, knnidx = py_sfiknn(gids, X, leaves, K, knndis.ravel(), knnidx.ravel(), t) 
+            knnidx, knndis = py_sfiknn(gids, X, leaves, K, knndis.ravel(), knnidx.ravel(), t) 
 
 
 
