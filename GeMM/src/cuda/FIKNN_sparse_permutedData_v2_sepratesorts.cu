@@ -220,7 +220,7 @@ __global__ void knn_kernel_tri_last(int* R, int* C, float* V, int* G_Id, float* 
 __global__ void knn_kernel_Dist(int* R, int* C, float* V, int* G_Id, float* Norms, int k_nn, int ppl, int max_nnz, int blockInd, float* d_knn_temp) {
 
 
-  __shared__ int SM[500];
+  __shared__ int SM[1000];
   //__shared__ float SM_dist[SM_SIZE_2];
   //__shared__ int SM_Id[SM_SIZE_2];
   
@@ -247,7 +247,6 @@ __global__ void knn_kernel_Dist(int* R, int* C, float* V, int* G_Id, float* Norm
 
   for (int n_i = j; n_i< nnz_i; n_i += blockDim.x) SM[n_i] = C[ind0_i + n_i];
    
-  //int num_batches = size_part / (size_sort);
   __syncthreads();
 
 
@@ -273,20 +272,6 @@ __global__ void knn_kernel_Dist(int* R, int* C, float* V, int* G_Id, float* Norm
     ret = 0;
     testInd = 0;
       
-    /*   
-    int ind_pt = G_Id[leaf_id_g * ppl + rowId_leaf];
-    int index = G_Id[perm_j];
-
-      for (int ind_check = 0; ind_check < k_nn; ind_check++){
-          int ind_read = ind_pt * k_nn + ind_check;  
-          if (index == KNN_Id[ind_read]){
-            //SM_dist[j_tmp] = 1e30;
-            //SM_Id[j_tmp] = -1;
-            neighbor=true;
-            break; 
-          }        
-        }
-    */  
     // loop over the elements of j
   
     if (nnz_i >0 && nnz_j > 0 && colId_leaf < ppl){
@@ -325,7 +310,7 @@ __global__ void knn_kernel_Dist(int* R, int* C, float* V, int* G_Id, float* Norm
     int size_tmp = size_part;
     int ind_tmp = leaf_id_g * k_nn * size_tmp + row_l * size_tmp + colId_leaf - (k_nn) * (blockInd+1);
     d_knn_temp[ind_tmp] = c_tmp;
-    //if (leaf_id_g == 0 && rowId_leaf == 0) printf("val = %.4f , colId_leaf = %d , write at %d \n", c_tmp, colId_leaf, ind_tmp);
+    //if (leaf_id_g == 0 && colId_leaf == 1149 && rowId_leaf == 111) printf("val = %.4f , colId_leaf = %d , write at %d , blockInd = %d \n", c_tmp, rowId_leaf, ind_tmp, blockInd);
   }
 
 
@@ -353,7 +338,10 @@ __global__ void knn_kernel_sortHoriz(float* KNN, int* KNN_Id, int k_nn, int ppl,
   int rowId_leaf = k_nn * blockInd + row_l;
   //int g_rowId_I = leaf_id_g * ppl + rowId_leaf;
   
-  for (int n=j; n < SM_SIZE_2; n += blockDim.x) SM_dist[n] = 1e30; 
+  for (int n=j; n < SM_SIZE_2; n += blockDim.x){
+    SM_dist[n] = 1e30; 
+    SM_Id[n] = -1;
+  }
 
   float tmp_f;
   int tmp_i;
@@ -381,13 +369,14 @@ __global__ void knn_kernel_sortHoriz(float* KNN, int* KNN_Id, int k_nn, int ppl,
         SM_dist[j_tmp] = d_temp_knn[ind_tmp];
         SM_Id[j_tmp] = G_Id[g_colId_J];
       }
+      //if (init == 0 && rowId_leaf == 1149 && leaf_id_g == 0 && col_batch == 0) printf("D[%d] = %.4f , at %d  \n", j_tmp, SM_dist[j_tmp], SM_Id[j_tmp]);
     }
 
     __syncthreads();
-    
+       
     for (int j_tmp = j; j_tmp < size_sort; j_tmp += blockDim.x) {
 
-      if (j_tmp > k_nn){
+      if (j_tmp >= k_nn){
         int index = SM_Id[j_tmp];
         for (int ind_check = 0; ind_check < k_nn; ind_check++){
           if (index == SM_Id[ind_check]){
@@ -400,6 +389,7 @@ __global__ void knn_kernel_sortHoriz(float* KNN, int* KNN_Id, int k_nn, int ppl,
 
     }
     __syncthreads();
+    
 
 
     for (int step = 0; step < steps; step++){
@@ -483,11 +473,12 @@ __global__ void knn_kernel_sortHoriz(float* KNN, int* KNN_Id, int k_nn, int ppl,
 
   }
   for (int j_tmp = j; j_tmp < k_nn; j_tmp += blockDim.x){ 
-    if (j < k_nn){
+    if (j_tmp < k_nn){
       int ind_pt = leaf_id_g * ppl + rowId_leaf;
-      int write_ind = G_Id[ind_pt] * k_nn + j;
-      KNN[write_ind] = SM_dist[j];
-      KNN_Id[write_ind] = SM_Id[j];
+      int write_ind = G_Id[ind_pt] * k_nn + j_tmp;
+      KNN[write_ind] = SM_dist[j_tmp];
+      KNN_Id[write_ind] = SM_Id[j_tmp];
+      //if (init == 0 && rowId_leaf == 1149 && leaf_id_g == 0) printf("sorted D[%d] = %.4f , at %d  \n", j_tmp, SM_dist[j_tmp], SM_Id[j_tmp]);
     }
   } 
 }
@@ -521,12 +512,12 @@ __global__ void knn_kernel_B_reduced(float* KNN, int* KNN_Id, int k_nn, int ppl,
   SM_dist[j + k_nn] = KNN[ind_knn];
   SM_Id[j + k_nn] = KNN_Id[ind_knn];
 
-  //if (blockInd == 0 && init == 0 && colId_leaf == 4091) printf("read from %d , val = %.4f , ind = %d \n", ind_tmp, SM_dist[j], SM_Id[j]);
+  //if (init == 0 && colId_leaf == 1149 && blockInd == 1 && leaf_id_g == 0) printf("read from %d , val = %.4f , ind = %d \n", ind_tmp, SM_dist[j], SM_Id[j]);
   
   __syncthreads();
 
   
-    /*
+    
     int index = SM_Id[j];
     for (int ind_check = 0; ind_check < k_nn; ind_check++){
       if (index == SM_Id[ind_check + k_nn]){
@@ -535,7 +526,7 @@ __global__ void knn_kernel_B_reduced(float* KNN, int* KNN_Id, int k_nn, int ppl,
         break;
       }
     }
-    */
+    
 
    
 
@@ -630,6 +621,8 @@ __global__ void knn_kernel_B_reduced(float* KNN, int* KNN_Id, int k_nn, int ppl,
 
   
   //ind_knn = leaf_id_g * ppl * k_nn + colId_leaf * k_nn + j;
+  
+  //if (init == 0 && colId_leaf == 1149 && blockInd == 1 && leaf_id_g == 0) printf("sorted %d , val = %.4f , ind = %d \n", j, SM_dist[j], SM_Id[j]);
   KNN[ind_knn] = SM_dist[j];
   KNN_Id[ind_knn] = SM_Id[j];
   
