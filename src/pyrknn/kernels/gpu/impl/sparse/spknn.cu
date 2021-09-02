@@ -8,7 +8,6 @@
 #include "merge.hpp"
 #include "print.hpp"
 #include "matrix.hpp"
-
 #include <thrust/random.h>
 #include <thrust/random/linear_congruential_engine.h>
 #include <thrust/random/normal_distribution.h>
@@ -20,6 +19,7 @@ void build_tree(dvec<float> &P, int n, int level, dvec<int> &perm, float&);
 void leaf_knn(int *dID, SpMat, ivec&, ivec&, fvec&, int maxPoint, 
     int *curID, float *curDist, int LD, int k, int m, fvec&, ivec&,
     float&, float&, float&, float&, float&, float&, float&, float&);
+void sfi_leafknn(int* dR, int* dC, float* dV, int* d_ID, int n, int nLeaf, int k, float* curDist, int* curID); 
 
     
 void get_submatrices(ivec &dID, int *curNborID, float *curNborDist, int LD,
@@ -357,9 +357,14 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
 
 
     // compute neighbors at leaf level
-    int *curNborID = thrust::raw_pointer_cast(dNborID.data()+k);
-    float *curNborDist = thrust::raw_pointer_cast(dNborDist.data()+k);
+    int *curNborID = thrust::raw_pointer_cast(dNborID.data());
+    float *curNborDist = thrust::raw_pointer_cast(dNborDist.data());
+    int*dR = thrust::raw_pointer_cast(dRowPtr.data());
+    int* dC = thrust::raw_pointer_cast(dColIdx.data());
+    int* d_ID = thrust::raw_pointer_cast(dID.data());
+    float* dV = thrust::raw_pointer_cast(dVal.data());
     t.start();
+    /*
     {
       t3.start();
       int nBlock = (nLeaf+blkLeaf-1) / blkLeaf;
@@ -411,25 +416,31 @@ void spknn(int *hID, int *hRowPtr, int *hColIdx, float *hVal,
       destroy_BDSpMat(subBlock, nBlock, dColIdx);
       t3.stop(); t_bd += t3.elapsed_time();
     }
-    t.stop(); t_knn += t.elapsed_time();
+    */
+      t3.start();
+
+      sfi_leafknn(dR, dC, dV, d_ID, n, nLeaf, k, curNborDist, curNborID);
+
+      //std::cout<<"Sparsity: "<<sparse/nBlock/maxPoint*blkPoint<<std::endl;
+      t3.stop(); t_knn += t.elapsed_time();
 
 
     //tprint(n, 2*k, dNborID, "[Before scatter] curID");
     //tprint(n, 2*k, dNborDist, "[Before scatter] curDist");
-  
+    /* 
     t.start();
     scatter(curNborID, n, 2*k, k, order);
     scatter(curNborDist, n, 2*k, k, order);
     cudaDeviceSynchronize();
     t.stop(); t_scatter += t.elapsed_time();
-
+    */
     //tprint(n, 2*k, dNborDist, "[After scatter] curDist");
     //tprint(n, 2*k, dNborID, "[After scatter] curID");
 
 
     // update previous results
     t.start();
-    merge_neighbors(dNborDist, dNborID, n-nExtra, 2*k, k, t_msort, t_mcopy, t_unique);
+    //merge_neighbors(dNborDist, dNborID, n-nExtra, 2*k, k, t_msort, t_mcopy, t_unique);
     t.stop();
     t_merge += t.elapsed_time();
   

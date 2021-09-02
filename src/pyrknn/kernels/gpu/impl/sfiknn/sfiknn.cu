@@ -3,7 +3,7 @@
 #define SM_SIZE_2 2048
 #define SM_SIZE_SORT 8192
 
-#include "sfiknn.h"
+#include "sfiknn.hpp"
 #include "helper_cuda.h"
 
 __global__ void ComputeNorms(int* R, int* C, float* V, int* G_Id, float* Norms, int ppl) {
@@ -993,7 +993,8 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   for (int blockInd = 0; blockInd < num_iters; blockInd++){
 
     //checkCudaErrors(cudaEventRecord(t6, 0));
-    checkCudaErrors(cudaEventRecord(t5, 0));
+    //checkCudaErrors(cudaEventRecord(t5, 0));
+    //checkCudaErrors(cudaEventSynchronize(t5));
     
     int size_part = ppl - blockInd *k;
     int size_sort = size_part;
@@ -1022,23 +1023,26 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
     ComputeRecDists <<< dimGrid_sq, dimBlock_dist >>> (d_R, d_C, d_V, d_GId, d_Norms, k, ppl, blockInd, d_temp_knn);
     checkCudaErrors(cudaDeviceSynchronize());
   
-    checkCudaErrors(cudaEventRecord(t6, 0));
+    //checkCudaErrors(cudaEventRecord(t6, 0));
+    //checkCudaErrors(cudaEventSynchronize(t6));
     
     PrecompSortIds(d_arr, d_arr_part, real_size, N_pow2, steps, copy_size);
     
     MergeHoriz <<< dimGrid_sq, dimBlock_sortHoriz >>> (d_knn, d_knn_Id, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false); 
     checkCudaErrors(cudaDeviceSynchronize());
-    checkCudaErrors(cudaEventRecord(t7, 0));
+    //checkCudaErrors(cudaEventRecord(t7, 0));
+    //checkCudaErrors(cudaEventSynchronize(t7));
   
     MergeVer <<< dimGrid_v2, dimBlock_v_reduced >>> (d_knn, d_knn_Id, k, ppl, blockInd, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, false);
     checkCudaErrors(cudaDeviceSynchronize());
-    checkCudaErrors(cudaEventRecord(t8, 0));
-    checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t5, t6));
-    dt5 += dt_tmp; 
-    checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t7)); 
-    dt6 += dt_tmp; 
-    checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t7, t8)); 
-    dt7 += dt_tmp; 
+    //checkCudaErrors(cudaEventRecord(t8, 0));
+    //checkCudaErrors(cudaEventSynchronize(t8));
+    //checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t5, t6));
+    //dt5 += dt_tmp; 
+    //checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t7)); 
+    //dt6 += dt_tmp; 
+    //checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t7, t8)); 
+    //dt7 += dt_tmp; 
 
   }
   
@@ -1046,7 +1050,7 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
 
   checkCudaErrors(cudaDeviceSynchronize());
   checkCudaErrors(cudaEventRecord(t9, 0));
-  checkCudaErrors(cudaEventSynchronize(t5));
+  checkCudaErrors(cudaEventSynchronize(t9));
   checkCudaErrors(cudaEventElapsedTime(&dt1, t0, t1));
   checkCudaErrors(cudaEventElapsedTime(&dt2, t1, t2));
   checkCudaErrors(cudaEventElapsedTime(&dt3, t2, t3));
@@ -1067,6 +1071,14 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
 
   checkCudaErrors(cudaEventDestroy(t0));
   checkCudaErrors(cudaEventDestroy(t1));
+  checkCudaErrors(cudaEventDestroy(t2));
+  checkCudaErrors(cudaEventDestroy(t3));
+  checkCudaErrors(cudaEventDestroy(t4));
+  checkCudaErrors(cudaEventDestroy(t5));
+  checkCudaErrors(cudaEventDestroy(t6));
+  checkCudaErrors(cudaEventDestroy(t7));
+  checkCudaErrors(cudaEventDestroy(t8));
+  checkCudaErrors(cudaEventDestroy(t9));
   //cudaMemGetInfo(&free, &total);
   printf("--------------- Timings ----------------\n");
   printf("\t Memory allocation :%.4f (%.4f %%) \n", dt1/1000, dt1/dt9);
