@@ -110,7 +110,7 @@ __global__ void ComputeTriDists(int* R, int* C, float* V, int* G_Id, float* Norm
     //KNN_dist_tmp[ind_knn] = (iternum >0 && colId == rowId) ? 1e30 : c_tmp;
     KNN_dist_tmp[ind_knn] = c_tmp;
     if (colId > rowId) KNN_dist_tmp[ind_knn_T] = c_tmp;
-    
+    if (G_Id[gid_pt] == 0) printf("D[%d] = %.4f \n", colId, c_tmp);
   }
   
 }
@@ -485,7 +485,7 @@ __global__ void MergeHoriz(float* KNN, int* KNN_Id, int k_nn, int ppl, int block
 
 
 
-__global__ void MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int blockInd, float* d_temp_knn, int* sort_arr, int* sort_arr_part, int steps, int* G_Id, bool init){
+__global__ void MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int blockInd, float* d_temp_knn, int* sort_arr, int* sort_arr_part, int steps, int* G_Id, bool init, int M){
 
   __shared__ float SM_dist[SM_SIZE_1];
   __shared__ int SM_Id[SM_SIZE_1];
@@ -505,12 +505,17 @@ __global__ void MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int blockIn
   int rowId_g = (init) ? leaf_id_g * ppl + block * k_nn + j : leaf_id_g * ppl + k_nn * blockInd + j;
   SM_Id[j] = G_Id[rowId_g];
 
+  //if (SM_Id[j] >= M) printf("SM_Id[%d] = %d , rowId_g = %d \n", j, SM_Id[j], rowId_g);
+
   int ind_pt_knn = leaf_id_g * ppl + colId_leaf;
   int ind_pt_knn_g = G_Id[ind_pt_knn];
  
   int ind_knn = ind_pt_knn_g * k_nn + j;
+  if (ind_knn >= M*k_nn) printf("j = %d , col = %d , leaf = %d , colId_leaf = %d , ind_pt_knn = %d , ind_pt_knn_g = %d \n ", j, col, leaf_id_g , colId_leaf, ind_pt_knn, ind_pt_knn_g);
   SM_dist[j + k_nn] = KNN[ind_knn];
   SM_Id[j + k_nn] = KNN_Id[ind_knn];
+  if (ind_pt_knn_g == 0) printf("SM_Id[%d] = %.4f , rowId_g = %d \n", j,  SM_dist[j] ,SM_Id[j]);
+  if (ind_pt_knn_g == 0) printf("SM_Id[%d] = %.4f , rowId_g = %d \n", j+k_nn,  SM_dist[j+k_nn], SM_Id[j+k_nn]);
 
   
   __syncthreads();
@@ -980,7 +985,7 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   int size_v = ppl;
   dim3 dimGrid_v2(size_v, batch_leaves_1, batch_leaves_2);
     
-  MergeVer <<< dimGrid_v2, dimBlock_v_reduced >>> (d_knn, d_knn_Id, k, ppl, 0, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, true);
+  MergeVer <<< dimGrid_v2, dimBlock_v_reduced >>> (d_knn, d_knn_Id, k, ppl, 0, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, true, M);
   checkCudaErrors(cudaDeviceSynchronize());
   checkCudaErrors(cudaEventRecord(t4, 0));
   
@@ -992,9 +997,9 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
  
   for (int blockInd = 0; blockInd < num_iters; blockInd++){
 
-    //checkCudaErrors(cudaEventRecord(t6, 0));
-    //checkCudaErrors(cudaEventRecord(t5, 0));
-    //checkCudaErrors(cudaEventSynchronize(t5));
+    checkCudaErrors(cudaEventRecord(t6, 0));
+    checkCudaErrors(cudaEventRecord(t5, 0));
+    checkCudaErrors(cudaEventSynchronize(t5));
     
     int size_part = ppl - blockInd *k;
     int size_sort = size_part;
@@ -1023,26 +1028,26 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
     ComputeRecDists <<< dimGrid_sq, dimBlock_dist >>> (d_R, d_C, d_V, d_GId, d_Norms, k, ppl, blockInd, d_temp_knn);
     checkCudaErrors(cudaDeviceSynchronize());
   
-    //checkCudaErrors(cudaEventRecord(t6, 0));
-    //checkCudaErrors(cudaEventSynchronize(t6));
+    checkCudaErrors(cudaEventRecord(t6, 0));
+    checkCudaErrors(cudaEventSynchronize(t6));
     
     PrecompSortIds(d_arr, d_arr_part, real_size, N_pow2, steps, copy_size);
     
     MergeHoriz <<< dimGrid_sq, dimBlock_sortHoriz >>> (d_knn, d_knn_Id, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false); 
     checkCudaErrors(cudaDeviceSynchronize());
-    //checkCudaErrors(cudaEventRecord(t7, 0));
-    //checkCudaErrors(cudaEventSynchronize(t7));
+    checkCudaErrors(cudaEventRecord(t7, 0));
+    checkCudaErrors(cudaEventSynchronize(t7));
   
-    MergeVer <<< dimGrid_v2, dimBlock_v_reduced >>> (d_knn, d_knn_Id, k, ppl, blockInd, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, false);
+    MergeVer <<< dimGrid_v2, dimBlock_v_reduced >>> (d_knn, d_knn_Id, k, ppl, blockInd, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, false, M);
     checkCudaErrors(cudaDeviceSynchronize());
-    //checkCudaErrors(cudaEventRecord(t8, 0));
-    //checkCudaErrors(cudaEventSynchronize(t8));
-    //checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t5, t6));
-    //dt5 += dt_tmp; 
-    //checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t7)); 
-    //dt6 += dt_tmp; 
-    //checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t7, t8)); 
-    //dt7 += dt_tmp; 
+    checkCudaErrors(cudaEventRecord(t8, 0));
+    checkCudaErrors(cudaEventSynchronize(t8));
+    checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t5, t6));
+    dt5 += dt_tmp; 
+    checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t7)); 
+    dt6 += dt_tmp; 
+    checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t7, t8)); 
+    dt7 += dt_tmp; 
 
   }
   
