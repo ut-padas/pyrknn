@@ -565,7 +565,9 @@ __global__ void MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int blockIn
 		//int block = col / k_nn;
 		int block = col / partitionsize;
 		int rowId_g = (init) ? leafId_g * ppl + block * partitionsize + j_tmp : leafId_g * ppl + partitionsize * blockInd + j_tmp;
-		SM_Id[j_tmp] = G_Id[rowId_g];
+    int M = ppl * gridDim.y * gridDim.z;
+    //if (rowId_g >= ppl * gridDim.y) printf("Illegal access , leafId_local = %d , leaf_Id_g = %d , block = %d , partitionsize = %d , j_tmp = %d , rowId_g = %d , M = %d \n", leafId_local, leafId_g, block , partitionsize, j_tmp, rowId_g, M);
+		SM_Id[j_tmp] = (rowId_g < M ) ? G_Id[rowId_g] : -1;
 
  
 		int ind_knn = ind_pt_knn_g * k_nn + j_tmp;
@@ -1192,6 +1194,7 @@ void sfi_leafknn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, 
   checkCudaErrors(cudaFree(d_R));
   checkCudaErrors(cudaFree(d_C));
   checkCudaErrors(cudaFree(d_V));
+  checkCudaErrors(cudaFree(d_GId));
   checkCudaErrors(cudaFree(d_knn));
   checkCudaErrors(cudaFree(d_knn_Id));
 
