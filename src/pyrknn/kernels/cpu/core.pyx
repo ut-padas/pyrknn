@@ -51,8 +51,8 @@ cpdef single_knn(gids, R, Q, k, cores):
     cdef float[:, :] cND = neighbor_dist;
     cdef int[:] cgids = gids; 
     cdef int[:] cqids = np.arange(0, cm, dtype=np.int32);
-    with nogil:
-        GSKNN[float](&cgids[0], &cqids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
+    #with nogil:
+    #    GSKNN[float](&cgids[0], &cqids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
 
 
     return neighbor_list, neighbor_dist 
@@ -120,8 +120,8 @@ cpdef batched_knn(gidsList, RList, QList, k, cores):
         cNLList[i] = <np.uintp_t>&cNL[0, 0];
         cNDList[i] = <np.uintp_t>&cND[0, 0];
 
-    with nogil:
-        batchedGSKNN[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves, <int> ccores);
+    #with nogil:
+    #    batchedGSKNN[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves, <int> ccores);
     
     #NLL = np.asarray(cNLList);
     #NDL = np.asarray(cNDList);
@@ -225,8 +225,8 @@ cpdef sparse_knn_3(gids, pptr, pind, pval, pnnz, levels, ntrees, k, blocksize, c
     cdef unsigned int[:, :] nID = np.zeros([n, k], dtype=np.uint32) + <unsigned int> 1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + <float> 1e38
 
-    with nogil:
-        spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
+    #with nogil:
+    #    spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
 
     outID = np.asarray(nID)
     outDist = np.asarray(nDist)
@@ -276,8 +276,8 @@ cpdef sparse_knn(gids, X, levels, ntrees, k, blocksize, cores):
     cdef unsigned int[:, :] nID = np.zeros([n, k], dtype=np.uint32) + <unsigned int> 1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + <float> 1e38
 
-    with nogil:
-        spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
+    #with nogil:
+    #    spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
 
     outID = np.asarray(nID)
     outDist = np.asarray(nDist)

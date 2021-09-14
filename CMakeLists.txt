@@ -60,7 +60,7 @@ find_package(Cython REQUIRED)
 set(Python3_ROOT_DIR "${CONDA_PREFIX}")
 set(Python3_ROOT "${CONDA_PREFIX}")
 set(Python3_FIND_STRATEGY "LOCATION")
-find_package(Python3 3.8 EXACT REQUIRED COMPONENTS Interpreter NumPy)
+find_package(Python3 REQUIRED COMPONENTS Interpreter NumPy)
 #include_directories(${NumPy_INCLUDE_DIRS})
 include_directories(${_Python3_NumPy_INCLUDE_DIR})
 
@@ -90,7 +90,12 @@ endif()
 
 #-- Install GSKNN
 #find_package(GSKNN)
-add_subdirectory(extern/gsknn)
+
+#set(ARCH_POWER9 "ON")
+
+#if(not ARCH_POWER9)
+#    add_subdirectory(extern/gsknn)
+#endif()
 
 #-- Install CPU Dense & Sparse
 add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)

@@ -10,16 +10,24 @@
 
 #include <omp.h>
 //#include<ompUtils.h>
-//#include<blas.h>
+
+#include<cblas.h>
+
 #include <cassert>
 #include <queue>
 #include <cmath>
 #include <utility>
 #include <iostream>
 #include <numeric>
-#include <mkl.h>
+
+
+//TODO: Remove conditionally on POWER systems
+//#include <mkl.h>
+//#include <gsknn.h>
+
 #include <limits>
-#include <gsknn.h>
+
+
 #include <random>
 #include <string>
 
@@ -27,8 +35,14 @@
 //#include<gsknn_ref.h>
 //#include<gsknn_ref_stl.hpp>
 
+
+
 #define KNN_MAX_BLOCK_SIZE 1024
 #define KNN_MAX_MATRIX_SIZE 2e7L
+
+
+//TODO: Define conditonally on POWER systems
+#define ARCH_POWER9 1
 
 using namespace std;
 
@@ -206,6 +220,9 @@ unsigned int intlog2(uint64_t n)
 #undef S
 }
 
+
+
+#ifndef ARCH_POWER9
 //Kernels from Bo Xiao's Code
 
 template <typename T>
@@ -713,6 +730,8 @@ float* Distances(float* Q, float* R){
     return D;
 }
 */
+
+#endif 
 
 void sort_select(const float *value, const int *ID, int n, float *kval, int *kID, int k)
 {
