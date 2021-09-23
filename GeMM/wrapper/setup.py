@@ -12,8 +12,10 @@ except:
     print("You don't seem to have Cython installed")
     sys.exit(1)
 
-os.environ["CC"] = "icc"
-os.environ["CXX"] = "icpc"
+#os.environ["CC"] = "icc"
+#os.environ["CXX"] = "icpc"
+os.environ["CC"] = "cc"
+os.environ["CXX"] = "c++"
 
 CUDA_LIB = os.environ["TACC_CUDA_LIB"]
 
@@ -29,8 +31,9 @@ lib_dirs = []
 lib_dirs = lib_dirs + [CUDA_LIB]
 lib_dirs = lib_dirs + [CUDA_LIB+"/stubs/"]
 
-object_list=["cuda_wrapper/FIKNN_sparse.o"]
-
+#object_list=["cuda_wrapper/SFIKNN_nonpermuted_sqDist.o"]
+#object_list=["cuda_wrapper/SFIKNN.o"]
+object_list=["cuda_wrapper/SFIKNN.o"]
 def scandir(dir, files=[]):
     for file in os.listdir(dir):
         path = os.path.join(dir, file)

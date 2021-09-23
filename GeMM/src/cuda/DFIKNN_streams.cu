@@ -582,21 +582,51 @@ void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, i
   checkCudaErrors(cudaEventCreate(&t9));
 
   checkCudaErrors(cudaEventRecord(t0, 0));
+  int verbose = 1;
+  if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
 
+  int *d_GId, *d_knn_Id;
+  float *d_data, *d_knn;  
 
+  int C_len = M * dim;
+  checkCudaErrors(cudaMalloc((void **) &d_GId, sizeof(int) * M));
+  checkCudaErrors(cudaMalloc((void **) &d_data, sizeof(float) * C_len));
+
+  checkCudaErrors(cudaMalloc((void **) &d_knn_Id, sizeof(int) *M*k));
+  checkCudaErrors(cudaMalloc((void **) &d_knn, sizeof(float) *M*k));
+
+  checkCudaErrors(cudaMemcpy(d_data, data, sizeof(float) * C_len, cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_GId, G_Id, sizeof(int) * M, cudaMemcpyHostToDevice)); 
+  checkCudaErrors(cudaMemcpy(d_knn, knn, sizeof(float) * M * k, cudaMemcpyHostToDevice)); 
+  checkCudaErrors(cudaMemcpy(d_knn_Id, knn_Id, sizeof(int) * M * k, cudaMemcpyHostToDevice)); 
+
+  size_t free, total, m1, m2, m3;
 
   int ppl = M/leaves;
 
 
   int partsize = (k > 32) ? k : 32;
+
+  cudaMemGetInfo(&free, &total);
+
+  size_t size_req = sizeof(float) * partsize * M;
+  int counter =0;
+  while (size_req < free && partsize < 256 && counter < 6) {
+    counter++;
+    size_req *= 2;
+    partsize *= 2;
+    printf("partsize = %d,  free = %zu , size_req = %zu,\n", partsize, free, size_req);
+  }
+  partsize /= 2;
   partsize = (partsize > ppl) ? ppl : partsize;
+
+
   int num_blocks_tri = ppl / partsize;
   
   //if (num_blocks_tri * k < ppl) num_blocks_tri += 1;
   //int rem_len = (num_blocks_tri * k < ppl) ? ppl - num_blocks_tri * k : 0;
   int rem_len = (num_blocks_tri * partsize < ppl) ? ppl - num_blocks_tri * partsize : 0;
  
-  int C_len = M * dim;
 
 
   int t_b = (ppl > SM_SIZE_1) ? SM_SIZE_1 : ppl;
@@ -608,10 +638,6 @@ void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, i
   int batch_leaves_1 = (leaves > 64000) ? leaves / num_splits : leaves;
   int batch_leaves_2 = (leaves > 64000) ? num_splits : 1;
 
-  int verbose = 1;
-
-
-  if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
 
   float *d_Norms;
 
@@ -662,25 +688,8 @@ void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, i
   //int copy_size_v = k * n_s;
   int copy_size_v = (2 * partsize) * n_s_v;
 
-  size_t free, total, m1, m2, m3;
 
-  int *d_GId, *d_knn_Id;
-  float *d_data, *d_knn;  
-  
- 
-
- 
-  
-  checkCudaErrors(cudaMalloc((void **) &d_GId, sizeof(int) * M));
-  checkCudaErrors(cudaMalloc((void **) &d_data, sizeof(float) * C_len));
-
-  checkCudaErrors(cudaMalloc((void **) &d_knn_Id, sizeof(int) *M*k));
-  checkCudaErrors(cudaMalloc((void **) &d_knn, sizeof(float) *M*k));
-
-  checkCudaErrors(cudaMemcpy(d_data, data, sizeof(float) * C_len, cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMemcpy(d_GId, G_Id, sizeof(int) * M, cudaMemcpyHostToDevice)); 
-  checkCudaErrors(cudaMemcpy(d_knn, knn, sizeof(float) * M * k, cudaMemcpyHostToDevice)); 
-  checkCudaErrors(cudaMemcpy(d_knn_Id, knn_Id, sizeof(int) * M * k, cudaMemcpyHostToDevice)); 
+    
 
   cudaMemGetInfo(&free, &total);
   checkCudaErrors(cudaMalloc((void **) &d_arr, sizeof(int) * copy_size));
@@ -720,7 +729,6 @@ void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, i
   printf("=======================\n");
 
   
-
   
   checkCudaErrors(cudaMalloc((void **) &d_temp_knn, sizeof(float) * sizebleaves * ppl * partsize));
   cudaMemGetInfo(&m3, &total);
@@ -754,6 +762,9 @@ void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, i
   checkCudaErrors(cudaDeviceSynchronize());
 
   checkCudaErrors(cudaEventRecord(t3, 0));
+  cudaStream_t streams[2];
+  cudaStreamCreate(&streams[0]);
+  cudaStreamCreate(&streams[1]);
   for (int bl = 0; bl < numbleaves; bl++){
 
     for (int l = 0; l < leaves; l++){
@@ -775,14 +786,6 @@ void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, i
 
     }
     
-    if (0){
-      float *temp_knn;
-      temp_knn = (float *)malloc(sizeof(float) * ppl * sizebleaves * partsize); 
-      //int size_tmp = ppl - (blockInd+1)*partsize;
-      checkCudaErrors(cudaMemcpy(temp_knn, d_temp_knn, sizeof(float) * sizebleaves * ppl * partsize, cudaMemcpyDeviceToHost)); 
-      for (int ind = 0; ind < partsize; ind++) printf("point 0 , D[%d] = %.4f , read from %d \n", ind, temp_knn[ppl * partsize + ind], ppl*partsize + ind);
-      
-    }
      
    
       
@@ -852,21 +855,19 @@ void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, i
 
       checkCudaErrors(cudaEventRecord(t6, 0));
       checkCudaErrors(cudaEventSynchronize(t6));
+
 			
-			MergeHoriz <<< GridMergeHoriz, BlockMergeHoriz >>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false, bl, sizebleaves, partsize); 
-			checkCudaErrors(cudaDeviceSynchronize());
-			checkCudaErrors(cudaEventRecord(t7, 0));
-      checkCudaErrors(cudaEventSynchronize(t7));
+			MergeHoriz <<< GridMergeHoriz, BlockMergeHoriz, 0,  streams[0]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false, bl, sizebleaves, partsize); 
 		
-			MergeVer <<< GridMergeVer, BlockMergeVer >>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, false,bl, sizebleaves, partsize);
+			MergeVer <<< GridMergeVer, BlockMergeVer , 0, streams[1]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, false,bl, sizebleaves, partsize);
 			checkCudaErrors(cudaDeviceSynchronize());
 			checkCudaErrors(cudaEventRecord(t8, 0));
       checkCudaErrors(cudaEventSynchronize(t8));
       checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t5, t6));
       dt5 += dt_tmp;
-      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t7));
+      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t6));
       dt6 += dt_tmp;
-      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t7, t8));
+      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t8));
       dt7 += dt_tmp;
     }
   

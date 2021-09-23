@@ -228,7 +228,8 @@ __global__ void ComputeTriDists_last(int* R, int* C, float* V, int* G_Id, float*
     if (colId > rowId) KNN_dist_tmp[ind_knn_T] = c_tmp;
 
     for (int row_tmp = 0; row_tmp<rem_len; row_tmp++){
-      for (int q = ind + rem_len; q < k_nn; q += blockDim.x){
+      for (int q = ind + rem_len; q < partsize; q += blockDim.x){
+      //for (int q = ind + rem_len; q < k_nn; q += blockDim.x){
         //gid_pt = leafId_local * ppl + block * k_nn + row_tmp;
         //ind_knn = gid_pt * k_nn + q;
         gid_pt = leafId_local * ppl + block * partsize + row_tmp;
@@ -379,7 +380,8 @@ __global__ void MergeHoriz(float* KNN, int* KNN_Id, int k_nn, int ppl, int block
   int ind_sort;
    
   int num_batches = size_part / (size_sort - k_nn);
-  
+  if (num_batch == 0) num_batch += 1; 
+ 
   for (int col_batch = 0; col_batch < num_batches; col_batch++){
     for (int j_tmp = j; j_tmp < size_sort; j_tmp += blockDim.x){
       

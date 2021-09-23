@@ -35,7 +35,8 @@ lib_dirs = lib_dirs + [CUDA_INC]
 
 #object_list=["cuda_wrapper/SFIKNN_nonpermuted_sqDist.o"]
 #object_list=["cuda_wrapper/SFIKNN.o"]
-object_list=["cuda_wrapper/DFIKNN.o"]
+object_list=["cuda_wrapper/DFIKNN_streams_chSortVer.o"]
+#object_list=["cuda_wrapper/DFIKNN_streams.o"]
 def scandir(dir, files=[]):
     for file in os.listdir(dir):
         path = os.path.join(dir, file)
@@ -56,7 +57,7 @@ def makeExtension(extName):
         runtime_library_dirs = lib_dirs,
         extra_objects=object_list,
         extra_compile_args=["-std=c++11","-O3", "-fPIC"],
-        extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart"]
+        extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart", "-lcublas"]
     )
 
 

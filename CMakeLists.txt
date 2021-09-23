@@ -77,7 +77,7 @@ endif()
 
 #-- Look for MPI
 # Note: This is currenntly required
-find_package(MPI REQUIRED)
+#find_package(MPI REQUIRED)
 
 #--
 find_package(OpenMP)
@@ -93,8 +93,8 @@ endif()
 add_subdirectory(extern/gsknn)
 
 #-- Install CPU Dense & Sparse
-add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)
-add_subdirectory(src/pyrknn/kernels/cpu)
+#add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)
+#add_subdirectory(src/pyrknn/kernels/cpu)
 
 #--Install GPU Dense & Sparse
 if(PYRKNN_USE_CUDA)

@@ -39,7 +39,7 @@ def py_dfiknn(gids, X, leaves, k, knndis, knnidx, dim):
 
   cdef int[:] hID = np.asarray(gids, dtype = np.int32)
 
-  cdef float[:] data =  np.asarray(X, dtype = np.float32)
+  cdef float[:] data =  np.asarray(np.ravel(X, 'C'), dtype = np.float32)
 
   cdef int c_n = n
   cdef int c_k = k

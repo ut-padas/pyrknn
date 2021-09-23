@@ -12,15 +12,15 @@ mempool.free_all_blocks()
 if 1: 
     cp.random.seed(1)
 
-LogNP = 22; 
+LogNP = 25; 
 n=1<<LogNP   # NUMBER of POINTS
-
-depth = 11
+#n = 2396160
+depth = 16
 leaves = 1<< depth  # POINTS per leaf
 
 
 print('Generate dense array')
-dim = 64
+dim =16
 X = np.random.rand(n, dim)
 #np.save("tmp_mat", X)
 #X = np.load("tmp_mat.npy")
@@ -41,7 +41,7 @@ for i in range(leaves):
 '''
 
 print('Generate knn arrays')
-K=32
+K=4
 knnidx = -np.ones((n,K),dtype=np.int32)
 knndis = np.ones((n,K),dtype=np.float32) + 1e30
 
@@ -57,16 +57,15 @@ print('points_per_leaf =', points_per_leaf)
 numits = 1
 
 #a = np.sum(np.abs(X)**2,axis=-1)
+
 '''
-a = X[32,:]
-b = X[32:ppl,]
+a = X[1170,:]
+b = X[1170:1202,]
 
 b = np.matmul(a, b.T);
-'''
+print(b[:])
 #b = np.ravel(b, order ='F')
 #b = b.flatten()
-#print(b[:])
-'''
 for i in range(64):
   print("python temp_knn[%d] = %.4f"%(i, b[i]))
 '''
@@ -82,58 +81,99 @@ for k in range(1):
         print('sgemm %d it too took %.2e secs'%(k, toc-tic))
 
 
+
+
+
+def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
+
+    '''
+    rowerr = np.any(ex[:nc,]-ap[:nc,],axis=1)
+    rowidx = np.where(rowerr==True)
+    acc = 1 - len(rowidx[0])/nc
+    '''
+    err = 0.0
+    for i in range(nc):
+        miss_array_id = [1 if ap_id[i, j] in ex_id[i, :] else 0 for j in range(K)]
+        miss_array_dist = [1 if ap_dist[i, j] <= ex_dist[i, -1] else 0 for j in range(K)]
+        #err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
+        err += np.sum(miss_array_id)
+    acc = err/(nc*K)
+
+    return acc
+
+def apknnerr_dis(ex,ap,nc):
+    err =np.linalg.norm(ex[:nc,]-ap[:nc,])/np.linalg.norm(ex[:nc,])
+    print(err)
+    return err
+
+
+
+def monitor(t,knnidx,knndis):
+    tol = 0.95
+    acc = apknnerr(knnidx_ex,knndis_ex, knnidx, knndis,nex)
+    derr =apknnerr_dis(knndis_ex,knndis,nex)
+    #derr = cp.asnumpy(derr)
+    cost = t*points_per_leaf
+    print('it = ', '{:3d}'.format(t), 'Recall accuracy:', '{:.4f}'.format(acc), 'distance error = {:.4f}'.format(derr), 'cost = %.4f'%cost)
+    break_iter = False
+    break_iter =  (acc>tol or cost>n)
+    return break_iter
+
+
+
+
+
 #for t in range(leaves): # check accuracy for first leaf
 if 1:
 
 
 
 
-    t = 1
 
 
+  
+  for t in range(1):
+  
 
     nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(X[t*nex:(t+1)*nex,:])
     knndis_ex, knnidx_ex = nbrs.kneighbors(X[t*nex:(t+1)*nex,:])
 
+    apid = h_knnidx[t*nex:(t+1)*nex, :] - t * nex; 
+    apdis = h_knndis[t*nex:(t+1)*nex,:]
+    monitor(t, apid, apdis)
 
-
-
-
-
+    pt = 0
     
-    #t = 1
-    pt = 32
-    print('true')
-    
-    print(knndis_ex[pt, :]) 
+    '''
     print(knnidx_ex[pt, :]) 
+    print(knndis_ex[pt, :]) 
+    print(apid[pt , :])
+    print(h_knndis[t * nex + pt , :])
     
-   
-    print('rec')
-    print(h_knndis[t*nex + pt, :])
-    print(h_knnidx[t * nex + pt, :] - t * nex)
-    #print(h_knndis_o[t*K:(t+1)*(K)])
-    #print(h_knnidx_o[t*K:(t+1)*(K)])
+    print(apid[pt , :] - knnidx_ex[pt, :]) 
+    #t = 1
+    
+    
     print('points')
 
-    '''
     for i in range(nex):
-      if (knnidx_ex[i, :] != h_knnidx[i, :]).any():
+      ex = knnidx_ex
+      #ap = h_knnidx - t * nex 
+      
+      if (ex[i, :] != apid[i, :]).any():
         print(i)
         print('ex')
         print(knnidx_ex[i,:]) 
         print(knndis_ex[i,:]) 
         print('rec')
-        print(h_knnidx[i,:]) 
-        print(h_knndis[i,:]) 
-    '''
-    ex = knnidx_ex
-    ap = h_knnidx - t * nex 
+        print(apid[i,:]) 
+        print(h_knndis[t * nex + i,:]) 
+        print(knnidx_ex[i,:] - apid[i,:]) 
+    #print(knnidx_ex[pt, :] - ap[t * nex + pt , :])
     #ap = h_knnidx
     disex = knndis_ex
     disap = h_knndis[t*nex:(t+1)*nex,:]
     err = np.linalg.norm((disex-disap).flatten())
-    '''
     pt = 0
     print(err) 
     print('true')
@@ -147,8 +187,3 @@ if 1:
     print(ex[pt,:] - ap[t*nex+pt,:]) 
     print(knndis_ex[pt,:] - h_knndis[t*nex+pt,:])  
     '''
-    rowerr = np.any(ex[:nex,]-ap[t*nex:(t+1)*nex,],axis=1)
-    rowidx = np.where(rowerr==True)
-    acc = 1 - len(rowidx[0])/nex
-    print('Recall accuracy:', '{:.4f}'.format(acc))
-    print('err:', '{:.4f}'.format(err))

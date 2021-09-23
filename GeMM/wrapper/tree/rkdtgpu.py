@@ -109,8 +109,8 @@ def rkdt_a2a_it(X,gids,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense
             P[:,:]=P[perm,:]
             gids[:]=gids[perm]
             if 0: print(gids)
-        pointsperleaf = 1 << levels
-        leaves = n / pointsperleaf
+        leaves = 1 << levels
+        pointsperleaf = int(n / leaves)
         if 1 and dense:
             leaf_knn(X,gids,segsize,knnidx,knndis,K,t==0,overlap)
          
