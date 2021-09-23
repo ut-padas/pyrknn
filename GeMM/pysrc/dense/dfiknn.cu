@@ -4,7 +4,49 @@
 #define SM_SIZE_SORT 8192
 
 #include "dfiknn.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <helper_cuda.h>
+#include <cublas_v2.h>
 
+
+static const char *cudaGetErrorEnum(cublasStatus_t error) {
+    switch (error) {
+        case CUBLAS_STATUS_SUCCESS:
+            return "CUBLAS_STATUS_SUCCESS";
+
+        case CUBLAS_STATUS_NOT_INITIALIZED:
+            return "CUBLAS_STATUS_NOT_INITIALIZED";
+
+        case CUBLAS_STATUS_ALLOC_FAILED:
+            return "CUBLAS_STATUS_ALLOC_FAILED";
+
+        case CUBLAS_STATUS_INVALID_VALUE:
+            return "CUBLAS_STATUS_INVALID_VALUE";
+
+        case CUBLAS_STATUS_ARCH_MISMATCH:
+            return "CUBLAS_STATUS_ARCH_MISMATCH";
+
+        case CUBLAS_STATUS_MAPPING_ERROR:
+            return "CUBLAS_STATUS_MAPPING_ERROR";
+
+        case CUBLAS_STATUS_EXECUTION_FAILED:
+            return "CUBLAS_STATUS_EXECUTION_FAILED";
+
+        case CUBLAS_STATUS_INTERNAL_ERROR:
+            return "CUBLAS_STATUS_INTERNAL_ERROR";
+    }
+    return "<unknown>";
+}
+
+
+#define CHECK_CUBLAS(ans) { cublasAssert((ans), __FILE__, __LINE__); }
+inline void cublasAssert(cublasStatus_t code, const char *file, int line, bool abort=true) {
+   if (code != CUBLAS_STATUS_SUCCESS) {
+      fprintf(stderr,"CUBLAS assert: %s %s %d\n", cudaGetErrorEnum(code), file, line);
+      if (abort) exit(code);
+   }
+}
 
 
 __global__ void ComputeNorms(float* data, int* G_Id, float* Norms, int ppl, int dim, int M) {
@@ -20,10 +62,13 @@ __global__ void ComputeNorms(float* data, int* G_Id, float* Norms, int ppl, int 
     int ind0_i = g_Id * dim;
  
     float norm_i = 0.0;
-   
+
+
     for (int n_i = 0; n_i < dim; n_i += 1) {
+      if (ind == 0 && leafId_g == 0) printf("D[%d] = %.4f \n", n_i, data[ind0_i + n_i]);
       norm_i += data[ind0_i + n_i] * data[ind0_i + n_i];
     }
+    
     Norms[g_Id] = norm_i;
   }
 }
@@ -461,7 +506,7 @@ __global__ void MergeVer(float* KNN, int* KNN_Id, float* Norms, int k_nn, int pp
 
 }
 
-void PrecompSortIds(int* d_arr, int* d_arr_part, int N_true, int N_pow2, int steps, int copy_size){
+void PrecompSortIdsDense(int* d_arr, int* d_arr_part, int N_true, int N_pow2, int steps, int copy_size){
 
   
   
@@ -664,11 +709,6 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 
   size_t free, total, m1, m2, m3;
 
-  int *d_GId, *d_knn_Id;
-  float *d_data, *d_knn;  
-  
- 
-
  
   cudaMemGetInfo(&free, &total);
   checkCudaErrors(cudaMalloc((void **) &d_arr, sizeof(int) * copy_size));
@@ -690,7 +730,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   
   int size_sort_ver = k + partsize;
   int size_sort_ver_pow2 = 2*partsize;
-  PrecompSortIds(d_arr_v, d_arr_part_v, size_sort_ver, size_sort_ver_pow2, n_s_v, copy_size_v);
+  PrecompSortIdsDense(d_arr_v, d_arr_part_v, size_sort_ver, size_sort_ver_pow2, n_s_v, copy_size_v);
 
 
   checkCudaErrors(cudaEventRecord(t2, 0));
@@ -802,7 +842,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 
 
 			int real_size = 2 * blocksize;
-			PrecompSortIds(d_arr, d_arr_part, real_size, N_pow2, steps, copy_size);
+			PrecompSortIdsDense(d_arr, d_arr_part, real_size, N_pow2, steps, copy_size);
 
 
 			dim3 BlockMergeHoriz( blocksize, 1, 1);
@@ -872,9 +912,6 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaEventElapsedTime(&dt8, t4, t9));
   checkCudaErrors(cudaEventElapsedTime(&dt9, t0, t9));
 
-  checkCudaErrors(cudaMemcpy(knn, d_knn, sizeof(float) * M * k, cudaMemcpyDeviceToHost));
-  checkCudaErrors(cudaMemcpy(knn_Id, d_knn_Id, sizeof(int) * M * k, cudaMemcpyDeviceToHost));
-
 
   checkCudaErrors(cudaFree(d_Norms));
   checkCudaErrors(cudaFree(d_temp_knn));
@@ -882,10 +919,6 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaFree(d_arr));
   checkCudaErrors(cudaFree(d_arr_part_v));
   checkCudaErrors(cudaFree(d_arr_v));
-  checkCudaErrors(cudaFree(d_data));
-  checkCudaErrors(cudaFree(d_GId));
-  checkCudaErrors(cudaFree(d_knn));
-  checkCudaErrors(cudaFree(d_knn_Id));
 
   checkCudaErrors(cudaEventDestroy(t0));
   checkCudaErrors(cudaEventDestroy(t1));

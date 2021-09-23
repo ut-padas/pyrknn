@@ -14,8 +14,8 @@ except:
 
 #os.environ["CC"] = "icc"
 #os.environ["CXX"] = "icpc"
-os.environ["CC"] = "cc"
-os.environ["CXX"] = "c++"
+os.environ["CC"] = "icc"
+os.environ["CXX"] = "icpc"
 
 CUDA_LIB = os.environ["TACC_CUDA_LIB"]
 CUDA_INC = os.environ["TACC_CUDA_INC"]
@@ -35,7 +35,8 @@ lib_dirs = lib_dirs + [CUDA_INC]
 
 #object_list=["cuda_wrapper/SFIKNN_nonpermuted_sqDist.o"]
 #object_list=["cuda_wrapper/SFIKNN.o"]
-object_list=["cuda_wrapper/DFIKNN_streams.o"]
+object_list=["dense/dfiknn.o", "sparse/sfiknn.o"]
+#object_list=["sparse/sfiknn.o"]
 def scandir(dir, files=[]):
     for file in os.listdir(dir):
         path = os.path.join(dir, file)
@@ -59,15 +60,19 @@ def makeExtension(extName):
         extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart", "-lcublas"]
     )
 
-
-extNames = scandir("cuda_wrapper")
+extNames = scandir("dense")
 print(extNames)
 extensions = [makeExtension(name) for name in extNames]
 print(extensions)
+extNames = scandir("sparse")
+print(extNames)
+extensions += [makeExtension(name) for name in extNames]
+
+print(extensions)
 
 setup(
-    name="cuda_wrapper",
-    packages=["cuda_wrapper"],
+    name="filknn",
+    packages=["filknn"],
     ext_modules=extensions,
     package_data={
         '':['*.pxd']
@@ -76,4 +81,3 @@ setup(
     include_package_data=True,
     cmdclass = {'build_ext': build_ext}
     )
-
