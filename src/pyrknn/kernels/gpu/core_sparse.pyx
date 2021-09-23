@@ -52,7 +52,7 @@ def sparse_knn(gids, X, levels, ntrees, k, blockleaf, blocksize, device):
 
 
 
-def sparse_fiknn(gids, X, leaves, k):
+def sfi_knn(gids, X, leaves, k):
      
 
     n,_ = X.shape

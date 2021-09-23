@@ -51,7 +51,7 @@ rank = comm.Get_rank()
 '''
 size = 1
 rank = 0
-K = 4
+K = args.k
 t = 0
 nq = 100
 
@@ -98,7 +98,7 @@ X = sparse_stack([X_app, X_site])
 
 print("Finished Reading Data", flush=True)
 n = args.n
-X = X[:n,]
+#X = X[:n,]
 N  = X.shape[0]
 d  = X.shape[1]
 
@@ -138,12 +138,22 @@ X=X[:1<<LogNP,]
 '''
 
 
-def apknnerr( ex,ap,nc):
+def apknnerr( ex_id,ex_dist, ap_id, ap_dist,nc):
     
+
+    err = 0.0
+    for i in range(nc):
+        miss_array_id = [1 if ap_id[i, j] in ex_id[i, :] else 0 for j in range(K)]
+        miss_array_dist = [1 if ap_dist[i, j] <= ex_dist[i, -1] else 0 for j in range(K)]
+        #err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
+        err += np.sum(miss_array_id)
+
+    acc = err/(nc*K)
+    '''
     rowerr = np.any(ex[:nc,:] - ap[:nc,:],axis=1)
     rowidx = np.where(rowerr==True)
     acc = 1 - len(rowidx[0])/nc
-    
+    '''
     return acc
 
 def apknnerr_dis(ex,ap,nc):
@@ -154,7 +164,7 @@ def apknnerr_dis(ex,ap,nc):
 
 def monitor(t,knnidx,knndis):
     tol = 0.95
-    acc = apknnerr(knnidx_ex,knnidx,nex)
+    acc = apknnerr(knnidx_ex,knndis_ex,knnidx, knndis, nex)
     derr =apknnerr_dis(knndis_ex,knndis,nex)
     #derr = cp.asnumpy(derr)
     cost = t*points_per_leaf
@@ -177,40 +187,66 @@ depth = max(0,LogNP-LogPPL)
 points_per_leaf = 1<< (LogNP-depth)
 '''
 
-#depth = args.levels
-points_per_leaf = args.leafsize
+depth = args.levels
+#points_per_leaf = args.leafsize
 T = args.iter
 dim = X.shape[1]
 n = X.shape[0]
 X.sort_indices()
-depth = int(np.log2(n // points_per_leaf))
+avgnnz = np.mean(np.diff(X.indptr))
+#depth = int(np.log2(n // points_per_leaf))
+leaves = 1 << depth
+ppl = np.ceil(n/leaves)
+n_true = int(ppl*leaves)
+diff = n_true - n
+last = X.indptr[n]
+if diff>0:
+  X = csr_matrix((X.data, X.indices, np.pad(X.indptr, (0, diff), "linear_ramp", end_values=(0,last))))
+  n, dim = X.shape
+
+points_per_leaf = int(n//leaves)
+
+
+
+
 print('Number of poitns =', n, ', and the dimension =', dim)
 print('Tree depth =', depth)
 print('points_per_leaf =', points_per_leaf)
 print('Warning depth<=dim, will use non-orthogonal directions')
-
+print("avgnnz = %d "%avgnnz)
 
 
 nex = points_per_leaf
 t = 10
 
-nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(X[t*nex:(t+1)*nex, ])
-knndis_ex, knnidx_ex = nbrs.kneighbors(X[t*nex:(t+1)*nex,])
-knndis_ex = np.asarray(knndis_ex)
-knnidx_ex = np.asarray(knnidx_ex)
+fname = "avazu_ex/avazu_knnidx_ex_L%d.npy"%depth
+
+if os.path.isfile(fname):
+  print("loading the neighbors")
+  knndis_ex = np.load("avazu_ex/avazu_knndis_ex_L%d.npy"%depth)
+  knnidx_ex = np.load("avazu_ex/avazu_knnidx_ex_L%d.npy"%depth)
+else:
+  print("computing the exact neghobors")
+  nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(X)
+  knndis_ex, knnidx_ex = nbrs.kneighbors(X[:nex,])
+  knndis_ex = np.asarray(knndis_ex)
+  knnidx_ex = np.asarray(knnidx_ex)
+  np.save("avazu_ex/avazu_knndis_ex_L%d"%depth, knndis_ex)
+  np.save("avazu_ex/avazu_knnidx_ex_L%d"%depth, knnidx_ex)
+
 
 knndis = np.ones((n,K), dtype = np.float32) + 1e38
-knnidx = np.zeros((n,K), dtype = np.int32)         
+knnidx = -np.ones((n,K), dtype = np.int32)         
 #gids = np.zeros(n).astype('int32')
-#gids = np.arange(n, dtype = np.int32)
-gids = np.random.permutation(np.arange(n, dtype = np.int32))
+gids = np.arange(n, dtype = np.int32)
+#gids = np.random.permutation(np.arange(n, dtype = np.int32))
 print('Starting tree iteration')
 tic = time.time();
 leaves = int(n // points_per_leaf)
 
-knnidx, knndis = py_sfiknn(gids, X, leaves, K, knndis.ravel(), knnidx.ravel(), 0)
+#knnidx, knndis = py_sfiknn(gids, X, leaves, K, knndis.ravel(), knnidx.ravel(), 0)
 
-#knnidx, knndis = rt.rkdt_a2a_it(X,gids,depth,knnidx,knndis,K,T,monitor,0, False)
+knnidx, knndis = rt.rkdt_a2a_it(X,gids,depth,knnidx,knndis,K,T,monitor,0, False)
 toc = time.time();
 print('RKDT took', '{:.2f}'.format(toc-tic), 'secs')
 '''

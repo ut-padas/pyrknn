@@ -9,19 +9,23 @@ cimport numpy as np
 from scipy import sparse
 import cython
 import cupy as cp
-from scipy.sparse import csr_matrix
-from scipy.sparse import eye
+#from scipy.sparse import csr_matrix
+#from scipy.sparse import eye
+from cupyx.scipy.sparse import csr_matrix
+from cupyx.scipy.sparse import eye
+
+
 
 cdef extern from "FIKNN_sparse.h" nogil:
-  cdef void FIKNN_sparse_gpu(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz, int iternum);
+  cdef void sfi_leafknn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int max_nnz);
 
 
 #def py_FIKNN_sparse(R, C, V, GId, M, leaves, k, knndis_np, knnidx_np, maxnnz):
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def py_sfiknn(gids, X, leaves, k, knndis, knnidx, iternum):
+def py_sfiknn(gids, X_csr, leaves, k, knndis, knnidx, iternum):
 
-  n,_ = X.shape
+  n,_ = X_csr.shape
 
   assert(n == len(gids))
 
@@ -35,7 +39,7 @@ def py_sfiknn(gids, X, leaves, k, knndis, knnidx, iternum):
   #gids = np.arange(n, dtype = np.int32)
   
   '''
-  X_csr = X
+  #X_csr = X
 
 
 
@@ -60,7 +64,7 @@ def py_sfiknn(gids, X, leaves, k, knndis, knnidx, iternum):
   cdef int c_iternum = iternum
 
   with nogil:
-        FIKNN_sparse_gpu(&ptr[0], &idx[0], &data[0], &hID[0], c_n, c_leaves, c_k, &nDist[0], &nID[0], c_maxnnz, c_iternum) 
+        sfi_leafknn(&ptr[0], &idx[0], &data[0], &hID[0], c_n, c_leaves, c_k, &nDist[0], &nID[0], c_maxnnz) 
 
   outID = np.asarray(nID)
   outDist = np.asarray(nDist) 

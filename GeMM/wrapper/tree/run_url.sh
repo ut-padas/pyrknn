@@ -10,7 +10,7 @@
 
 source activate gen
 
-LEVELS=9
+LEVELS=12
 K=64
 MAX_ITER=300
 python url.py -use_gpu 1 -levels $LEVELS -k $K -iter $MAX_ITER

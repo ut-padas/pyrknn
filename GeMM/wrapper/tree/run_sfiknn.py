@@ -300,6 +300,7 @@ toc = time.time();
 print('RKDT took', '{:.2f}'.format(toc-tic), 'secs')
 monitor(0,knnidx,knndis)
 
+'''
 err = np.absolute(knnidx_ex - knnidx[:nex,])
 err_o = err[err > 0]
 acc = 1 - err_o.shape[0]/(err.flatten().shape[0])
@@ -313,8 +314,8 @@ print(knnidx[0, :])
 print(knndis_ex[0, :])
 print(knndis[0, :])
 print(knnidx_ex[0, :] - knnidx[0, :])
-
 '''
+
 for i in range(nex):	
     if not np.array_equal(knnidx_ex[i,:], knnidx[t*nex + i,:]):
       print(i)
@@ -325,7 +326,7 @@ for i in range(nex):
       print(knnidx[t*nex + i,:])
       print(knndis[t*nex+i, :])
       print(knnidx_ex[i,:] - knnidx[t*nex + i,:])
-      
+'''      
 if rank == 0:
   timer.print()
   record.print()

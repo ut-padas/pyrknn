@@ -1,10 +1,18 @@
 #!/bin/bash
 
 
-rm -f cuda_wrapper/*.so
 
-(cd cuda_wrapper && make)
+rm -rf cuda_wrapper/*.so
+rm -rf cuda_wrapper/*.o
 
-python setup.py build_ext --inplace
-python test_gemm.py
+
+
+(cd cuda_wrapper && make dense) 
+
+
+python setup_dense.py build_ext --inplace
+
+
+python test_dgemm.py
+
 

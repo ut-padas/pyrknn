@@ -3,15 +3,21 @@
 
 #-- Configure Modules (TACC)
 
-module load intel/18
+#module load intel/18
 module load cuda/10.1
+module load gcc/7.3.0
+module load openmpi/3.1.2
 
 #-- Configure GSKNN
 
 #------ Set System Architecture
 export GSKNN_DIR=$PWD/extern/gsknn
+#export GSKNN_ARCH_MAJOR=x86_64
+#export GSKNN_ARCH_MINOR=sandybridge
+
 export GSKNN_ARCH_MAJOR=x86_64
 export GSKNN_ARCH_MINOR=sandybridge
+
 
 export GSKNN_ARCH=$GSKNN_ARCH_MAJOR/$GSKNN_ARCH_MINOR
 
@@ -44,4 +50,4 @@ export DEBUG=1
 export PYRKNN_USE_CUDA=1
 export PROD=1
 
-export LD_PRELOAD=$CONDA_PREFIX/lib/libmkl_core.so:$CONDA_PREFIX/lib/libmkl_sequential.so:$CONDA_PREFIX/lib/libmkl_intel_lp64.so:$CONDA_PREFIX/lib/libmkl_avx512.so
+#export LD_PRELOAD=$CONDA_PREFIX/lib/libmkl_core.so:$CONDA_PREFIX/lib/libmkl_sequential.so:$CONDA_PREFIX/lib/libmkl_intel_lp64.so:$CONDA_PREFIX/lib/libmkl_avx512.so

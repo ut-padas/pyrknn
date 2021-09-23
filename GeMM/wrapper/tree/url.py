@@ -185,6 +185,8 @@ ppl = np.ceil(n / leaves)
 n_true = int(ppl * leaves)
 diff = n_true - n
 last = X.indptr[n]
+avgnnz = np.mean(np.diff(X.indptr))
+print("avgnnz = %d "%avgnnz)
 if diff > 0:
   X = csr_matrix((X.data, X.indices, np.pad(X.indptr, (0, diff), "linear_ramp", end_values=(0,last))))
   n, dim = X.shape
@@ -209,13 +211,14 @@ t = 0
 #nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(X)
 fname = "url_ex/url_knnidx_ex_L%d.npy"%depth
 print(fname)
+
 if os.path.isfile(fname):
   print("loading the neighbors")
   knndis_ex = np.load("url_ex/url_knndis_ex_L%d.npy"%depth)
   knnidx_ex = np.load("url_ex/url_knnidx_ex_L%d.npy"%depth)
 else:
   print("computing the exact neghobors")
-  nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(X)
+  nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(X[:nex,])
   knndis_ex, knnidx_ex = nbrs.kneighbors(X[:nex,])
   knndis_ex = np.asarray(knndis_ex)
   knnidx_ex = np.asarray(knnidx_ex)
@@ -229,13 +232,13 @@ knnidx = -np.ones((n,K), dtype = np.int32)
 gids = np.arange(n, dtype = np.int32);
 #gids = np.random.permutation(np.arange(n, dtype = np.int32))
 print('Starting tree iteration')
-data = X.data
+
 tic = time.time();
 leaves = int(n // points_per_leaf)
 
-#knnidx, knndis = py_sfiknn(gids, X, depth, K, knndis.ravel(), knnidx.ravel(), 0)
-knnidx, knndis = rt.rkdt_a2a_it(X,gids,depth,knnidx, knndis, K,T,monitor,0, False)
-#knnidx, knndis = rt.rkdt_a2a_it(X,gids,depth,knnidx, knndis, K,T,monitor,1, False)
+#knnidx, knndis = py_sfiknn(gids, X, leaves, K, knndis.ravel(), knnidx.ravel(), 0)
+#knnidx, knndis = rt.rkdt_a2a_it(X,gids,depth,knndis.ravel(), knnidx.ravel(), K,T,monitor,0, False)
+knnidx, knndis = rt.rkdt_a2a_it(X,gids,depth,knnidx, knndis, K,T,monitor,1, False)
 toc = time.time();
 print('RKDT took', '{:.2f}'.format(toc-tic), 'secs')
 monitor(0,knnidx,knndis)
@@ -248,12 +251,12 @@ print('Recall accuracy:', '{:.4f}'.format(acc))
 print('Recall error val:', '{:.4f}'.format(err_val))
 
 
+'''
 print(knnidx_ex[0, :])
 print(knnidx[0, :])
 print(knndis_ex[0, :])
 print(knndis[0, :])
 print(knnidx_ex[0, :] - knnidx[0, :])
-'''
 
 for i in range(nex):	
     if not np.array_equal(knnidx_ex[i,:], knnidx[t*nex + i,:]):
@@ -264,8 +267,9 @@ for i in range(nex):
       print('rec')
       print(knnidx[t*nex + i,:])
       print(knndis[t*nex+i, :])
-
+      print(knnidx_ex[i,:] - knnidx[t*nex + i,:])
+'''
+      
 if rank == 0:
   timer.print()
   record.print()
-'''
