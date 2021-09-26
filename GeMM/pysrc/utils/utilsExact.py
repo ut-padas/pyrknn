@@ -12,21 +12,24 @@ def norms(data):
 
 
 
-def neighbors(data, nLeaf, k):
+def neighbors(data, k, test_pt):
   # return the nrighbors for the first leaf
 
   n,d = data.shape
-  ppl = n // nLeaf
+  ppl = test_pt.shape[0]
+  nLeaf = n // ppl
   d_norms = norms(data)
   d_norms = cp.reshape(d_norms, (n,1))
   kN0 = cp.ones((ppl, k), dtype = cp.float32) + 1e30
   kId0 = -cp.ones((ppl, k), dtype = cp.int32)
-
-  d0 = data[:ppl, :] 
+  
+  #d0 = data[:ppl, :] 
+  d0 = data[test_pt, :] 
   one = cp.ones((1,ppl), dtype = cp.int32)
-  tmp = d_norms[:ppl]**2
-  tmp = tmp.reshape((ppl,1))
+  tmp = d_norms[test_pt]**2
+  tmp = tmp.reshape((test_pt.shape[0],1))
   norm0 = cp.matmul(tmp, one)
+  
   for leaf in range(nLeaf):
     #print('Leaf = %d'%leaf)
   

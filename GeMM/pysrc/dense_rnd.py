@@ -63,28 +63,37 @@ DAT_DIR = "/scratch/07544/ghafouri/pyrknn/GeMM/datasets"
 def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
      
     err = 0.0
-    for i in range(nc):
-        miss_array_id = [1 if ap_id[i, j] in ex_id[i, :] else 0 for j in range(K)]
-        miss_array_dist = [1 if ap_dist[i, j] <= ex_dist[i, -1] else 0 for j in range(K)]
-        print(i)
-        #err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
-        err += cp.sum(cp.asarray(miss_array_id))
+    #for i in range(nc):
+    for (i,ptid) in enumerate(test_pt):
+      miss_array_dist = cp.zeros(K)
+      for j in range(K):
+			  #miss_array_id = [1 if ap_id[i, j] in ex_id[i, :] else 0 for j in range(K)]
+        if ap_dist[ptid,j] <= ex_dist[i, -1]:
+          miss_array_dist[j] = 1
+          #miss_array_dist = [1 if ap_dist[i, j] <= ex_dist[i, -1] else 0 for j in range(K)]
+        #print(i)
+        #miss_array_id = cp.asarray(miss_array_id)
+        #miss_array_dist = cp.asarray(miss_array_dist)
+        #err += cp.sum(cp.logical_or(miss_array_id, miss_array_dist))
+        #err += cp.sum(cp.asarray(miss_array_id))
+      err += cp.sum(miss_array_dist)
     acc = err/(nc*K)
 
     return acc
 
 def apknnerr_dis(ex,ap,nc):
-    err =cp.linalg.norm(ex[:nc,]-ap[:nc,])/cp.linalg.norm(ex[:nc,])
+    err =cp.linalg.norm(ex[:nc,]-ap[test_pt,])/cp.linalg.norm(ex[test_pt,])
     return err
     
                          
 
 def monitor(t,knnidx,knndis):
     tol = 0.95
+    num_test = test_pt.shape[0]
     knnidx = cp.array(knnidx)
     knndis = cp.array(knndis)
-    acc = apknnerr(knnidx_ex,knndis_ex, knnidx, knndis,nex)
-    derr = apknnerr_dis(knndis_ex,knndis,nex)
+    acc = apknnerr(knnidx_ex,knndis_ex, knnidx, knndis,num_test)
+    derr = apknnerr_dis(knndis_ex,knndis,num_test)
     derr = cp.asnumpy(derr)
     cost = t*points_per_leaf
     print('it = ', '{:3d}'.format(t), 'Recall accuracy:', '{:.4f}'.format(acc), 'distance error = {:.4f}'.format(derr), 'cost = %.4f'%cost)
@@ -159,7 +168,8 @@ print(fname)
 print("computing the exact neghobors")
 #nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(cp.asnumpy(X))
 #knndis_ex, knnidx_ex = nbrs.kneighbors(cp.asnumpy(X[:nex,]))
-knnidx_ex , knndis_ex = neighbors(X, leaves, K)
+test_pt = cp.random.randint(0, N, size=1024)
+knnidx_ex , knndis_ex = neighbors(X, K, test_pt)
 
 
 print('Starting tree iteration')
@@ -177,4 +187,10 @@ knnidx, knndis = rt.rkdt_a2a_it(X,depth,knnidx, knndis, K,T,None,0, True)
 #knnidx, knndis = rt.rkdt_a2a_it(X,gids,depth,knnidx, knndis, K,T,monitor,1, True)
 toc = time.time();
 print('RKDT took', '{:.2f}'.format(toc-tic), 'secs \n')
+tic = time.time()
 monitor(0,knnidx,knndis)
+toc = time.time() - tic
+print("monitor takes %.4f"%toc)
+
+
+
