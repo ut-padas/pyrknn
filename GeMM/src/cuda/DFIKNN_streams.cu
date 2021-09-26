@@ -619,6 +619,7 @@ void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, i
   }
   partsize /= 2;
   partsize = (partsize > ppl) ? ppl : partsize;
+  partsize = (partsize > k) ? partsize : k;
 
 
   int num_blocks_tri = ppl / partsize;

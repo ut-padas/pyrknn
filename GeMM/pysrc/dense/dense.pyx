@@ -6,18 +6,25 @@ from libcpp.string cimport string
 
 
 import cupy as cp
+import numpy as np
 import cython
 import time 
 
 
 
 cdef extern from "dfiknn.h" nogil:
-  cdef void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int dim);
+  #cdef void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int dim);
+  void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int dim);
+
+
+cdef wrapper_dense(size_t dataPtr, size_t gidPtr, int n, int leaves, int k, size_t NhbdPtr, size_t IdPtr, int dim):
+  dfi_leafknn(<float*> dataPtr, <int*> gidPtr, n, leaves, k, <float*> NhbdPtr, <int*> IdPtr, dim)
+
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def py_dfiknn(gids, X, leaves, k, knndis, knnidx, dim):
+def py_dfiknn(gids, X, leaves, k, knnidx, knndis, dim):
 
   n,_ = X.shape
 
@@ -26,31 +33,14 @@ def py_dfiknn(gids, X, leaves, k, knndis, knnidx, dim):
   tic = time.time()
   X = X[gids, :]
   toc = time.time() - tic
-  print("Data permutation : %.4f "%toc)
-  print(gids.__cuda_array_interface__)
-  a = cp.cuda.texture.ChannelFormatDescriptor(gids)
+  print("Data permutation : %.4f sec "%toc)
 
-  cdef int[:] hID = gids
+  hID = gids.data.ptr
+  data = X.ravel().data.ptr
+  
+  nID = knnidx.ravel().data.ptr
+  nDist = knndis.ravel().data.ptr
 
-  cdef float[:] data =  X.ravel()
-
-  cdef int c_n = n
-  cdef int c_k = k
-  cdef int c_leaves = leaves
-  cdef int c_dim = dim
-
-  cdef int[:] nID = knnidx.ravel()
-  cdef float[:] nDist = knndis.ravel()
-
-  with nogil:
-        dfi_leafknn(&data[0], &hID[0], c_n, c_leaves, c_k, &nDist[0], &nID[0], c_dim) 
-
-  knnidx = cp.reshape(cp.asnumpy(nID), (n,k))
-  knndis = cp.reshape(cp.asnumpy(nDist), (n,k))
-
+  wrapper_dense(data, hID, n, leaves, k, nDist, nID, dim) 
 
   return (knnidx, knndis)
-
-
-
-

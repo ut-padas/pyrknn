@@ -36,6 +36,7 @@ lib_dirs = lib_dirs + [CUDA_INC]
 #object_list=["cuda_wrapper/SFIKNN_nonpermuted_sqDist.o"]
 #object_list=["cuda_wrapper/SFIKNN.o"]
 object_list=["cuda_wrapper/DFIKNN_streams_chSortVer.o"]
+#object_list=["cuda_wrapper/DFIKNN_streams_chSortVer_chMergeHoriz.o"]
 #object_list=["cuda_wrapper/DFIKNN_streams.o"]
 def scandir(dir, files=[]):
     for file in os.listdir(dir):

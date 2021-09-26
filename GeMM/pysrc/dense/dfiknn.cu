@@ -10,6 +10,8 @@
 #include <cublas_v2.h>
 
 
+
+
 static const char *cudaGetErrorEnum(cublasStatus_t error) {
     switch (error) {
         case CUBLAS_STATUS_SUCCESS:
@@ -49,6 +51,7 @@ inline void cublasAssert(cublasStatus_t code, const char *file, int line, bool a
 }
 
 
+
 __global__ void ComputeNorms(float* data, int* G_Id, float* Norms, int ppl, int dim, int M) {
 
   //int row = threadIdx.x + blockIdx.x * blockDim.x;
@@ -62,13 +65,10 @@ __global__ void ComputeNorms(float* data, int* G_Id, float* Norms, int ppl, int 
     int ind0_i = g_Id * dim;
  
     float norm_i = 0.0;
-
-
+   
     for (int n_i = 0; n_i < dim; n_i += 1) {
-      if (ind == 0 && leafId_g == 0) printf("D[%d] = %.4f \n", n_i, data[ind0_i + n_i]);
       norm_i += data[ind0_i + n_i] * data[ind0_i + n_i];
     }
-    
     Norms[g_Id] = norm_i;
   }
 }
@@ -329,6 +329,140 @@ __global__ void ComputeTriDists_last(float* data, int* G_Id, float* Norms , int 
 }
 
 
+__global__ void MergeVer_v2(float* KNN, int* KNN_Id, float* Norms, int k_nn, int ppl, int blockInd, float* d_temp_knn, int* G_Id, bool init, int bl, int sizebleaves, int partsize){
+
+  __shared__ float SM_dist[SM_SIZE_1];
+  __shared__ int SM_Id[SM_SIZE_1];
+
+
+  int j = threadIdx.x;
+  float tmp_f;
+  int tmp_i;
+
+  int col = blockIdx.x;
+  int leafId_local = blockIdx.z* blockDim.y + blockIdx.y;
+  int leafId_g = bl * sizebleaves + leafId_local;
+  
+  int colId_leaf = (init) ? col : col + partsize * (blockInd + 1);
+  int size_part = (init) ? ppl : ppl - (blockInd + 1) * partsize;
+  
+
+  float norm_i = Norms[leafId_g * ppl + colId_leaf];
+
+	int ind_pt_knn = leafId_g * ppl + colId_leaf;
+	int ind_pt_knn_g = G_Id[ind_pt_knn];
+
+  for (int ind = j; ind < 2 * partsize; ind += blockDim.x){
+    SM_dist[ind] = 1e30;
+    SM_Id[ind] = -1;
+  }
+  __syncthreads();
+
+  
+  for (int j_tmp = j; j_tmp < partsize; j_tmp += blockDim.x){
+		
+    //int ind_tmp = (init) ? leafId_local * ppl * partsize + col * partsize + j_tmp : leafId_local * partsize * size_part + j_tmp + col * partsize;
+    int ind_tmp = (init) ? leafId_local * ppl * partsize + col * partsize + j_tmp : leafId_local * partsize * size_part + j_tmp + col * partsize;
+	  
+		int block = col / partsize;
+		int M = ppl * gridDim.y * gridDim.z; 
+
+    int rowId_g = (init) ? leafId_g * ppl + block * partsize + j_tmp : leafId_g * ppl + partsize * blockInd + j_tmp;
+
+
+		SM_Id[j_tmp] = (rowId_g < M) ? G_Id[rowId_g] : -1;
+    tmp_f = (rowId_g < M) ? -2 * d_temp_knn[ind_tmp] + norm_i + Norms[rowId_g] : 1e30;
+    //tmp_f = d_temp_knn[ind_tmp] + norm_i + Norms[rowId_g];
+    
+    if (init){
+      tmp_f = (block * partsize + j_tmp < ppl) ? tmp_f : 1e30;
+    }
+     
+  	SM_dist[j_tmp] = (tmp_f > 0.0) ? sqrt(tmp_f) : 0.0;
+ 
+		int ind_knn = ind_pt_knn_g * k_nn + j_tmp;
+		if (j_tmp < k_nn){ 
+			SM_dist[j_tmp + partsize] = KNN[ind_knn];
+			SM_Id[j_tmp + partsize] = KNN_Id[ind_knn];
+		} else {
+      SM_dist[j_tmp + partsize] = 1e30;
+      SM_Id[j_tmp + partsize] = -1;
+    }
+
+    //if (ind_pt_knn == 1170 && init == 1) printf("tmp D[%d] = %.4f at %d  , reading from %d \n", j_tmp, SM_dist[j_tmp], SM_Id[j_tmp], ind_tmp);
+    //if (ind_pt_knn == 1170 && init == 1) printf("knn D[%d] = %.4f at %d , reading from %d \n", j_tmp+partsize, SM_dist[j_tmp], SM_Id[j_tmp+partsize], ind_tmp);
+    //if (ind_pt_knn == 1170 && init == 1) printf("tmp D[%d] = %.4f at %d  , reading from %d \n", j_tmp, d_temp_knn[ind_tmp], SM_Id[j_tmp], ind_tmp);
+    //if (ind_pt_knn == 1170 && init == 1) printf("knn D[%d] = %.4f at %d , reading from %d \n", j_tmp+partsize, SM_dist[j_tmp + partsize], SM_Id[j_tmp+partsize], ind_tmp);
+
+  }
+  
+	__syncthreads();
+  
+
+  for (int j_tmp = j; j_tmp < partsize; j_tmp += blockDim.x){ 
+    int index = SM_Id[j_tmp];
+    for (int ind_check = 0; ind_check < k_nn; ind_check++){
+      if (index == SM_Id[ind_check + partsize]){
+        SM_dist[j_tmp] = 1e30;
+        SM_Id[j_tmp] = -1;
+        break;
+      }
+    }
+  }
+  __syncthreads();
+
+
+
+  //int size_sort = 2 * partsize;
+    
+
+  for (int g = 2; g <= 2 * blockDim.x; g *= 2){
+    for (int l = g/2; l > 0; l /= 2){
+      int tid = j;
+      int ixj = tid ^ l;
+      if (ixj < tid){
+        tid += blockDim.x;
+        ixj = tid ^ l;
+        if (ixj < tid){
+          tid = ixj;
+          ixj = tid ^ l;
+        }
+      }
+      
+      if ((tid & g) == 0){
+
+        if (SM_dist[tid] > SM_dist[ixj]){
+          tmp_f = SM_dist[ixj];
+          SM_dist[ixj] = SM_dist[tid];
+          SM_dist[tid] = tmp_f;
+          tmp_i = SM_Id[ixj];
+          SM_Id[ixj] = SM_Id[tid];
+          SM_Id[tid] = tmp_i;
+        }
+      } else {
+        if (SM_dist[tid] < SM_dist[ixj]){
+          tmp_f = SM_dist[ixj];
+          SM_dist[ixj] = SM_dist[tid];
+          SM_dist[tid] = tmp_f;
+          tmp_i = SM_Id[ixj];
+          SM_Id[ixj] = SM_Id[tid];
+          SM_Id[tid] = tmp_i;
+        }
+      }
+      __syncthreads();
+    }
+  }
+
+  if (j < k_nn){ 
+		int ind_pt_knn = leafId_g * ppl + colId_leaf;
+		int ind_pt_knn_g = G_Id[ind_pt_knn];
+		int ind_knn = ind_pt_knn_g * k_nn + j;
+		KNN[ind_knn] = SM_dist[j];
+		KNN_Id[ind_knn] = SM_Id[j];
+  } 
+   
+
+}
 
 
 __global__ void MergeVer(float* KNN, int* KNN_Id, float* Norms, int k_nn, int ppl, int blockInd, float* d_temp_knn, int* sort_arr, int* sort_arr_part, int steps, int* G_Id, bool init, int bl, int sizebleaves, int partsize){
@@ -506,7 +640,7 @@ __global__ void MergeVer(float* KNN, int* KNN_Id, float* Norms, int k_nn, int pp
 
 }
 
-void PrecompSortIdsDense(int* d_arr, int* d_arr_part, int N_true, int N_pow2, int steps, int copy_size){
+void PrecompSortIds(int* d_arr, int* d_arr_part, int N_true, int N_pow2, int steps, int copy_size){
 
   
   
@@ -627,21 +761,41 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaEventCreate(&t9));
 
   checkCudaErrors(cudaEventRecord(t0, 0));
+  int verbose = 1;
+  if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
 
 
+  //int C_len = M * dim;
+
+
+  size_t free, total, m1, m2, m3;
 
   int ppl = M/leaves;
 
 
   int partsize = (k > 32) ? k : 32;
+
+  cudaMemGetInfo(&free, &total);
+  printf(" Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+  size_t size_req = sizeof(float) * partsize * M;
+  int counter =0;
+  while (size_req < free && partsize < k && counter < 6) {
+    counter++;
+    size_req *= 2;
+    partsize *= 2;
+    printf("partsize = %d,  free = %.4f , size_req = %.4f,\n", partsize, free/1e9, size_req/1e9);
+  }
+  partsize /= 2;
   partsize = (partsize > ppl) ? ppl : partsize;
+  partsize = (partsize < k) ? k : partsize;
+
+
   int num_blocks_tri = ppl / partsize;
   
   //if (num_blocks_tri * k < ppl) num_blocks_tri += 1;
   //int rem_len = (num_blocks_tri * k < ppl) ? ppl - num_blocks_tri * k : 0;
   int rem_len = (num_blocks_tri * partsize < ppl) ? ppl - num_blocks_tri * partsize : 0;
  
-  int C_len = M * dim;
 
 
   int t_b = (ppl > SM_SIZE_1) ? SM_SIZE_1 : ppl;
@@ -653,12 +807,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   int batch_leaves_1 = (leaves > 64000) ? leaves / num_splits : leaves;
   int batch_leaves_2 = (leaves > 64000) ? num_splits : 1;
 
-  int verbose = 1;
 
-
-  if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
-
-  float *d_Norms;
 
 
   int size_tri = partsize;
@@ -677,7 +826,8 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   
   dim3 GridMergeHoriz(partsize, batch_leaves_1, batch_leaves_2);
 
-  int size_v_block_reduced = (k + partsize)/2;
+  //int size_v_block_reduced = (k + partsize)/2;
+  int size_v_block_reduced = partsize;
   dim3 BlockMergeVer(size_v_block_reduced, 1, 1);
   
   printf("=======================\n");
@@ -695,7 +845,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 
 
 
-  int *d_arr, *d_arr_part, *d_arr_v, *d_arr_part_v;
+  int *d_arr, *d_arr_part;
   float SM_SIZE_2_f = SM_SIZE_2;
   int n_s = log2(SM_SIZE_2_f) *(log2(SM_SIZE_2_f)+1) /2;
 
@@ -705,50 +855,53 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   float tmp = 2*partsize;
   int n_s_v = log2(tmp) * (log2(tmp)+1)/2;
   //int copy_size_v = k * n_s;
-  int copy_size_v = (2 * partsize) * n_s_v;
+  //int copy_size_v = (2 * partsize) * n_s_v;
 
-  size_t free, total, m1, m2, m3;
 
- 
+
+    
+  checkCudaErrors(cudaEventRecord(t1, 0));
+    
+    
   cudaMemGetInfo(&free, &total);
   checkCudaErrors(cudaMalloc((void **) &d_arr, sizeof(int) * copy_size));
   checkCudaErrors(cudaMalloc((void **) &d_arr_part, sizeof(int) * copy_size));
 
-  checkCudaErrors(cudaMalloc((void **) &d_arr_v, sizeof(int) * copy_size_v));
-  checkCudaErrors(cudaMalloc((void **) &d_arr_part_v, sizeof(int) * copy_size_v));
-
-
   checkCudaErrors(cudaMemset(d_arr, 0, sizeof(int) * copy_size));
   checkCudaErrors(cudaMemset(d_arr_part, 0, sizeof(int) * copy_size));
-  checkCudaErrors(cudaMemset(d_arr_v, 0, sizeof(int) * copy_size_v));
-  checkCudaErrors(cudaMemset(d_arr_part_v, 0, sizeof(int) * copy_size_v));
+  //checkCudaErrors(cudaMemset(d_arr_v, 0, sizeof(int) * copy_size_v));
+  //checkCudaErrors(cudaMemset(d_arr_part_v, 0, sizeof(int) * copy_size_v));
   cudaMemGetInfo(&m1, &total);
 
 
 
-  checkCudaErrors(cudaEventRecord(t1, 0));
   
-  int size_sort_ver = k + partsize;
-  int size_sort_ver_pow2 = 2*partsize;
-  PrecompSortIdsDense(d_arr_v, d_arr_part_v, size_sort_ver, size_sort_ver_pow2, n_s_v, copy_size_v);
+  //int size_sort_ver = k + partsize;
+  //int size_sort_ver_pow2 = 2*partsize;
+  //PrecompSortIds(d_arr_v, d_arr_part_v, size_sort_ver, size_sort_ver_pow2, n_s_v, copy_size_v);
 
 
   checkCudaErrors(cudaEventRecord(t2, 0));
 
-  float *d_temp_knn;
+  float *d_temp_knn, *d_Norms;
   checkCudaErrors(cudaMalloc((void **) &d_Norms, sizeof(float) * M));
 
   cudaMemGetInfo(&m2, &total);
-  float size_tmp = sizeof(float) * M * partsize;
-  int bleaves = (size_tmp > m2) ? log2(size_tmp / m2) : 0;
+  size_t size_tmp = sizeof(float) * M * partsize;
+  printf("Needed %.4f GB got %.4f \n", size_tmp/1e9, m2/1e9);
+  //float s1 = size_tmp/1e9;
+  //float s2 = m2/1e9;
+  float tmp2 = ceil(size_tmp/m2);
+  
+  int bleaves = (size_tmp > m2) ? log2(tmp2) : 0;
   int numbleaves = 1 << bleaves;
   int sizebleaves = leaves / numbleaves; 
+  //printf(" tmp2 = %.4f , bleaves = %d , numbleaves = %d \n", tmp2, bleaves, numbleaves);
   printf(" Num BatchLeaves = %d \n", numbleaves);
   printf(" Size BatchLeaves = %d \n", sizebleaves);
   printf("=======================\n");
 
   
-
   
   checkCudaErrors(cudaMalloc((void **) &d_temp_knn, sizeof(float) * sizebleaves * ppl * partsize));
   cudaMemGetInfo(&m3, &total);
@@ -759,7 +912,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 	cublasHandle_t handle;
 
   status = cublasCreate(&handle);
-  int oneInt = 1;
+  //int oneInt = 1;
   dt5 = 0.0; 
   dt6 = 0.0; 
   dt7 = 0.0;
@@ -782,9 +935,12 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaDeviceSynchronize());
 
   checkCudaErrors(cudaEventRecord(t3, 0));
+  cudaStream_t streams[2];
+  cudaStreamCreate(&streams[0]);
+  cudaStreamCreate(&streams[1]);
   for (int bl = 0; bl < numbleaves; bl++){
 
-    for (int l = 0; l < leaves; l++){
+    for (int l = 0; l < sizebleaves; l++){
     CHECK_CUBLAS( cublasSgemmStridedBatched( handle, CUBLAS_OP_T, CUBLAS_OP_N,
                                       partsize, partsize, dim,
                                       &oneFloat, d_data + l * ppl * dim + bl * sizebleaves * ppl * dim, dim, partsize*dim,
@@ -803,14 +959,6 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 
     }
     
-    if (0){
-      float *temp_knn;
-      temp_knn = (float *)malloc(sizeof(float) * ppl * sizebleaves * partsize); 
-      //int size_tmp = ppl - (blockInd+1)*partsize;
-      checkCudaErrors(cudaMemcpy(temp_knn, d_temp_knn, sizeof(float) * sizebleaves * ppl * partsize, cudaMemcpyDeviceToHost)); 
-      for (int ind = 0; ind < partsize; ind++) printf("point 0 , D[%d] = %.4f , read from %d \n", ind, temp_knn[ppl * partsize + ind], ppl*partsize + ind);
-      
-    }
      
    
       
@@ -819,7 +967,8 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 		int size_v = ppl;
 		dim3 GridMergeVer(size_v, batch_leaves_1, batch_leaves_2);
     
-		MergeVer <<< GridMergeVer, BlockMergeVer >>> (d_knn, d_knn_Id, d_Norms, k, ppl, 0, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, true, bl, sizebleaves, partsize);
+		//MergeVer <<< GridMergeVer, BlockMergeVer >>> (d_knn, d_knn_Id, d_Norms, k, ppl, 0, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, true, bl, sizebleaves, partsize);
+		MergeVer_v2 <<< GridMergeVer, BlockMergeVer >>> (d_knn, d_knn_Id, d_Norms, k, ppl, 0, d_temp_knn, d_GId, true, bl, sizebleaves, partsize);
 		checkCudaErrors(cudaDeviceSynchronize());
 		checkCudaErrors(cudaEventRecord(t4, 0));
   
@@ -842,7 +991,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 
 
 			int real_size = 2 * blocksize;
-			PrecompSortIdsDense(d_arr, d_arr_part, real_size, N_pow2, steps, copy_size);
+			PrecompSortIds(d_arr, d_arr_part, real_size, N_pow2, steps, copy_size);
 
 
 			dim3 BlockMergeHoriz( blocksize, 1, 1);
@@ -864,6 +1013,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
                                       &zeroFloat, d_temp_knn, partsize, sizecolumns * partsize, num_gemms) );           
     	checkCudaErrors(cudaDeviceSynchronize());
       
+    /*
     if (0){
       float *temp_knn;
       int size_tmp = ppl - (blockInd + 1) * partsize;
@@ -874,27 +1024,26 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
          printf("point 0 , D[%d] = %.4f , write at %d \n", ind, temp_knn[e], e);
       }
     }
-    
+    */
     
 
 
       checkCudaErrors(cudaEventRecord(t6, 0));
       checkCudaErrors(cudaEventSynchronize(t6));
+
 			
-			MergeHoriz <<< GridMergeHoriz, BlockMergeHoriz >>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false, bl, sizebleaves, partsize); 
-			checkCudaErrors(cudaDeviceSynchronize());
-			checkCudaErrors(cudaEventRecord(t7, 0));
-      checkCudaErrors(cudaEventSynchronize(t7));
+			MergeHoriz <<< GridMergeHoriz, BlockMergeHoriz, 0,  streams[0]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false, bl, sizebleaves, partsize); 
 		
-			MergeVer <<< GridMergeVer, BlockMergeVer >>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, false,bl, sizebleaves, partsize);
+			//MergeVer <<< GridMergeVer, BlockMergeVer , 0, streams[1]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, false,bl, sizebleaves, partsize);
+			MergeVer_v2 <<< GridMergeVer, BlockMergeVer , 0, streams[1]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_GId, false,bl, sizebleaves, partsize);
 			checkCudaErrors(cudaDeviceSynchronize());
 			checkCudaErrors(cudaEventRecord(t8, 0));
       checkCudaErrors(cudaEventSynchronize(t8));
       checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t5, t6));
       dt5 += dt_tmp;
-      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t7));
+      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t6));
       dt6 += dt_tmp;
-      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t7, t8));
+      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t8));
       dt7 += dt_tmp;
     }
   
@@ -912,13 +1061,12 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaEventElapsedTime(&dt8, t4, t9));
   checkCudaErrors(cudaEventElapsedTime(&dt9, t0, t9));
 
-
+  checkCudaErrors(cudaStreamDestroy(streams[0]));
+  checkCudaErrors(cudaStreamDestroy(streams[1]));
   checkCudaErrors(cudaFree(d_Norms));
   checkCudaErrors(cudaFree(d_temp_knn));
   checkCudaErrors(cudaFree(d_arr_part));
   checkCudaErrors(cudaFree(d_arr));
-  checkCudaErrors(cudaFree(d_arr_part_v));
-  checkCudaErrors(cudaFree(d_arr_v));
 
   checkCudaErrors(cudaEventDestroy(t0));
   checkCudaErrors(cudaEventDestroy(t1));

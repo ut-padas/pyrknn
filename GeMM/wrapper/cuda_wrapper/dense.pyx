@@ -9,6 +9,7 @@ cimport numpy as np
 from scipy import sparse
 import cython
 import cupy as cp
+from time import time
 
 cdef extern from "FIKNN_dense.h" nogil:
   cdef void dfi_leafknn(float *data, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int dim);
@@ -34,12 +35,22 @@ def py_dfiknn(gids, X, leaves, k, knndis, knnidx, dim):
   
   '''
   #X_csr = X
+  tic = time()
+  #X = cp.asarray(X)
+  X = X[gids, :]
+  
+  #X = X_c.get()
+  #del X_c
+  print(type(X))
+  print(type(gids))
+  toc = time() - tic
+  print("Data permutation : %.4f sec"%toc)
 
+  #cdef int[:] hID = cp.asnumpy(gids)
+  cdef int[:] hID = gids
 
-
-  cdef int[:] hID = np.asarray(gids, dtype = np.int32)
-
-  cdef float[:] data =  np.asarray(np.ravel(X, 'C'), dtype = np.float32)
+  cdef float[:] data = np.asarray(X.ravel(), dtype = np.float32)
+  #cdef float[:] data = cp.asnumpy(cp.ravel(X, 'C'))
 
   cdef int c_n = n
   cdef int c_k = k

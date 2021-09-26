@@ -3,33 +3,36 @@ import numpy as np
 from time import time
 from sklearn.neighbors import NearestNeighbors
 import sys
-
+import os 
 from cuda_wrapper.dense import *
 
 mempool = cp.get_default_memory_pool()
 mempool.free_all_blocks()
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 if 1: 
     cp.random.seed(1)
 
-LogNP = 25; 
+LogNP = 22; 
 n=1<<LogNP   # NUMBER of POINTS
 #n = 2396160
-depth = 16
+depth = 12
 leaves = 1<< depth  # POINTS per leaf
 
 
 print('Generate dense array')
-dim =16
-X = np.random.rand(n, dim)
+dim =64
+#X = np.random.rand(n, dim)
+#X = cp.random.randn(n, dim, dtype = cp.float32)
+gids = np.random.permutation(np.arange(n, dtype = np.int32))
+X = np.random.randn(n, dim)
 #np.save("tmp_mat", X)
 #X = np.load("tmp_mat.npy")
 
 
 n,_ = X.shape
 print('Generate gids')
-#gids = cp.random.permutation(cp.arange(n))
-gids = np.arange(n)
+#gids = np.arange(n, dtype = np.int32)
 
 points_per_leaf = int(n//leaves)
 ppl = points_per_leaf
@@ -41,7 +44,7 @@ for i in range(leaves):
 '''
 
 print('Generate knn arrays')
-K=4
+K=64
 knnidx = -np.ones((n,K),dtype=np.int32)
 knndis = np.ones((n,K),dtype=np.float32) + 1e30
 

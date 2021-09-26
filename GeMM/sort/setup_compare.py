@@ -12,13 +12,12 @@ except:
     print("You don't seem to have Cython installed")
     sys.exit(1)
 
-os.environ["CC"] = "cc"
-os.environ["CXX"] = "c++"
 #os.environ["CC"] = "icc"
 #os.environ["CXX"] = "icpc"
+os.environ["CC"] = "cc"
+os.environ["CXX"] = "c++"
 
 CUDA_LIB = os.environ["TACC_CUDA_LIB"]
-CUDA_INC = os.environ["TACC_CUDA_INC"]
 
 #include directories
 inc_dirs = []
@@ -31,13 +30,10 @@ inc_dirs = inc_dirs + [CUDA_LIB+"/stubs/"]
 lib_dirs = []
 lib_dirs = lib_dirs + [CUDA_LIB]
 lib_dirs = lib_dirs + [CUDA_LIB+"/stubs/"]
-lib_dirs = lib_dirs + [CUDA_INC]
 
 #object_list=["cuda_wrapper/SFIKNN_nonpermuted_sqDist.o"]
 #object_list=["cuda_wrapper/SFIKNN.o"]
-object_list=["dense/dfiknn.o", "sparse/sfiknn.o"]
-#object_list=["dense/dfiknn.o"]
-#object_list=["sparse/sfiknn.o"]
+object_list=["compare/SortMerge_v2.o"]
 def scandir(dir, files=[]):
     for file in os.listdir(dir):
         path = os.path.join(dir, file)
@@ -58,22 +54,18 @@ def makeExtension(extName):
         runtime_library_dirs = lib_dirs,
         extra_objects=object_list,
         extra_compile_args=["-std=c++11","-O3", "-fPIC"],
-        extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart", "-lcublas"]
+        extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart"]
     )
 
-extNames = scandir("dense")
+
+extNames = scandir("compare")
 print(extNames)
 extensions = [makeExtension(name) for name in extNames]
 print(extensions)
-extNames = scandir("sparse")
-print(extNames)
-extensions += [makeExtension(name) for name in extNames]
-
-print(extensions)
 
 setup(
-    name="filknn",
-    packages=["filknn"],
+    name="SortMerge",
+    packages=["SortMerge"],
     ext_modules=extensions,
     package_data={
         '':['*.pxd']
@@ -82,3 +74,4 @@ setup(
     include_package_data=True,
     cmdclass = {'build_ext': build_ext}
     )
+
