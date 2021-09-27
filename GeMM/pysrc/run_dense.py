@@ -39,26 +39,30 @@ parser.add_argument('-seed', type=int, default=15)
 parser.add_argument('-nq', type=int, default=1000)
 args = parser.parse_args()
 
-if args.use_gpu:
-    location = "GPU"
 
-def read_truth(name, k):
+def read_sift(d):
 
-    id_file = name+"_nborID_100.bin.npy"
-    dist_file =name+"_nborDist_100.bin.npy"
+  filename='dataset/sift/sift_learn.fvecs'
+  vsz = 4 + d
+  nc = 2
+  v = cp.fromfile(filename, dtype=cp.uint8, count=nc*vsz, offset=st*vsz)
+  X = v.reshape((nc, d+4))
+  
+  return X  
 
-    truthID = np.load(id_file)
-    truthDist = np.load(dist_file)
+def read_gaussian(n, dim):
 
-    print("Truth Shape: ", truthID.shape)
+  X = cp.random.randn(n,dim, dtype = cp.float32)
+  return X
 
-    truth = (truthID, truthDist)
-    return truth
+def read_uniform(n, dim):
+  
+  X = cp.random.rand(n,dim, dtype = cp.float32)
+  
+  return X
 
 print("Starting Script", flush=True)
 mem = Memory("./mycache")
-DAT_DIR = "/scratch/07544/ghafouri/pyrknn/GeMM/datasets"
-
 
 def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
      
@@ -66,16 +70,17 @@ def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
     #for i in range(nc):
     for (i,ptid) in enumerate(test_pt):
       miss_array_dist = cp.zeros(K)
+      #miss_array_id = cp.zeros(K)
       for j in range(K):
-			  #miss_array_id = [1 if ap_id[i, j] in ex_id[i, :] else 0 for j in range(K)]
         if ap_dist[ptid,j] <= ex_dist[i, -1]:
           miss_array_dist[j] = 1
-          #miss_array_dist = [1 if ap_dist[i, j] <= ex_dist[i, -1] else 0 for j in range(K)]
+        #if ap_id[ptid,j] in ex_id[i, :]:
+        #  miss_array_id[j] = 1
         #print(i)
         #miss_array_id = cp.asarray(miss_array_id)
         #miss_array_dist = cp.asarray(miss_array_dist)
         #err += cp.sum(cp.logical_or(miss_array_id, miss_array_dist))
-        #err += cp.sum(cp.asarray(miss_array_id))
+      #err += cp.sum(cp.asarray(miss_array_id))
       err += cp.sum(miss_array_dist)
     acc = err/(nc*K)
 
@@ -109,33 +114,30 @@ n = args.n
 dim = args.d
 K = args.k
 T = args.iter
+depth = args.levels
+nq = args.nq
+if dataset == 'sift':
+  X = read_sift(d)
+elif dataset == 'gaussian':
+  X = read_gaussian(n,dim)
+else:
+  X = read_uniform(n,dim)
 
-# Gaussian 
-X = cp.random.randn(n,dim, dtype = cp.float32)
-
-# Uniform
-#X = cp.random.rand(n,dim, dtype = cp.float32)
 
 knndis = 1e30*cp.ones((n,K), dtype = cp.float32)
 knnidx = -cp.ones((n,K), dtype = cp.int32)         
 
 
-#X = cp.random.random((n,dim), dtype = cp.float32)
-
-#X = cp.random.permutation(X)
 print("Finished Reading Data", flush=True)
-depth = args.levels
-
-#X = X[:n,]
 
 N  = X.shape[0]
 d  = X.shape[1]
+
 print("Init Data shape: ", (N, d))
 
 cp.random.seed(args.seed)
 
 print('Padding the data')
-
 
 leaves = 1 << depth 
 ppl = cp.ceil(n / leaves)
@@ -147,50 +149,41 @@ if diff > 0:
 
 points_per_leaf = int(n/leaves)
 
-
 print('Number of poitns =', n, ', and the dimension =', dim)
 print('Tree depth =', depth)
 print('points_per_leaf =', points_per_leaf)
 print('Warning depth<=dim, will use non-orthogonal directions')
 
 nex = points_per_leaf
-t = 0
-#nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(X)
-'''
-ex_dir = name + "ex_dense"
 
-if not os.path.isdir(ex_dir):
-  os.mkdir(ex_dir)
-
-fname = ex_dir + "/" + name + "_knnidx_ex_L%d.npy"%depth
-print(fname)
-'''
 print("computing the exact neghobors")
 #nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(cp.asnumpy(X))
 #knndis_ex, knnidx_ex = nbrs.kneighbors(cp.asnumpy(X[:nex,]))
-test_pt = cp.random.randint(0, N, size=1024)
+
+test_pt = cp.random.randint(0, N, size=nq)
 knnidx_ex , knndis_ex = neighbors(X, K, test_pt)
 
 
 print('Starting tree iteration')
 
 
-
 tic = time.time();
 leaves = int(n // points_per_leaf)
 
 #knnidx, knndis = py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim)
-#knnidx, knndis = py_dfiknn(gids, X, leaves, K, knnidx.ravel(), knndis.ravel(), dim)
-
-#knnidx, knndis = py_dfiknn(gids, X, leaves, K, knnidx.ravel(), knndis.ravel(), dim)
 knnidx, knndis = rt.rkdt_a2a_it(X,depth,knnidx, knndis, K,T,None,0, True)
-#knnidx, knndis = rt.rkdt_a2a_it(X,gids,depth,knnidx, knndis, K,T,monitor,1, True)
+
 toc = time.time();
 print('RKDT took', '{:.2f}'.format(toc-tic), 'secs \n')
 tic = time.time()
+
 monitor(0,knnidx,knndis)
 toc = time.time() - tic
-print("monitor takes %.4f"%toc)
 
+print("monitor takes %.4f \n\n"%toc)
 
+print(knnidx_ex[0, :])
+print(knnidx[test_pt[0], :])
+print(knndis_ex[0, :])
+print(knndis[test_pt[0], :])
 

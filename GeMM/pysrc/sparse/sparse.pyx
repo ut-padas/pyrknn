@@ -4,7 +4,6 @@
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 
-from scipy import sparse
 import cython
 import cupy as cp
 from cupyx.scipy.sparse import csr_matrix
@@ -24,24 +23,24 @@ cdef wrapper_sparse(size_t RowPtr, size_t ColPtr, size_t ValPtr, size_t IDPtr, i
 def py_sfiknn(gids, X, leaves, k, knndis, knnidx):
 
   n,_ = X.shape
-
-  assert(n == len(gids))
-
+  assert(n == gids.shape[0])
 
   tic = time.time()
   X_c = X[gids, :]
-
+  
   toc = time.time() - tic
 
   print("Data permutation %.4f"%toc)
 
   hID = gids.data.ptr
-  vals = X.data.ptr
-  idx = X.indices.data.ptr
-  rowptr = X.indptr.data.ptr
+  
+  vals = X_c.data.data.ptr
+  idx = X_c.indices.data.ptr
+  rowptr = X_c.indptr.data.ptr
   nID = knnidx.ravel().data.ptr
   nDist = knndis.ravel().data.ptr
-  
+    
   wrapper_sparse(rowptr, idx, vals, hID, n, leaves, k, nDist, nID)
+ 
 
   return (knnidx, knndis)

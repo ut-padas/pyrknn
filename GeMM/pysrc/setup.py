@@ -35,9 +35,9 @@ lib_dirs = lib_dirs + [CUDA_INC]
 
 #object_list=["cuda_wrapper/SFIKNN_nonpermuted_sqDist.o"]
 #object_list=["cuda_wrapper/SFIKNN.o"]
-object_list=["dense/dfiknn.o", "sparse/sfiknn.o"]
+#object_list=["dense/dfiknn.o", "sparse/sfiknn.o"]
 #object_list=["dense/dfiknn.o"]
-#object_list=["sparse/sfiknn.o"]
+object_list=["sparse/sfiknn.o"]
 def scandir(dir, files=[]):
     for file in os.listdir(dir):
         path = os.path.join(dir, file)

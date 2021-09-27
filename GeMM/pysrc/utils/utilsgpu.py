@@ -1,4 +1,4 @@
-import numpy as np
+#import numpy as np
 import cupy as cp
 import cupyx.scipy.sparse as cpsp
 
@@ -41,6 +41,8 @@ def orthoproj(X,numdir):
     Xr = X.dot(U)
     #Xr = cp.dot(X,U)
     #Xr = cp.asarray(Xr)
+    del Q
+    
     return (Xr,U)
 
 def segpermute(arr,segsize,gperm):
@@ -60,8 +62,9 @@ def segpermute_f(arr,segsize,perm):
     st = cp.tile(offsets, (segsize,1))
     st = (st.T).ravel()
     perm[:] = perm[:] + st[:]
-    
-    
+    del offsets
+    del st
+    return perm 
 
 def merge_knn(dis,idx,k):
     m = len(dis)

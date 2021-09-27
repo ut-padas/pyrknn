@@ -1,13 +1,19 @@
 #!/bin/bash
 
-N=$((2**23))
-D=100
+#N=$((2**22))
+
+
+DATASET=url
+# If the dataset is random
+N=2396130
 NNZPT=16
-K=32
+
+D=100
+K=64
 ITER=1
-LEVELS=13
+LEVELS=12
 
 
-python sparse_rnd.py -n $N -d $D -avgnnz $NNZPT -iter $ITER -levels $LEVELS -k $K
+python run_sparse.py -n $N -d $D -avgnnz $NNZPT -iter $ITER -levels $LEVELS -k $K -dataset $DATASET
 
 

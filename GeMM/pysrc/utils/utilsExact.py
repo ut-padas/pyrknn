@@ -1,15 +1,20 @@
 import cupy as cp 
-
+import cupyx.scipy.sparse as cpsp
+import cupyx.scipy.sparse.linalg as cpspalg
 import time
 
 
-def norms(data):
+def Dnorms(data):
 
   d_norms = cp.linalg.norm(data, axis = 1)
-   
   return d_norms
 
 
+def Snorms(data):
+
+  d_norms = cpspalg.norm(data, axis=1)
+   
+  return d_norms
 
 
 def neighbors(data, k, test_pt):
@@ -18,7 +23,12 @@ def neighbors(data, k, test_pt):
   n,d = data.shape
   ppl = test_pt.shape[0]
   nLeaf = n // ppl
-  d_norms = norms(data)
+  sparse = cpsp.issparse(data)
+  if sparse:
+    d_norms = Snorms(data)
+  else:
+    d_norms = Dnorms(data)
+  print(type(d_norms))
   d_norms = cp.reshape(d_norms, (n,1))
   kN0 = cp.ones((ppl, k), dtype = cp.float32) + 1e30
   kId0 = -cp.ones((ppl, k), dtype = cp.int32)
@@ -35,7 +45,11 @@ def neighbors(data, k, test_pt):
   
     norm_i = d_norms[leaf*ppl:(leaf+1)*ppl]
     pts = data[leaf*ppl:(leaf+1)*ppl,:]
-    dists = norm0 + cp.matmul(norm_i**2, one).transpose() - 2 * cp.matmul(d0,pts.transpose())
+    if sparse:
+      tmp = cp.matmul(d0.toarray(), pts.toarray().transpose()) 
+      dists = norm0 + cp.matmul(norm_i**2, one).transpose() - 2 * tmp
+    else:
+      dists = norm0 + cp.matmul(norm_i**2, one).transpose() - 2 * cp.matmul(d0,pts.transpose())
     #dists[dists < 0.0] = 0.0
     #print(dists)
     Id = cp.arange(leaf*ppl, (leaf+1)*ppl, dtype = cp.int32)

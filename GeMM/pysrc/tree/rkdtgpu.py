@@ -4,11 +4,11 @@ import utilsgpu as ut
 from time import time
 import cupyx.scipy.sparse as cpsp
 import sys
-import sys
 sys.path.append("../")
 import time
-#from sparse.sparse import *
-from dense.dense import *
+from sparse.sparse import *
+#from dense.dense import *
+
 
 #@jit        
 # TODO: THIS NEEDS TO BE REPLACED BY THE NEW CODE
@@ -98,7 +98,9 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
     n = X.shape[0]
     #perm = cp.empty_like(gids)
     #perm = cp.arange(n, dtype = cp.int32)
+    
     for t in range(maxit):
+        
         tic = time.time()
         #gids = np.arange(0, n,dtype=np.int32)
         gids = cp.arange(0,n,dtype=cp.int32)
@@ -107,23 +109,27 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
         segsize = n
         for i in range(0,levels):
             segsize = n>>i
-            ut.segpermute_f(P[:,i],segsize,perm)
+            perm = ut.segpermute_f(P[:,i],segsize,perm)
             P[:,:]=P[perm,:]
             gids[:]=gids[perm]
             if 0: print(gids)
         leaves = 1 << levels
-        pointsperleaf = int(n / leaves)
+        #pointsperleaf = int(n / leaves)
         toc = time.time() -tic
-        print("takes for perm : %.4f sec"%toc)
+        del P
+        del perm
+        mempool = cp.get_default_memory_pool()
+        mempool.free_all_blocks()
+        print("-"*30+ " ITERATION = %d "%t +"-"*30)
         if dense:
             dim = X.shape[1]
             #leaf_knn(X,gids,segsize,knnidx,knndis,K,t==0,overlap)
             #gids = np.random.permutation(np.arange(n, dtype = np.int32))
             #gids_np[:] = gids.get()         
-            knnidx, knndis = py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim) 
+            py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim) 
         if not dense:
             print("\t Sparse knn : sfiknn version")
-            knnidx, knndis = py_sfiknn(gids, X, leaves, K, knndis, knnidx) 
+            py_sfiknn(gids, X, leaves, K, knndis, knnidx) 
         ''' 
         if monitor is not None:
             if monitor(t,knnidx,knndis):
