@@ -7,7 +7,7 @@ import sys
 sys.path.append("../")
 import time
 from sparse.sparse import *
-#from dense.dense import *
+from dense.dense import *
 
 
 #@jit        
@@ -130,11 +130,11 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
         if not dense:
             print("\t Sparse knn : sfiknn version")
             py_sfiknn(gids, X, leaves, K, knndis, knnidx) 
-        ''' 
+         
         if monitor is not None:
             if monitor(t,knnidx,knndis):
                 break
-        '''
+        
 
 
 
