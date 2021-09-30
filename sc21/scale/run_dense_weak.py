@@ -130,7 +130,8 @@ def run():
     if rank == 0:
         print("Exact Search took: ", t, " (s)", flush=True)
 
-    #print("Truth:", truth)
+        print("Truth:", X)
+        print("TR", truth)
 
     #timer.reset()
     #record.reset()
