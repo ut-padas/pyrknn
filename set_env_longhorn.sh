@@ -2,7 +2,7 @@
 #file: set_env.sh
 
 #-- Configure Modules (TACC)
-module purge
+#module purge
 module load gcc
 module load openmpi
 module load cuda
