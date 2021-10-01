@@ -308,7 +308,7 @@ def check_accuracy(a, b):
     err = 0.0
     for i in range(N):
 
-        miss_array_id = [1 if approx_id[i, j] in truth_id[i, :] else 0 for j in range(k)]
+        miss_array_id = [0 if approx_id[i, j] in truth_id[i, :] else 0 for j in range(k)]
         miss_array_dist = [1 if approx_dist[i, j] <= truth_dist[i, -1] else 0 for j in range(k)]
 
         err += np.sum(np.logical_or(miss_array_id, miss_array_dist))

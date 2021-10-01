@@ -53,7 +53,7 @@ def search_task_dense(search_args):
 
     ID, DIST = neighbors
 
-    neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST))
+    neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST**2))
 
     #neighbors = Primitives.gpu_dense_knn(gids, X, local_levels, ltrees, k, blocksize,device)
     return neighbors
@@ -63,15 +63,16 @@ def search_task_sparse(search_args):
 
 
     #Perform GPU Sparse Search
-    ID = cp.zeros([X.shape[0], k], dtype=np.int32)
-    DIST = cp.zeros([X.shape[0], k], dtype=np.float32)
+    ID = cp.zeros([X.shape[0], k], dtype=np.int32) - 1
+    DIST = cp.zeros([X.shape[0], k], dtype=np.float32) + 1e30
     d_gids = cp.asarray(gids, dtype=np.int32)
     d_X = cupyx.scipy.sparse.csr_matrix(X)
+
     neighbors = rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=False)
 
     ID, DIST = neighbors
 
-    neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST))
+    neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST**2))
 
     #neighbors = Primitives.gpu_sparse_knn(gids, X, local_levels, ltrees, k, blockleaf, blocksize,device)
     return neighbors
@@ -389,7 +390,6 @@ class RKDForest:
                 result = Primitives.merge_neighbors(result, neighbors, k, merge_location, cores)
             timer.pop("Forest: Merge")
 
-            print("Result: ", result, flush=True)
 
             current_tree = next_tree
 
@@ -397,6 +397,7 @@ class RKDForest:
             if ( truth is not None ) and ( rank == 0 ) :
                 rlist, rdist = result
                 test = (rlist[:nq, ...], rdist[:nq, ...])
+                print("Test", test, flush=True)
                 print("Truth", truth, flush=True)
                 acc = Primitives.check_accuracy(truth, test)
                 Primitives.accuracy.append( acc )
