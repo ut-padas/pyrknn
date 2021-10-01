@@ -6,7 +6,12 @@ all: dense
 dense: 
 	#nvcc -shared -c ${INC_DIR} dfiknn_vcheck3.cu -Xcompiler -fPIC -lcublas
 	nvcc -shared -c ${INC_DIR} dfiknn.cu -Xcompiler -fPIC -lcublas
-	#mv dfiknn_vcheck3.o dfiknn.o
+	#nvcc -shared -c ${INC_DIR} dfiknn_prof.cu -Xcompiler -fPIC -lcublas
+	#mv dfiknn_prof.o dfiknn.o
+	#file=profiler
+	#${TACC_CUDA_DIR}/nsight-compute-2019.4.0/nv-nsight-cu-cli -f --datails-all --nvtx --export profiler_report dfiknn.o 
+	#nvcc -shared -c ${INC_DIR} dfiknn_SortHoriz.cu -Xcompiler -fPIC -lcublas
+	#mv dfiknn_SortHoriz.o dfiknn.o
 
 clean:
 	rm -f *.o

@@ -1141,20 +1141,10 @@ static void __pyx_insert_code_object(int code_line, PyCodeObject* code_object);
 static void __Pyx_AddTraceback(const char *funcname, int c_line,
                                int py_line, const char *filename);
 
-/* Print.proto */
-static int __Pyx_Print(PyObject*, PyObject *, int);
-#if CYTHON_COMPILING_IN_PYPY || PY_MAJOR_VERSION >= 3
-static PyObject* __pyx_print = 0;
-static PyObject* __pyx_print_kwargs = 0;
-#endif
-
 /* GCCDiagnostics.proto */
 #if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
 #define __Pyx_HAS_GCC_DIAGNOSTIC
 #endif
-
-/* PrintOne.proto */
-static int __Pyx_PrintOne(PyObject* stream, PyObject *o);
 
 /* CIntFromPy.proto */
 static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *);
@@ -1210,7 +1200,6 @@ static const char __pyx_k__2[] = "_";
 static const char __pyx_k_cp[] = "cp";
 static const char __pyx_k_np[] = "np";
 static const char __pyx_k_dim[] = "dim";
-static const char __pyx_k_end[] = "end";
 static const char __pyx_k_hID[] = "hID";
 static const char __pyx_k_nID[] = "nID";
 static const char __pyx_k_ptr[] = "ptr";
@@ -1218,7 +1207,6 @@ static const char __pyx_k_tic[] = "tic";
 static const char __pyx_k_toc[] = "toc";
 static const char __pyx_k_cupy[] = "cupy";
 static const char __pyx_k_data[] = "data";
-static const char __pyx_k_file[] = "file";
 static const char __pyx_k_gids[] = "gids";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_name[] = "__name__";
@@ -1226,7 +1214,6 @@ static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_time[] = "time";
 static const char __pyx_k_nDist[] = "nDist";
 static const char __pyx_k_numpy[] = "numpy";
-static const char __pyx_k_print[] = "print";
 static const char __pyx_k_ravel[] = "ravel";
 static const char __pyx_k_shape[] = "shape";
 static const char __pyx_k_import[] = "__import__";
@@ -1237,8 +1224,6 @@ static const char __pyx_k_py_dfiknn[] = "py_dfiknn";
 static const char __pyx_k_dense_dense[] = "dense.dense";
 static const char __pyx_k_dense_dense_pyx[] = "dense/dense.pyx";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
-static const char __pyx_k_Data_permutation_4f_sec[] = "Data permutation : %.4f sec ";
-static PyObject *__pyx_kp_s_Data_permutation_4f_sec;
 static PyObject *__pyx_n_s_X;
 static PyObject *__pyx_n_s__2;
 static PyObject *__pyx_n_s_cline_in_traceback;
@@ -1248,8 +1233,6 @@ static PyObject *__pyx_n_s_data;
 static PyObject *__pyx_n_s_dense_dense;
 static PyObject *__pyx_kp_s_dense_dense_pyx;
 static PyObject *__pyx_n_s_dim;
-static PyObject *__pyx_n_s_end;
-static PyObject *__pyx_n_s_file;
 static PyObject *__pyx_n_s_gids;
 static PyObject *__pyx_n_s_hID;
 static PyObject *__pyx_n_s_import;
@@ -1264,7 +1247,6 @@ static PyObject *__pyx_n_s_nID;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_np;
 static PyObject *__pyx_n_s_numpy;
-static PyObject *__pyx_n_s_print;
 static PyObject *__pyx_n_s_ptr;
 static PyObject *__pyx_n_s_py_dfiknn;
 static PyObject *__pyx_n_s_ravel;
@@ -1448,7 +1430,7 @@ static PyObject *__pyx_pf_5dense_5dense_py_dfiknn(CYTHON_UNUSED PyObject *__pyx_
   PyObject *__pyx_v_n = NULL;
   CYTHON_UNUSED PyObject *__pyx_v__ = NULL;
   PyObject *__pyx_v_tic = NULL;
-  PyObject *__pyx_v_toc = NULL;
+  CYTHON_UNUSED PyObject *__pyx_v_toc = NULL;
   PyObject *__pyx_v_hID = NULL;
   PyObject *__pyx_v_data = NULL;
   PyObject *__pyx_v_nID = NULL;
@@ -1594,7 +1576,7 @@ static PyObject *__pyx_pf_5dense_5dense_py_dfiknn(CYTHON_UNUSED PyObject *__pyx_
  *   tic = time.time()
  *   X = X[gids, :]             # <<<<<<<<<<<<<<
  *   toc = time.time() - tic
- *   print("Data permutation : %.4f sec "%toc)
+ *   #print("Data permutation : %.4f sec "%toc)
  */
   __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
@@ -1614,7 +1596,7 @@ static PyObject *__pyx_pf_5dense_5dense_py_dfiknn(CYTHON_UNUSED PyObject *__pyx_
  *   tic = time.time()
  *   X = X[gids, :]
  *   toc = time.time() - tic             # <<<<<<<<<<<<<<
- *   print("Data permutation : %.4f sec "%toc)
+ *   #print("Data permutation : %.4f sec "%toc)
  * 
  */
   __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_time); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 35, __pyx_L1_error)
@@ -1643,20 +1625,8 @@ static PyObject *__pyx_pf_5dense_5dense_py_dfiknn(CYTHON_UNUSED PyObject *__pyx_
   __pyx_v_toc = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "dense/dense.pyx":36
- *   X = X[gids, :]
- *   toc = time.time() - tic
- *   print("Data permutation : %.4f sec "%toc)             # <<<<<<<<<<<<<<
- * 
- *   hID = gids.data.ptr
- */
-  __pyx_t_1 = __Pyx_PyString_FormatSafe(__pyx_kp_s_Data_permutation_4f_sec, __pyx_v_toc); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 36, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (__Pyx_PrintOne(0, __pyx_t_1) < 0) __PYX_ERR(0, 36, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
   /* "dense/dense.pyx":38
- *   print("Data permutation : %.4f sec "%toc)
+ *   #print("Data permutation : %.4f sec "%toc)
  * 
  *   hID = gids.data.ptr             # <<<<<<<<<<<<<<
  *   data = X.ravel().data.ptr
@@ -1883,7 +1853,6 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
-  {&__pyx_kp_s_Data_permutation_4f_sec, __pyx_k_Data_permutation_4f_sec, sizeof(__pyx_k_Data_permutation_4f_sec), 0, 0, 1, 0},
   {&__pyx_n_s_X, __pyx_k_X, sizeof(__pyx_k_X), 0, 0, 1, 1},
   {&__pyx_n_s__2, __pyx_k__2, sizeof(__pyx_k__2), 0, 0, 1, 1},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
@@ -1893,8 +1862,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_dense_dense, __pyx_k_dense_dense, sizeof(__pyx_k_dense_dense), 0, 0, 1, 1},
   {&__pyx_kp_s_dense_dense_pyx, __pyx_k_dense_dense_pyx, sizeof(__pyx_k_dense_dense_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_dim, __pyx_k_dim, sizeof(__pyx_k_dim), 0, 0, 1, 1},
-  {&__pyx_n_s_end, __pyx_k_end, sizeof(__pyx_k_end), 0, 0, 1, 1},
-  {&__pyx_n_s_file, __pyx_k_file, sizeof(__pyx_k_file), 0, 0, 1, 1},
   {&__pyx_n_s_gids, __pyx_k_gids, sizeof(__pyx_k_gids), 0, 0, 1, 1},
   {&__pyx_n_s_hID, __pyx_k_hID, sizeof(__pyx_k_hID), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
@@ -1909,7 +1876,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
   {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
-  {&__pyx_n_s_print, __pyx_k_print, sizeof(__pyx_k_print), 0, 0, 1, 1},
   {&__pyx_n_s_ptr, __pyx_k_ptr, sizeof(__pyx_k_ptr), 0, 0, 1, 1},
   {&__pyx_n_s_py_dfiknn, __pyx_k_py_dfiknn, sizeof(__pyx_k_py_dfiknn), 0, 0, 1, 1},
   {&__pyx_n_s_ravel, __pyx_k_ravel, sizeof(__pyx_k_ravel), 0, 0, 1, 1},
@@ -1933,7 +1899,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *   tic = time.time()
  *   X = X[gids, :]             # <<<<<<<<<<<<<<
  *   toc = time.time() - tic
- *   print("Data permutation : %.4f sec "%toc)
+ *   #print("Data permutation : %.4f sec "%toc)
  */
   __pyx_slice_ = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice_)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_slice_);
@@ -3277,112 +3243,6 @@ bad:
     Py_XDECREF(py_frame);
 }
 
-/* Print */
-#if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION < 3
-static PyObject *__Pyx_GetStdout(void) {
-    PyObject *f = PySys_GetObject((char *)"stdout");
-    if (!f) {
-        PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
-    }
-    return f;
-}
-static int __Pyx_Print(PyObject* f, PyObject *arg_tuple, int newline) {
-    int i;
-    if (!f) {
-        if (!(f = __Pyx_GetStdout()))
-            return -1;
-    }
-    Py_INCREF(f);
-    for (i=0; i < PyTuple_GET_SIZE(arg_tuple); i++) {
-        PyObject* v;
-        if (PyFile_SoftSpace(f, 1)) {
-            if (PyFile_WriteString(" ", f) < 0)
-                goto error;
-        }
-        v = PyTuple_GET_ITEM(arg_tuple, i);
-        if (PyFile_WriteObject(v, f, Py_PRINT_RAW) < 0)
-            goto error;
-        if (PyString_Check(v)) {
-            char *s = PyString_AsString(v);
-            Py_ssize_t len = PyString_Size(v);
-            if (len > 0) {
-                switch (s[len-1]) {
-                    case ' ': break;
-                    case '\f': case '\r': case '\n': case '\t': case '\v':
-                        PyFile_SoftSpace(f, 0);
-                        break;
-                    default:  break;
-                }
-            }
-        }
-    }
-    if (newline) {
-        if (PyFile_WriteString("\n", f) < 0)
-            goto error;
-        PyFile_SoftSpace(f, 0);
-    }
-    Py_DECREF(f);
-    return 0;
-error:
-    Py_DECREF(f);
-    return -1;
-}
-#else
-static int __Pyx_Print(PyObject* stream, PyObject *arg_tuple, int newline) {
-    PyObject* kwargs = 0;
-    PyObject* result = 0;
-    PyObject* end_string;
-    if (unlikely(!__pyx_print)) {
-        __pyx_print = PyObject_GetAttr(__pyx_b, __pyx_n_s_print);
-        if (!__pyx_print)
-            return -1;
-    }
-    if (stream) {
-        kwargs = PyDict_New();
-        if (unlikely(!kwargs))
-            return -1;
-        if (unlikely(PyDict_SetItem(kwargs, __pyx_n_s_file, stream) < 0))
-            goto bad;
-        if (!newline) {
-            end_string = PyUnicode_FromStringAndSize(" ", 1);
-            if (unlikely(!end_string))
-                goto bad;
-            if (PyDict_SetItem(kwargs, __pyx_n_s_end, end_string) < 0) {
-                Py_DECREF(end_string);
-                goto bad;
-            }
-            Py_DECREF(end_string);
-        }
-    } else if (!newline) {
-        if (unlikely(!__pyx_print_kwargs)) {
-            __pyx_print_kwargs = PyDict_New();
-            if (unlikely(!__pyx_print_kwargs))
-                return -1;
-            end_string = PyUnicode_FromStringAndSize(" ", 1);
-            if (unlikely(!end_string))
-                return -1;
-            if (PyDict_SetItem(__pyx_print_kwargs, __pyx_n_s_end, end_string) < 0) {
-                Py_DECREF(end_string);
-                return -1;
-            }
-            Py_DECREF(end_string);
-        }
-        kwargs = __pyx_print_kwargs;
-    }
-    result = PyObject_Call(__pyx_print, arg_tuple, kwargs);
-    if (unlikely(kwargs) && (kwargs != __pyx_print_kwargs))
-        Py_DECREF(kwargs);
-    if (!result)
-        return -1;
-    Py_DECREF(result);
-    return 0;
-bad:
-    if (kwargs != __pyx_print_kwargs)
-        Py_XDECREF(kwargs);
-    return -1;
-}
-#endif
-
 /* CIntFromPyVerify */
 #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
     __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 0)
@@ -3404,43 +3264,6 @@ bad:
         }\
         return (target_type) value;\
     }
-
-/* PrintOne */
-#if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION < 3
-static int __Pyx_PrintOne(PyObject* f, PyObject *o) {
-    if (!f) {
-        if (!(f = __Pyx_GetStdout()))
-            return -1;
-    }
-    Py_INCREF(f);
-    if (PyFile_SoftSpace(f, 0)) {
-        if (PyFile_WriteString(" ", f) < 0)
-            goto error;
-    }
-    if (PyFile_WriteObject(o, f, Py_PRINT_RAW) < 0)
-        goto error;
-    if (PyFile_WriteString("\n", f) < 0)
-        goto error;
-    Py_DECREF(f);
-    return 0;
-error:
-    Py_DECREF(f);
-    return -1;
-    /* the line below is just to avoid C compiler
-     * warnings about unused functions */
-    return __Pyx_Print(f, NULL, 0);
-}
-#else
-static int __Pyx_PrintOne(PyObject* stream, PyObject *o) {
-    int res;
-    PyObject* arg_tuple = PyTuple_Pack(1, o);
-    if (unlikely(!arg_tuple))
-        return -1;
-    res = __Pyx_Print(stream, arg_tuple, 1);
-    Py_DECREF(arg_tuple);
-    return res;
-}
-#endif
 
 /* CIntFromPy */
 static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *x) {

@@ -56,7 +56,7 @@ __global__ void ComputeNorms(float* data, int* G_Id, float* Norms, int ppl, int 
 
   //int row = threadIdx.x + blockIdx.x * blockDim.x;
   int ind = threadIdx.x;
-  int leafId_g = blockIdx.z * blockDim.y + blockIdx.y;
+  int leafId_g = blockIdx.z * gridDim.y + blockIdx.y;
   for (int row = ind; row < ppl; row += blockDim.x){
     int g_rowId = leafId_g * ppl + row;
     //changed
@@ -85,7 +85,7 @@ __global__ void MergeHoriz(float* KNN, int* KNN_Id, float* Norms, int k_nn, int 
 
   int j = threadIdx.x;
   int row_l = blockIdx.x;
-  int leafId_local = blockIdx.z * blockDim.y + blockIdx.y;
+  int leafId_local = blockIdx.z * gridDim.y + blockIdx.y;
   int leafId_g = bl * sizebleaves + leafId_local;
   
 
@@ -250,7 +250,7 @@ __global__ void ComputeTriDists_last(float* data, int* G_Id, float* Norms , int 
 
   int ind = threadIdx.x;
   //int leaf_id_g = blockIdx.z * blockDim.y + blockIdx.y;
-  int leafId_local = blockIdx.z * blockDim.y + blockIdx.y;
+  int leafId_local = blockIdx.z * gridDim.y + blockIdx.y;
   int leafId_g = bl * sizebleaves + leafId_local;
   int block = blockId;
 
@@ -311,7 +311,7 @@ __global__ void ComputeTriDists_last(float* data, int* G_Id, float* Norms , int 
     if (colId > rowId) KNN_dist_tmp[ind_knn_T] = c_tmp;
     //if (leafId_g * ppl + block * partsize + rowId == 2339) printf("write for last D[%d] = %.4f write at %d \n", colId, c_tmp, ind_knn); 
     //if (leafId_g * ppl + block * partsize + colId == 2339) printf("write for last D[%d] = %.4f write at %d \n", rowId, c_tmp, ind_knn_T); 
-
+    /*
     for (int row_tmp = 0; row_tmp<rem_len; row_tmp++){
       for (int q = ind + rem_len; q < partsize; q += blockDim.x){
         //gid_pt = leafId_local * ppl + block * k_nn + row_tmp;
@@ -323,7 +323,8 @@ __global__ void ComputeTriDists_last(float* data, int* G_Id, float* Norms , int 
         //if (leafId_g * ppl + block * partsize + row_tmp == 2339) printf("write for last D[%d] = %.4f , write at %d \n", q, KNN_dist_tmp[ind_knn], ind_knn);
       }
     }
-    //if (leafId_g == 1) printf("rows = %d \n", ); 
+    //if (leafId_g == 1) printf("rows = %d \n", );
+    */ 
   }
 
 }
@@ -340,7 +341,7 @@ __global__ void MergeVer_v2(float* KNN, int* KNN_Id, float* Norms, int k_nn, int
   int tmp_i;
 
   int col = blockIdx.x;
-  int leafId_local = blockIdx.z* blockDim.y + blockIdx.y;
+  int leafId_local = blockIdx.z* gridDim.y + blockIdx.y;
   int leafId_g = bl * sizebleaves + leafId_local;
   
   int colId_leaf = (init) ? col : col + partsize * (blockInd + 1);
@@ -369,6 +370,8 @@ __global__ void MergeVer_v2(float* KNN, int* KNN_Id, float* Norms, int k_nn, int
 
     int rowId_g = (init) ? leafId_g * ppl + block * partsize + j_tmp : leafId_g * ppl + partsize * blockInd + j_tmp;
 
+    int Max_blocks = ppl/partsize;
+    int rem_len = ppl - Max_blocks * partsize;
 
 		SM_Id[j_tmp] = (rowId_g < M) ? G_Id[rowId_g] : -1;
     tmp_f = (rowId_g < M) ? -2 * d_temp_knn[ind_tmp] + norm_i + Norms[rowId_g] : 1e30;
@@ -376,6 +379,7 @@ __global__ void MergeVer_v2(float* KNN, int* KNN_Id, float* Norms, int k_nn, int
     
     if (init){
       tmp_f = (block * partsize + j_tmp < ppl) ? tmp_f : 1e30;
+      tmp_f = (Max_blocks == block && j_tmp >= rem_len) ? 1e30 : tmp_f;
     }
      
   	SM_dist[j_tmp] = (tmp_f > 0.0) ? sqrt(tmp_f) : 0.0;
@@ -761,7 +765,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaEventCreate(&t9));
 
   checkCudaErrors(cudaEventRecord(t0, 0));
-  int verbose = 1;
+  int verbose = 0;
   if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
 
 
@@ -776,14 +780,14 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   int partsize = (k > 32) ? k : 32;
 
   cudaMemGetInfo(&free, &total);
-  printf(" Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+  if (verbose) printf(" Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
   size_t size_req = sizeof(float) * partsize * M;
   int counter =0;
   while (size_req < free && partsize < k && counter < 6) {
     counter++;
     size_req *= 2;
     partsize *= 2;
-    printf("partsize = %d,  free = %.4f , size_req = %.4f,\n", partsize, free/1e9, size_req/1e9);
+    if (verbose) printf("partsize = %d,  free = %.4f , size_req = %.4f,\n", partsize, free/1e9, size_req/1e9);
   }
   partsize /= 2;
   partsize = (partsize > ppl) ? ppl : partsize;
@@ -829,7 +833,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   //int size_v_block_reduced = (k + partsize)/2;
   int size_v_block_reduced = partsize;
   dim3 BlockMergeVer(size_v_block_reduced, 1, 1);
-  
+   if (verbose){
   printf("=======================\n");
   printf(" Num points = %d \n", M);
   printf(" pt/leaf = %d \n", ppl);
@@ -841,7 +845,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   //printf(" dim GridThreads Norms = (%d , %d, %d) \n", GridNorm.x, GridNorm.y, GridNorm.z);
   printf(" dim GridThreads MergeHoriz = (%d , %d, %d) \n", GridMergeHoriz.x, GridMergeHoriz.y, GridMergeHoriz.z);
   printf(" dim BlockMerge MergeVer = (%d , %d, %d) \n", BlockMergeVer.x, BlockMergeVer.y, BlockMergeVer.z);
-  
+  }
 
 
 
@@ -888,7 +892,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 
   cudaMemGetInfo(&m2, &total);
   size_t size_tmp = sizeof(float) * M * partsize;
-  printf("Needed %.4f GB got %.4f \n", size_tmp/1e9, m2/1e9);
+   if (verbose) printf("Needed %.4f GB got %.4f \n", size_tmp/1e9, m2/1e9);
   //float s1 = size_tmp/1e9;
   //float s2 = m2/1e9;
   float tmp2 = ceil(size_tmp/m2);
@@ -897,10 +901,11 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   int numbleaves = 1 << bleaves;
   int sizebleaves = leaves / numbleaves; 
   //printf(" tmp2 = %.4f , bleaves = %d , numbleaves = %d \n", tmp2, bleaves, numbleaves);
+   if (verbose){
   printf(" Num BatchLeaves = %d \n", numbleaves);
   printf(" Size BatchLeaves = %d \n", sizebleaves);
   printf("=======================\n");
-
+  }
   
   
   checkCudaErrors(cudaMalloc((void **) &d_temp_knn, sizeof(float) * sizebleaves * ppl * partsize));
@@ -935,9 +940,9 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaDeviceSynchronize());
 
   checkCudaErrors(cudaEventRecord(t3, 0));
-  cudaStream_t streams[2];
-  cudaStreamCreate(&streams[0]);
-  cudaStreamCreate(&streams[1]);
+  //cudaStream_t streams[2];
+  //cudaStreamCreate(&streams[0]);
+  //cudaStreamCreate(&streams[1]);
   for (int bl = 0; bl < numbleaves; bl++){
 
     for (int l = 0; l < sizebleaves; l++){
@@ -1032,17 +1037,22 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
       checkCudaErrors(cudaEventSynchronize(t6));
 
 			
-			MergeHoriz <<< GridMergeHoriz, BlockMergeHoriz, 0,  streams[0]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false, bl, sizebleaves, partsize); 
+			//MergeHoriz <<< GridMergeHoriz, BlockMergeHoriz, 0,  streams[0]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false, bl, sizebleaves, partsize); 
+			MergeHoriz <<< GridMergeHoriz, BlockMergeHoriz>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr, d_arr_part, steps, d_GId, false, bl, sizebleaves, partsize); 
+      checkCudaErrors(cudaEventRecord(t7, 0));
+      checkCudaErrors(cudaEventSynchronize(t7));
 		
 			//MergeVer <<< GridMergeVer, BlockMergeVer , 0, streams[1]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_arr_v, d_arr_part_v, n_s_v, d_GId, false,bl, sizebleaves, partsize);
-			MergeVer_v2 <<< GridMergeVer, BlockMergeVer , 0, streams[1]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_GId, false,bl, sizebleaves, partsize);
+			//MergeVer_v2 <<< GridMergeVer, BlockMergeVer , 0, streams[1]>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_GId, false,bl, sizebleaves, partsize);
+			MergeVer_v2 <<< GridMergeVer, BlockMergeVer>>> (d_knn, d_knn_Id, d_Norms, k, ppl, blockInd, d_temp_knn, d_GId, false,bl, sizebleaves, partsize);
 			checkCudaErrors(cudaDeviceSynchronize());
 			checkCudaErrors(cudaEventRecord(t8, 0));
       checkCudaErrors(cudaEventSynchronize(t8));
       checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t5, t6));
       dt5 += dt_tmp;
-      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t6));
+      checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t7));
       dt6 += dt_tmp;
+      //printf("Sort takes = %.4f \n", dt_tmp);
       checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t6, t8));
       dt7 += dt_tmp;
     }
@@ -1061,8 +1071,8 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaEventElapsedTime(&dt8, t4, t9));
   checkCudaErrors(cudaEventElapsedTime(&dt9, t0, t9));
 
-  checkCudaErrors(cudaStreamDestroy(streams[0]));
-  checkCudaErrors(cudaStreamDestroy(streams[1]));
+  //checkCudaErrors(cudaStreamDestroy(streams[0]));
+  //checkCudaErrors(cudaStreamDestroy(streams[1]));
   checkCudaErrors(cudaFree(d_Norms));
   checkCudaErrors(cudaFree(d_temp_knn));
   checkCudaErrors(cudaFree(d_arr_part));
@@ -1078,7 +1088,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaEventDestroy(t7));
   checkCudaErrors(cudaEventDestroy(t8));
   checkCudaErrors(cudaEventDestroy(t9));
-  
+   if (verbose){
   printf("--------------- Timings ----------------\n");
   printf("Memory allocation = %.4f (%.4f %%) \n", dt1/1e3, 100*dt1/dt9);
   printf("Precomp sortId (vertical) = %.4f (%.4f %%) \n", dt2/1e3, 100*dt2/dt9);
@@ -1094,7 +1104,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   printf("Precomputing the sort indices = %.4f GB \n", (free-m1)/1e9);
   printf("Temporary storage = %.4f GB \n", (m2-m3)/1e9);
   printf("----------------------------- End of leaf-knn -----------------------------\n\n");
-
+  }
 }
 
 

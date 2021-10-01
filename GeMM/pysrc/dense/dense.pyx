@@ -33,7 +33,7 @@ def py_dfiknn(gids, X, leaves, k, knnidx, knndis, dim):
   tic = time.time()
   X = X[gids, :]
   toc = time.time() - tic
-  print("Data permutation : %.4f sec "%toc)
+  #print("Data permutation : %.4f sec "%toc)
 
   hID = gids.data.ptr
   data = X.ravel().data.ptr
