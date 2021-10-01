@@ -31,7 +31,8 @@ def py_sfiknn(gids, X, leaves, k, knndis, knnidx):
   toc = time.time() - tic
 
   print("Data permutation %.4f"%toc)
-
+  mempool = cp.get_default_memory_pool()
+  mempool.free_all_blocks()
   hID = gids.data.ptr
   
   vals = X_c.data.data.ptr

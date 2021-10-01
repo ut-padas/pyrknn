@@ -13,7 +13,7 @@ __global__ void ComputeNorms(int* R, int* C, float* V, int* G_Id, float* Norms, 
 
   //int row = threadIdx.x + blockIdx.x * blockDim.x;
   int ind = threadIdx.x;
-  int leaf_id_g = blockIdx.z * blockDim.y + blockIdx.y;
+  int leafId_g = blockIdx.z * blockDim.y + blockIdx.y;
   for (int row = ind; row < ppl; row += blockDim.x){
     int g_rowId = leaf_id_g * ppl + row;
     //changed
