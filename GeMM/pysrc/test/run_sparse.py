@@ -52,34 +52,18 @@ mem = Memory("./mycache")
 def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
 
     err = 0.0
-    #for i in range(nc):
-    for (i,ptid) in enumerate(test_pt):
-      #miss_array_dist = cp.zeros(K)
-      miss_array_id = cp.zeros(K)
-      for j in range(K):
-        #if ap_dist[ptid,j] <= ex_dist[i, -1]:
-        #  miss_array_dist[j] = 1
-        #  #  print(nc, K)
-        if ap_id[ptid,j] in ex_id[i, :]:
-          miss_array_id[j] = 1
-        '''
-        else:
-          #print(ptid, j, ap_dist[ptid, j], ex_dist[i, -1])
-          print(ptid, j, ap_id[ptid, :], ex_id[i, :])
-          break
-        '''
-        #print(i)
-        #miss_array_id = cp.asarray(miss_array_id)
-        #miss_array_dist = cp.asarray(miss_array_dist)
-        #err += cp.sum(cp.logical_or(miss_array_id, miss_array_dist))
-      err += cp.sum(cp.asarray(miss_array_id))
-      #err += cp.sum(miss_array_dist)
-    acc = err/(nc*K)
-
-    return acc
+    for i in range(nc):
+      miss_array_id = [1 if ap_id[test_pt[i],j] in ex_id[i,:] else 0 for j in range(K)]
+      miss_array_dist = [1 if ap_dist[test_pt[i],j] <= ex_dist[i,-1]+1e-7 else 0 for j in range(K)]
+      err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
+    hit_rate = err/(nc*K)
+    mean_sim = np.mean(ap_dist.ravel())
+    #last_array = np.abs(ap_dist[test_pt,-1] - ex_dist[:,-1])/ex_dist[:,-1]
+    #mean_rel_err = np.mean(last_array)
+    return hit_rate, mean_sim
 
 def apknnerr_dis(ex,ap,nc):
-    err = cp.linalg.norm(ex[:nc,]-ap[test_pt,])/cp.linalg.norm(ex[test_pt,])
+    err = np.linalg.norm(ex[:nc,]-ap[test_pt,])/np.linalg.norm(ex[:nc,])
     return err
 
 
@@ -87,13 +71,13 @@ def apknnerr_dis(ex,ap,nc):
 def monitor(t,knnidx,knndis):
     tol = 0.95
     num_test = test_pt.shape[0]
-    #knnidx = cp.array(knnidx)
-    #knndis = cp.array(knndis)
-    acc = apknnerr(knnidx_ex,knndis_ex, knnidx, knndis,num_test)
+    knnidx = cp.asnumpy(knnidx)
+    knndis = cp.asnumpy(knndis)
+    acc, _= apknnerr(knnidx_ex,knndis_ex, knnidx, knndis,num_test)
     derr = apknnerr_dis(knndis_ex,knndis,num_test)
     #derr = cp.asnumpy(derr)
     cost = t*ppl
-    print('it = ', '{:3d}'.format(t), 'Recall accuracy:', '{:.4f}'.format(acc), 'distance error = {:.4f}'.format(derr), 'cost = %.4f'%cost)
+    print('it = ', '{:3d}'.format(t), 'Recall accuracy:', '{:.4f}'.format(acc), 'mean rel distance error = {:.4f}'.format(derr), 'cost = %.4f'%cost)
     break_iter = False
     break_iter =  (acc>tol or cost>n)
     return break_iter
@@ -114,10 +98,18 @@ def get_avazu_data():
     print(data_app[0].shape)
     data_site = load_svmlight_file(DAT_DIR+"/avazu/avazu-site", n_features=1000000)
     print(data_site[0].shape)
-    data = sp.vstack([data_app[0], data_site[0]])
+    datah = sp.vstack([data_app[0], data_site[0]])
     t = time.time() - t
     print("It took ", t, " (s) to load the dataset")
-    data = cpsp.csr_matrix((cp.array(data.data), (data.indices, data.indptr)), data.shape, format='csr')
+    v = cp.array(datah.data, dtype = cp.float32)
+    idx = cp.array(datah.indices, dtype = cp.int32)
+    rowptr = cp.array(datah.indptr, dtype = cp.int32)
+    
+    data = cpsp.csr_matrix((v, idx, rowptr))
+    del v
+    del idx
+    del rowptr
+
     return data
 
 
@@ -150,6 +142,12 @@ elif dataset == 'avazu':
   n,dim = X.shape
 else:
   X = cpsp.random(n,dim, density=avgnnz/dim, format='csr', dtype = cp.float32)
+
+
+
+
+
+
 
 
 knndis = 1e30*cp.ones((n,K), dtype = cp.float32)
@@ -187,8 +185,10 @@ end_val[1] = last
 if diff > 0:
   #tmp = cp.pad(X.indptr, pad_width, "linear_ramp", end_values=end_val)
   X.indptr = cp.pad(X.indptr, pad_width, "edge")
+  #Xh.indptr = np.pad(Xh.indptr, pad_width, "edge")
    
   X = cpsp.csr_matrix((X.data, X.indices, X.indptr))
+  #Xh = sp.csr_matrix((Xh.data, Xh.indices, Xh.indptr))
   #X = cp.pad(X, (0,diff), "constant")
   n, dim = X.shape
   
@@ -204,17 +204,37 @@ print('Warning depth<=dim, will use non-orthogonal directions')
 #nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(X)
 print('Starting tree iteration')
 
+fname = '../results/' + dataset + '_ex/'
+knnidx_ex = np.array(np.load(fname + 'knnId_ex.npy'), dtype = np.int32)
+knndis_ex = np.array(np.load(fname + 'knnDist_ex.npy'), dtype = np.float32)
+test_pt = np.array(np.load(fname + 'test_pt.npy'), dtype = np.int32)
+knndis_ex = np.nan_to_num(knndis_ex)
+
+
+
+#monitor(0, knnidx, knndis)
+
 tic = time.time();
 '''
 gids = cp.arange(0, n, dtype = cp.int32)
-for i in range(leaves):
-  gids[i*ppl:(i+1)*ppl] = cp.random.permutation(gids[i*ppl:(i+1)*ppl])
+#for i in range(leaves):
+#  gids[i*ppl:(i+1)*ppl] = cp.random.permutation(gids[i*ppl:(i+1)*ppl])
 
 knnidx, knndis = py_sfiknn(gids, X, leaves, K, knndis, knnidx)
 '''
-knnidx, knndis = rt.rkdt_a2a_it(X,depth,knnidx, knndis, K,T,None,0, False)
-toc = time.time();
+mempool = cp.get_default_memory_pool()
+mempool.free_all_blocks()
+mempool = cp.get_default_memory_pool()
+print(" %.4f from %.4f is occupied "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
 
+knnidx, knndis = rt.rkdt_a2a_it(X,depth,knnidx, knndis, K,T,monitor,0, False)
+#knnidx, knndis = rt.rkdt_a2a_it(X,depth,knnidx, knndis, K,T,None,0, False)
+toc = time.time();
+print(knndis_ex[0:5, :])
+print(knnidx_ex[0:5, :])
+print(test_pt[0:5])
+print(knndis[test_pt[0:5], :])
+print(knnidx[test_pt[0:5], :])
 
 
 print('RKDT took', '{:.2f}'.format(toc-tic), 'secs \n')
@@ -240,13 +260,6 @@ for t in range(331, 332, leaves):
 
 '''
 #test_pt = cp.arange(0, 1000)
-fname = '../results/' + dataset + '_ex/'
-
-knnidx_ex = cp.array(cp.load(fname + 'knnId_ex.npy'), dtype = cp.int32)
-knndis_ex = cp.array(cp.load(fname + 'knnDist_ex.npy'), dtype = cp.float32)**0.5
-test_pt = cp.array(cp.load(fname + 'test_pt.npy'), dtype = cp.int32)
-knndis_ex = cp.nan_to_num(knndis_ex)
-monitor(0, knnidx, knndis)
 
 '''
 for i in range(1):

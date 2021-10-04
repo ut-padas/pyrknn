@@ -99,6 +99,7 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
     tot_err = 0.0
     tot_rkdt = 0.0
     n = X.shape[0]
+    
     #perm = cp.empty_like(gids)
     #perm = cp.arange(n, dtype = cp.int32)
     
@@ -127,7 +128,7 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
         print("Tree construction takes %.4f sec"%toc)
         mempool = cp.get_default_memory_pool()
         mempool.free_all_blocks() 
-        print("befcuda %.4f free from %.4f "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
+        #print("befcuda %.4f free from %.4f "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
         if dense:
             dim = X.shape[1]
             py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim) 
@@ -139,8 +140,10 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
             if monitor(t,knnidx,knndis):
                 break
         end_err = time.time()
-        tot_err = end_err - begin_err
-        
+        err_time = end_err - begin_err
+        tot_err += err_time
+        cur_time = time.time() - tot_err - begin
+        print("it = %d, RKDT : %.4f sec"%(t, cur_time))
     end = time.time()
     tot_rkdt = end - begin - tot_err
     print("RKDT takes %.4f sec "%tot_rkdt)

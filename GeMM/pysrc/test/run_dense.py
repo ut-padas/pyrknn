@@ -75,48 +75,43 @@ def read_uniform(n, dim):
 print("Starting Script", flush=True)
 mem = Memory("./mycache")
 
-def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
-     
-    err = 0.0
-    #for i in range(nc):
-    for (i,ptid) in enumerate(test_pt):
-      miss_array_dist = cp.zeros(K)
-      #miss_array_id = cp.zeros(K)
-      for j in range(K):
-        if ap_dist[ptid,j] <= ex_dist[i, -1]:
-          miss_array_dist[j] = 1
-        #if ap_id[ptid,j] in ex_id[i, :]:
-        #  miss_array_id[j] = 1
-        #print(i)
-        #miss_array_id = cp.asarray(miss_array_id)
-        #miss_array_dist = cp.asarray(miss_array_dist)
-        #err += cp.sum(cp.logical_or(miss_array_id, miss_array_dist))
-      #err += cp.sum(cp.asarray(miss_array_id))
-      err += cp.sum(miss_array_dist)
-    acc = err/(nc*K)
 
-    return acc
+
+
+
+def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
+
+    err = 0.0
+    for i in range(nc):
+      miss_array_id = [1 if ap_id[test_pt[i],j] in ex_id[i,:] else 0 for j in range(K)]
+      miss_array_dist = [1 if ap_dist[test_pt[i],j] <= ex_dist[i,-1]+1e-7 else 0 for j in range(K)]
+      err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
+      #err += np.sum(miss_array_id)
+    hit_rate = err/(nc*K)
+    mean_sim = np.mean(ap_dist.ravel())
+    #last_array = np.abs(ap_dist[test_pt,-1] - ex_dist[:,-1])/ex_dist[:,-1]
+    #mean_rel_err = np.mean(last_array)
+    return hit_rate, mean_sim
 
 def apknnerr_dis(ex,ap,nc):
-    err =cp.linalg.norm(ex[:nc,]-ap[test_pt,])/cp.linalg.norm(ex[test_pt,])
+    err = np.linalg.norm(ex[:nc,]-ap[test_pt,])/np.linalg.norm(ex[:nc,])
     return err
-    
-                         
+
+
 
 def monitor(t,knnidx,knndis):
     tol = 0.95
     num_test = test_pt.shape[0]
-    knnidx = cp.array(knnidx)
-    knndis = cp.array(knndis)
-    acc = apknnerr(knnidx_ex,knndis_ex, knnidx, knndis,num_test)
+    knnidx = cp.asnumpy(knnidx)
+    knndis = cp.asnumpy(knndis)
+    acc, _= apknnerr(knnidx_ex,knndis_ex, knnidx, knndis,num_test)
     derr = apknnerr_dis(knndis_ex,knndis,num_test)
-    derr = cp.asnumpy(derr)
-    cost = t*points_per_leaf
-    print('it = ', '{:3d}'.format(t), 'Recall accuracy:', '{:.4f}'.format(acc), 'distance error = {:.4f}'.format(derr), 'cost = %.4f'%cost)
+    #derr = cp.asnumpy(derr)
+    cost = t*ppl
+    print('it = ', '{:3d}'.format(t), 'Recall accuracy:', '{:.4f}'.format(acc), 'mean rel distance error = {:.4f}'.format(derr), 'cost = %.4f'%cost)
     break_iter = False
     break_iter =  (acc>tol or cost>n)
     return break_iter
-
 
 
 dataset = args.dataset
@@ -132,6 +127,8 @@ if dataset == 'sift':
   X = read_sift()
 elif dataset == 'gaussian':
   X = read_gaussian(n,dim)
+  #cp.save("mat.npy", X)
+  #X = cp.load("mat.npy")
 else:
   X = read_uniform(n,dim)
 
@@ -171,39 +168,59 @@ print('Warning depth<=dim, will use non-orthogonal directions')
 nex = points_per_leaf
 
 print("computing the exact neghobors")
-#nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(cp.asnumpy(X))
-#knndis_ex, knnidx_ex = nbrs.kneighbors(cp.asnumpy(X[:nex,]))
+l = 0
+#nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(cp.asnumpy(X[l*nex:(l+1)*nex,]))
+#knndis_ex, knnidx_ex = nbrs.kneighbors(cp.asnumpy(X[l*nex:(l+1)*nex,]))
+#knndis_ex = knndis_ex**2
 
-
+#test_pt = np.arange(nex, 2*nex, dtype = np.int32)
 
 print('Starting tree iteration')
 
+test_pt = np.random.randint(0, N, size=nq)
+#test_pt = np.arange(l*nex, (l+1)*nex)
+#test_pt = np.arange(0, nex)
+#test_pt = np.random.randint(0, N, size=nq)
+#knnidx_ex , knndis_ex = neighbors(X[l*nex:(l+1)*nex,], K, test_pt2)
+knnidx_ex , knndis_ex = neighbors(X, K, test_pt)
+
+knnidx_ex = np.array(cp.asnumpy(knnidx_ex))
+knndis_ex = np.array(cp.asnumpy(knndis_ex))
 
 tic = time.time();
 leaves = int(n // points_per_leaf)
-gids = cp.arange(0, N, dtype = cp.int32)
-
-
-knnidx, knndis = py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim)
+#gids = cp.arange(0, N, dtype = cp.int32)
+'''
+for i in range(leaves):
+  gids[i*nex:(i+1)*nex] = cp.random.permutation(gids[i*nex:(i+1)*nex])
+'''
+#knnidx, knndis = py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim)
+knnidx, knndis = rt.rkdt_a2a_it(X,depth,knnidx, knndis, K,T,monitor,0, True)
 #knnidx, knndis = rt.rkdt_a2a_it(X,depth,knnidx, knndis, K,T,None,0, True)
 
 toc = time.time();
 print('RKDT took', '{:.2f}'.format(toc-tic), 'secs \n')
 tic = time.time()
-'''
-#test_pt = cp.random.randint(0, N, size=nq)
-#test_pt = cp.random.randint(0, ppl, size=ppl)
-test_pt = cp.arange(0, ppl)
-knnidx_ex , knndis_ex = neighbors(X[:ppl, :], K, test_pt)
 
-monitor(0,knnidx,knndis)
+#test_pt = cp.random.randint(0, ppl, size=ppl)
+#test_pt = cp.arange(0, ppl)
+
+monitor(0,knnidx-l*nex,knndis)
 toc = time.time() - tic
 
 print("monitor takes %.4f \n\n"%toc)
-pt = 1
-print(knnidx_ex[1, :])
-print(knnidx[test_pt[1], :])
-print(knnidx[test_pt[1], :] - knnidx_ex[1, :])
-print(knndis_ex[1, :])
-print(knndis[test_pt[1], :])
-'''
+#pt = 1
+
+
+for pt in range(1):
+  t1 = cp.asnumpy(knnidx) - l*nex
+  t2 = cp.asnumpy(knndis)
+  if (t1[test_pt[pt], :] != knnidx_ex[pt, :]).any():
+    print(test_pt[pt])
+    print(t1[test_pt[pt], :])
+    print(knnidx_ex[pt, :])
+    print(knnidx_ex[pt, :] - t1[test_pt[pt], :])
+    print(t2[test_pt[pt], :])
+    print(knndis_ex[pt,:])
+    
+
