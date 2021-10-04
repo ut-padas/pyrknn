@@ -106,7 +106,7 @@ __global__ void ComputeTriDists(int* R, int* C, float* V, int* G_Id, float* Norm
       }
     }
     c_tmp = -2 * c_tmp + norm_ij;
-    c_tmp = (c_tmp > 1e-8) ? sqrt(c_tmp) : 0.0;
+    c_tmp = (c_tmp > 1e-8) ? c_tmp : 0.0;
     //if (G_Id[g_rowId] ==25950913) printf("D[%d,%d] = %.4f at %d , norm_ij = %.4f , norm_i = %.4f\n", rowId, colId, c_tmp, G_Id[g_colId], norm_ij, Norms[perm_i]);     
     //if (G_Id[g_colId] ==25950913) printf("D[%d,%d] = %.4f at %d , norm_ij = %.4f , norm_i = %.4f\n", rowId, colId, c_tmp, G_Id[g_rowId], norm_ij, Norms[perm_i]);     
     //if (G_Id[leafId_g * ppl + block * partsize + rowId] == 777478) printf("D[%d] = %.4f for %d , leaf = %d \n", colId , c_tmp, G_Id[leafId_g * ppl + block * partsize + colId], leafId_local); 
@@ -205,7 +205,7 @@ __global__ void ComputeTriDists_last(int* R, int* C, float* V, int* G_Id, float*
       }
     }
     c_tmp = -2 * c_tmp + norm_ij;
-    c_tmp = (c_tmp > 1e-8) ? sqrt(c_tmp) : 0.0;
+    c_tmp = (c_tmp > 1e-8) ? c_tmp : 0.0;
 
 
     } else {
@@ -340,7 +340,7 @@ __global__ void ComputeRecDists(int* R, int* C, float* V, int* G_Id, float* Norm
     }
          
     c_tmp = -2 * c_tmp + norm_ij;
-    c_tmp = (c_tmp > 1e-8) ? sqrt(c_tmp) : 0.0;
+    c_tmp = (c_tmp > 1e-8) ? c_tmp : 0.0;
         
         
     int size_tmp = size_part;

@@ -127,7 +127,7 @@ __global__ void MergeHoriz(float* KNN, int* KNN_Id, float* Norms, int k_nn, int 
         int g_colId_J = leafId_g * ppl + colId_leaf;
         
         tmp_f = (j_tmp < k_nn + size_part) ? -2 * d_temp_knn[ind_tmp] + norm_i + Norms[leafId_g * ppl + colId_leaf] : 1e30;
-        SM_dist[j_tmp] = (tmp_f > 0) ? sqrt(tmp_f) : 0.0;
+        SM_dist[j_tmp] = (tmp_f > 0) ? tmp_f : 0.0;
         SM_Id[j_tmp] = G_Id[g_colId_J];
       }
     
@@ -382,7 +382,7 @@ __global__ void MergeVer_v2(float* KNN, int* KNN_Id, float* Norms, int k_nn, int
       tmp_f = (Max_blocks == block && j_tmp >= rem_len) ? 1e30 : tmp_f;
     }
      
-  	SM_dist[j_tmp] = (tmp_f > 0.0) ? sqrt(tmp_f) : 0.0;
+  	SM_dist[j_tmp] = (tmp_f > 0.0) ? tmp_f : 0.0;
  
 		int ind_knn = ind_pt_knn_g * k_nn + j_tmp;
 		if (j_tmp < k_nn){ 
@@ -518,7 +518,7 @@ __global__ void MergeVer(float* KNN, int* KNN_Id, float* Norms, int k_nn, int pp
       tmp_f = (block * partsize + j_tmp < ppl) ? tmp_f : 1e30;
     }
      
-  	SM_dist[j_tmp] = (tmp_f > 0.0) ? sqrt(tmp_f) : 0.0;
+  	SM_dist[j_tmp] = (tmp_f > 0.0) ? tmp_f : 0.0;
  
 		int ind_knn = ind_pt_knn_g * k_nn + j_tmp;
 		if (j_tmp < k_nn){ 
