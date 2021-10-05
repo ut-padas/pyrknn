@@ -540,9 +540,8 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 
 
 
-  checkCudaErrors(cudaSetDevice(deviceId));
   float dt_mem, dt_norms, dt_diagdist, dt_diagmerge, dt_mergehoriz, dt_mergever, dt_recdist, dt_tot,dt_tmp;
-  
+  checkCudaErrors(cudaSetDevice(deviceId));
   dt_mem = 0.0;
   dt_norms = 0.0;
   dt_diagdist = 0.0;
@@ -552,7 +551,6 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   dt_recdist = 0.0;
   dt_tot = 0.0;
   dt_tmp = 0.0;
-  dt_diagdistlast = 0.0;
   
   cudaEvent_t t_begin;
   cudaEvent_t t_end;
@@ -605,7 +603,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
 
   checkCudaErrors(cudaEventRecord(t_begin, 0));
   checkCudaErrors(cudaEventSynchronize(t_begin));
-  int verbose = 1;
+  int verbose = 0;
   if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
 
 
@@ -773,7 +771,6 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   //int oneInt = 1;
   float oneFloat = 1.0;
 
-  int num_gemms = ppl / partsize;
   //num_gemms *= sizebleaves;
   float zeroFloat = 0.0;
 
@@ -796,9 +793,12 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   //cudaStream_t streams[2];
   //cudaStreamCreate(&streams[0]);
   //cudaStreamCreate(&streams[1]);
+  int num_gemms = ppl * leaves / partsize;
   for (int bl = 0; bl < numbleaves; bl++){
 
     checkCudaErrors(cudaEventRecord(t0_diagdist, 0));
+
+    /*
     for (int l = 0; l < sizebleaves; l++){
   
 
@@ -808,7 +808,12 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
                                       d_data + l * ppl * dim + bl * sizebleaves * ppl * dim, dim, partsize*dim, 
                                       &zeroFloat, d_temp_knn + l * ppl * partsize, partsize, partsize*partsize, num_gemms) );
     }
-
+    */
+    CHECK_CUBLAS( cublasSgemmStridedBatched( handle, CUBLAS_OP_T, CUBLAS_OP_N,
+                                      partsize, partsize, dim,
+                                      &oneFloat, d_data + bl * sizebleaves * ppl * dim, dim, partsize*dim,
+                                      d_data + bl * sizebleaves * ppl * dim, dim, partsize*dim, 
+                                      &zeroFloat, d_temp_knn, partsize, partsize*partsize, num_gemms) );
     
 
 		checkCudaErrors(cudaDeviceSynchronize());

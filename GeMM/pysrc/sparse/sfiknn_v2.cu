@@ -763,10 +763,10 @@ void PrecompSortIdsSparse(int* d_arr, int* d_arr_part, int N_true, int N_pow2, i
 
 
 
-void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, int k, float *d_knn, int *d_knn_Id){
+void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, int k, float *d_knn, int *d_knn_Id, int deviceId){
 
 
-
+  checkCudaErrors(cudaSetDevice(deviceId));
   float dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8, dt9, dt_tmp;
   cudaEvent_t t0;
   cudaEvent_t t1;

@@ -726,11 +726,12 @@ __global__ void S_MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int block
 
 
 
-void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, int k, float *d_knn, int *d_knn_Id){
+void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, int k, float *d_knn, int *d_knn_Id, int deviceId){
 
 
 
   float dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8, dt9, dt_tmp;
+  checkCudaErrors(cudaSetDevice(deviceId));
   cudaEvent_t t0;
   cudaEvent_t t1;
   cudaEvent_t t2;

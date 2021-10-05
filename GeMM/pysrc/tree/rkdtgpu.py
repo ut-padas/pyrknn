@@ -65,7 +65,7 @@ def leaf_knn(X,gids,m,knnidx,knndis,k,init,overlap=0):
 
 
         
-def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True):
+def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True, deviceId=0):
     '''
     Parameters
     ----------
@@ -96,6 +96,7 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
         See above
     '''
     begin = time.time()
+    cp.cuda.Device(deviceId).use()
     tot_err = 0.0
     tot_rkdt = 0.0
     n = X.shape[0]
@@ -131,10 +132,10 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
         #print("befcuda %.4f free from %.4f "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
         if dense:
             dim = X.shape[1]
-            py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim) 
+            py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim, deviceId) 
         if not dense:
             #print("\t Sparse knn : sfiknn version")
-            py_sfiknn(gids, X, leaves, K, knndis, knnidx) 
+            py_sfiknn(gids, X, leaves, K, knndis, knnidx, deviceId) 
         begin_err = time.time()
         if monitor is not None:
             if monitor(t,knnidx,knndis):

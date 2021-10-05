@@ -12,15 +12,15 @@ import time
 
 
 cdef extern from "sfiknn.h" nogil:
-  void sfi_leafknn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id);
+  void sfi_leafknn(int *R, int *C, float *V, int *G_Id, int M, int leaves, int k, float *knn, int *knn_Id, int deviceId);
 
-cdef wrapper_sparse(size_t RowPtr, size_t ColPtr, size_t ValPtr, size_t IDPtr, int n, int leaves, int k, size_t NDistPtr, size_t NIdPtr):
-  sfi_leafknn(<int*>RowPtr, <int*>ColPtr, <float*> ValPtr, <int*> IDPtr, n, leaves, k, <float*> NDistPtr, <int*> NIdPtr)
+cdef wrapper_sparse(size_t RowPtr, size_t ColPtr, size_t ValPtr, size_t IDPtr, int n, int leaves, int k, size_t NDistPtr, size_t NIdPtr, deviceId):
+  sfi_leafknn(<int*>RowPtr, <int*>ColPtr, <float*> ValPtr, <int*> IDPtr, n, leaves, k, <float*> NDistPtr, <int*> NIdPtr, deviceId)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def py_sfiknn(gids, X, leaves, k, knndis, knnidx):
+def py_sfiknn(gids, X, leaves, k, knndis, knnidx, deviceId):
 
   n,_ = X.shape
   assert(n == gids.shape[0])
@@ -41,7 +41,7 @@ def py_sfiknn(gids, X, leaves, k, knndis, knnidx):
   nID = knnidx.ravel().data.ptr
   nDist = knndis.ravel().data.ptr
     
-  wrapper_sparse(rowptr, idx, vals, hID, n, leaves, k, nDist, nID)
+  wrapper_sparse(rowptr, idx, vals, hID, n, leaves, k, nDist, nID, deviceId)
  
 
   return (knnidx, knndis)
