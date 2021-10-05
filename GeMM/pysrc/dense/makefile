@@ -7,7 +7,8 @@ dense:
 	#nvcc -shared -c ${INC_DIR} dfiknn_vcheck3.cu -Xcompiler -fPIC -lcublas
 	#nvcc -shared -c ${INC_DIR} dfiknn.cu -Xcompiler -fPIC -lcublas
 	#nvcc -shared -c ${INC_DIR} dfiknn_SHNP2_v2.cu -Xcompiler -fPIC -lcublas
-	nvcc -shared -c ${INC_DIR} dfiknn_SHNP2_v2.cu -Xcompiler -fPIC -lcublas
+	#nvcc -shared -c ${INC_DIR} dfiknn_SHNP2_v2.cu -Xcompiler -fPIC -lcublas
+	nvcc -shared -c ${INC_DIR} dfiknn_SHNP2_v4.cu -Xcompiler -fPIC -lcublas
 	#nvcc -shared -c ${INC_DIR} dfiknn_SHNP2_SVNP2.cu -Xcompiler -fPIC -lcublas
 	#nvcc -shared -c ${INC_DIR} dfiknn_prof.cu -Xcompiler -fPIC -lcublas
 	#mv dfiknn_prof.o dfiknn.o
@@ -16,7 +17,7 @@ dense:
 	#nvcc -shared -c ${INC_DIR} dfiknn_SortHoriz.cu -Xcompiler -fPIC -lcublas
 	#mv dfiknn_SortHoriz.o dfiknn.o
 	#mv dfiknn_SHNP2_v2.o dfiknn.o
-	mv dfiknn_SHNP2_v2.o dfiknn.o
+	mv dfiknn_SHNP2_v4.o dfiknn.o
 	#mv dfiknn_SHNP2_SVNP2.o dfiknn.o
 
 clean:
