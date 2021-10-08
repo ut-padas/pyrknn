@@ -43,17 +43,18 @@ def distributed_tree_task(tree_args):
 
 def search_task_dense(search_args):
     X, gids, k, local_levels, blocksize, device, rank, ltrees = search_args
-
+    
+    cp.cuda.runtime.setDevice(device);
     #Perform GPU Dense Search
     ID = cp.zeros([X.shape[0], k], dtype=np.int32) - 1
     DIST = cp.zeros([X.shape[0], k], dtype=np.float32)+1e30
     d_gids = cp.asarray(gids, dtype=np.int32)
     d_X = cp.asarray(X, dtype=np.float32)
-    neighbors = rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=True)
+    neighbors = rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=True, deviceId=device)
 
     ID, DIST = neighbors
 
-    neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST**2))
+    neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST))
 
     #neighbors = Primitives.gpu_dense_knn(gids, X, local_levels, ltrees, k, blocksize,device)
     return neighbors
@@ -61,18 +62,18 @@ def search_task_dense(search_args):
 def search_task_sparse(search_args):
     X, gids, k, local_levels, blocksize, blockleaf, device, rank, ltrees = search_args
 
-
+    cp.cuda.runtime.setDevice(device)
     #Perform GPU Sparse Search
     ID = cp.zeros([X.shape[0], k], dtype=np.int32) - 1
     DIST = cp.zeros([X.shape[0], k], dtype=np.float32) + 1e30
     d_gids = cp.asarray(gids, dtype=np.int32)
     d_X = cupyx.scipy.sparse.csr_matrix(X)
 
-    neighbors = rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=False)
+    neighbors = rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=False, deviceId=device)
 
     ID, DIST = neighbors
 
-    neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST**2))
+    neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST))
 
     #neighbors = Primitives.gpu_sparse_knn(gids, X, local_levels, ltrees, k, blockleaf, blocksize,device)
     return neighbors
@@ -138,6 +139,7 @@ class RKDForest:
         if( self.gpu_flag and Primitives.use_cuda):
             ndevices = cp.cuda.runtime.getDeviceCount()
             self.device = rank % ndevices
+            cp.cuda.runtime.setDevice(self.device)
 
         Primitives.set_device(self.device)
 
@@ -397,8 +399,8 @@ class RKDForest:
             if ( truth is not None ) and ( rank == 0 ) :
                 rlist, rdist = result
                 test = (rlist[:nq, ...], rdist[:nq, ...])
-                print("Test", test, flush=True)
-                print("Truth", truth, flush=True)
+                #print("Test", test, flush=True)
+                #print("Truth", truth, flush=True)
                 acc = Primitives.check_accuracy(truth, test)
                 Primitives.accuracy.append( acc )
                 record.push("Recall", acc[0])

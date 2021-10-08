@@ -12,7 +12,7 @@ from collections import defaultdict, deque
 from numba import njit, prange, set_num_threads
 from sklearn.preprocessing import normalize
 
-set_num_threads(8)
+set_num_threads(4)
 
 from mpi4py import MPI
 
@@ -885,7 +885,7 @@ class RKDT:
         global_rank = comm.Get_rank()
         mpi_size = comm.Get_size()
         timer.push("Dist Build:")
-        print("Ranks:", global_rank, local_rank, flush=True)
+        #print("Ranks:", global_rank, local_rank, flush=True)
         if mpi_size > 1:
             timer.push("Build: Generate Projection")
             # Generate orthogonal projection vectors
@@ -1041,7 +1041,7 @@ class RKDT:
                 timer.pop("Dist Build: Communicate Projections - Allocate")
 
                 timer.push("Dist Build: Communicate Projections - alltoall")
-                print(global_rank, recv_proj.shape, proj.shape, sizes*rl, starts*rl, flush=True)
+                #print(global_rank, recv_proj.shape, proj.shape, sizes*rl, starts*rl, flush=True)
                 comm.Alltoallv([proj, sizes*rl, starts*rl, MPI.FLOAT], [
                     recv_proj, rsizes*rl, rstarts*rl, MPI.FLOAT])
                 timer.pop("Dist Build: Communicate Projections - alltoall")
@@ -1182,8 +1182,8 @@ class RKDT:
 
         lids = np.asarray(lids, dtype=np.int32)
         offsets = np.asarray(offsets, dtype=np.int32)
-        print(len(lids))
-        print(self.local_size)
+        #print(len(lids))
+        #print(self.local_size)
         self.host_data = self.host_data[lids]
         self.offsets = offsets
         self.local_ids = lids 

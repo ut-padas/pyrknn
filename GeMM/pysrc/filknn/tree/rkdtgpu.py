@@ -1,14 +1,13 @@
 import numpy as np
 
+from ..utils import utilsgpu as ut
 from time import time
 import cupyx.scipy.sparse as cpsp
-import cupy as cp
 import sys
 import time
-from ..sparse.sparse  import *
-from ..dense.dense  import *
+from ..sparse.sparse import *
+from ..dense.dense import *
 
-from ..utils import utilsgpu as ut
 
 #@jit        
 # TODO: THIS NEEDS TO BE REPLACED BY THE NEW CODE
@@ -65,7 +64,7 @@ def leaf_knn(X,gids,m,knnidx,knndis,k,init,overlap=0):
 
 
         
-def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True):
+def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True, deviceId=0):
     '''
     Parameters
     ----------
@@ -95,48 +94,61 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
     knndis : float matrix
         See above
     '''
+    begin = time.time()
+    cp.cuda.runtime.setDevice(deviceId)
+    tot_err = 0.0
+    tot_rkdt = 0.0
     n = X.shape[0]
+    
     #perm = cp.empty_like(gids)
     #perm = cp.arange(n, dtype = cp.int32)
     
+    mempool = cp.get_default_memory_pool()
     for t in range(maxit):
         
         tic = time.time()
         #gids = np.arange(0, n,dtype=np.int32)
         gids = cp.arange(0,n,dtype=cp.int32)
-        perm = cp.arange(0, n,dtype=np.int32)
-        P,_ = ut.orthoproj(X,levels)
+        perm = cp.arange(0, n,dtype=cp.int32)
+        #print("Gids is on: ", gids.device, flush=True);
+        P = ut.orthoproj(X,levels)
         segsize = n
         for i in range(0,levels):
+            
             segsize = n>>i
-            perm = ut.segpermute_f(P[:,i],segsize,perm)
+            perm = ut.segpermute_f(P[:,i],segsize,perm)    
             P[:,:]=P[perm,:]
+            
             gids[:]=gids[perm]
+
             if 0: print(gids)
         leaves = 1 << levels
-        #pointsperleaf = int(n / leaves)
         toc = time.time() -tic
         del P
         del perm
+        print("Tree construction takes %.4f sec"%toc)
         mempool = cp.get_default_memory_pool()
-        mempool.free_all_blocks()
-        print("-"*30+ " ITERATION = %d "%t +"-"*30)
+        mempool.free_all_blocks() 
+        #print("befcuda %.4f free from %.4f "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
         if dense:
             dim = X.shape[1]
-            #leaf_knn(X,gids,segsize,knnidx,knndis,K,t==0,overlap)
-            #gids = np.random.permutation(np.arange(n, dtype = np.int32))
-            #gids_np[:] = gids.get()         
-            py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim) 
+            py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim, deviceId) 
         if not dense:
-            print("\t Sparse knn : sfiknn version")
-            py_sfiknn(gids, X, leaves, K, knndis, knnidx) 
-         
+            #print("\t Sparse knn : sfiknn version")
+            py_sfiknn(gids, X, leaves, K, knndis, knnidx, deviceId) 
+        begin_err = time.time()
         if monitor is not None:
             if monitor(t,knnidx,knndis):
                 break
-        
-
-
+        end_err = time.time()
+        err_time = end_err - begin_err
+        tot_err += err_time
+        cur_time = time.time() - tot_err - begin
+        print("it = %d, RKDT : %.4f sec"%(t, cur_time))
+    end = time.time()
+    tot_rkdt = end - begin - tot_err
+    print("RKDT takes %.4f sec "%tot_rkdt)
+    print("Error takes %.4f sec "%tot_err)
 
     return knnidx, knndis
 

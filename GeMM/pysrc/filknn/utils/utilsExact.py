@@ -78,7 +78,7 @@ def neighbors(data, k, test_pt):
     if leaf%1000 == 0:
       print("leaf = %d"%leaf)
   kN0[kN0<0] = 0.0
-  kN0 = kN0**0.5
+  kN0 = kN0
   return kId0, kN0
     
      
