@@ -11,7 +11,7 @@
 #include <omp.h>
 //#include<ompUtils.h>
 
-#include<cblas.h>
+#include<mkl_cblas.h>
 
 #include <cassert>
 #include <queue>
@@ -22,8 +22,8 @@
 
 
 //TODO: Remove conditionally on POWER systems
-//#include <mkl.h>
-//#include <gsknn.h>
+#include <mkl.h>
+#include <gsknn.h>
 
 #include <limits>
 
@@ -222,7 +222,7 @@ unsigned int intlog2(uint64_t n)
 
 
 
-#ifndef ARCH_POWER9
+#if 1
 //Kernels from Bo Xiao's Code
 
 template <typename T>

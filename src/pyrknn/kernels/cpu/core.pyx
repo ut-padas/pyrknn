@@ -19,6 +19,19 @@ import math
 import time
 
 
+cdef extern from "impl/exact/exact.hpp" nogil:
+    cdef void exact_knn(int, int, int, int*, int*, float*, int, int, int, int*, int*, float*, int*, int, int*, float*) except + 
+
+cdef extern from "impl/sparse/spknn.hpp" nogil:
+    cdef void spknn(int*, int*, int*, float*, int, int, int, int*, float*, int, int, int, int, int) except +
+    #cdef void spknn(unsigned int*, int*, int*, float*, unsigned int, unsigned int, unsigned int, unsigned int*, float*, int, int, int, int, int) except +
+
+cdef extern from "impl/primitives_shared.hpp" nogil:
+    cdef void GSKNN[T](int *rgids, int *qgids, T *R, T *Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except +
+    cdef void batchedGSKNN[T](int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves, int cores) except +
+    cdef void build_tree(float* X, unsigned int* order, unsigned int* firstPt, const unsigned int n, const size_t L) except +
+    cdef void merge_neighbor_cpu[T](T* D1,unsigned int* I1, T* D2, unsigned int* I2, unsigned int n, int k, int cores) except +
+
 #-- Dense KNN
 
 cpdef single_knn(gids, R, Q, k, cores):
@@ -51,8 +64,8 @@ cpdef single_knn(gids, R, Q, k, cores):
     cdef float[:, :] cND = neighbor_dist;
     cdef int[:] cgids = gids; 
     cdef int[:] cqids = np.arange(0, cm, dtype=np.int32);
-    #with nogil:
-    #    GSKNN[float](&cgids[0], &cqids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
+    with nogil:
+        GSKNN[float](&cgids[0], &cqids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
 
 
     return neighbor_list, neighbor_dist 
@@ -123,8 +136,8 @@ cpdef batched_knn(gidsList, RList, QList, k, cores):
     #with nogil:
     #    batchedGSKNN[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves, <int> ccores);
     
-    #NLL = np.asarray(cNLList);
-    #NDL = np.asarray(cNDList);
+    NLL = np.asarray(cNLList);
+    NDL = np.asarray(cNDList);
     out = None
     return (NLL, NDL, out)
 
@@ -225,15 +238,15 @@ cpdef sparse_knn_3(gids, pptr, pind, pval, pnnz, levels, ntrees, k, blocksize, c
     cdef unsigned int[:, :] nID = np.zeros([n, k], dtype=np.uint32) + <unsigned int> 1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + <float> 1e38
 
-    #with nogil:
-    #    spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
+    with nogil:
+        spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
 
     outID = np.asarray(nID)
     outDist = np.asarray(nDist)
 
     return (outID, outDist)
 
-
+'''
 cpdef sparse_knn(gids, X, levels, ntrees, k, blocksize, cores):
     """
     Performs an approximate all-all search of a given CSR matrix on the CPU. 
@@ -276,13 +289,14 @@ cpdef sparse_knn(gids, X, levels, ntrees, k, blocksize, cores):
     cdef unsigned int[:, :] nID = np.zeros([n, k], dtype=np.uint32) + <unsigned int> 1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + <float> 1e38
 
-    #with nogil:
-    #    spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
+    with nogil:
+        spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
 
     outID = np.asarray(nID)
     outDist = np.asarray(nDist)
 
     return (outID, outDist)
+'''
 
 #-- Merge 
 

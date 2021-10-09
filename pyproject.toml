@@ -8,8 +8,5 @@ requires = [
     "cython",
     "ninja",
     "numpy",
-    "scipy",
-    "numba",
     "mpi4py",
-    "scikit-learn"
 ]

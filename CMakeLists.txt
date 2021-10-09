@@ -89,12 +89,12 @@ if(OpenMP_FOUND)
 endif()
 
 #-- Install GSKNN
-#find_package(GSKNN)
+find_package(GSKNN)
 
 #set(ARCH_POWER9 "ON")
 
 #if(not ARCH_POWER9)
-#    add_subdirectory(extern/gsknn)
+add_subdirectory(extern/gsknn)
 #endif()
 
 #-- Install CPU Dense & Sparse

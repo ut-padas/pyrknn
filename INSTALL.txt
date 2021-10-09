@@ -1,13 +1,14 @@
 
-How to install on Longhorn:
+How to install on Maverick:
 
-source set_env_longhorn.sh
+source set_env_maverick.sh
 Go to GeMM/pysrc/
 Run ./build.sh
 pip install .
 
 Go to root directory
-Make sure OpenBLAS is on your include and library paths
+Pull git submodules
+Make sure MKL is on your include and library paths
 pip install .
 
 
