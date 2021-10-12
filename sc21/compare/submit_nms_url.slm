@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J nms_avazu
-#SBATCH -e nms_avazu.err 
-#SBATCH -o nms_avazu.txt 
+#SBATCH -J nms_url
+#SBATCH -e nms_url.err 
+#SBATCH -o nms_url.txt 
 #SBATCH -p small 
 #SBATCH -N 1
 #SBATCH -A ASC21002
@@ -18,7 +18,7 @@ for t in `seq 0 1 5`
 do
     for j in 50 100 500 
     do
-        python nms_avazu.py -efC $j | tee nms_avazu_$j.out
+        python nms_url.py -efC $j | tee nms_url_$j.out
     done
 done 
 
