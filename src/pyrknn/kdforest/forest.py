@@ -16,8 +16,8 @@ import time
 import scipy.sparse as sp
 
 from mpi4py import MPI
-import pickle 
-import concurrent.futures 
+import pickle
+import concurrent.futures
 import psutil
 
 def copy(data, sparse_flag):
@@ -29,14 +29,13 @@ def copy(data, sparse_flag):
 def distributed_tree_task(tree_args):
     t = time.time()
     X, levels, leafsize, rank = tree_args
-    
+
     #Build Distributed Tree (Assign IDs)
     tree = RKDT(data=X, levels=levels, leafsize=leafsize)
     tree.distributed_build()
-    
+
     #Redistribute Coordinate Data
     tree.collect_data()
-    t_collect = time.time() - t_collect
     return tree
 
 def search_task_dense(search_args):
@@ -47,7 +46,7 @@ def search_task_dense(search_args):
     return neighbors
 
 def search_task_sparse(search_args):
-    X, gids, k, local_levels, blocksize, blockleaf, device, rank, ltrees = search_args 
+    X, gids, k, local_levels, blocksize, blockleaf, device, rank, ltrees = search_args
 
     #Perform GPU Sparse Search
     neighbors = Primitives.gpu_sparse_knn(gids, X, local_levels, ltrees, k, blockleaf, blocksize,device)
@@ -93,7 +92,7 @@ class RKDForest:
         self.local_size = data.shape[0]
         self.local_ids = np.arange(self.local_size)
 
-        #Setup tree parameters  
+        #Setup tree parameters
         self.levels = levels
         self.leafsize = leafsize
         self.ntrees = ntrees
@@ -114,7 +113,7 @@ class RKDForest:
         if( self.gpu_flag and Primitives.use_cuda):
             ndevices = cp.cuda.runtime.getDeviceCount()
             self.device = rank % ndevices
-        
+
         Primitives.set_device(self.device)
 
         #Setup data
@@ -129,8 +128,8 @@ class RKDForest:
                 (local_value, local_colidx, local_rowptr), shape=(N, d))
         else:
             self.host_data = np.asarray(data, dtype=np.float32)
-       
-        self.dim = self.host_data.shape[1] 
+
+        self.dim = self.host_data.shape[1]
 
     def _build_and_search(self, k, current_tree = None, cores=8, blocksize=64, blockleaf=128, ltrees=3, verbose=False, overlap=False):
         timer = Primitives.Profiler()
@@ -156,7 +155,7 @@ class RKDForest:
                 tree.collect_data()
             timer.pop("Forest: Distribute Coordinates")
             current_tree = tree
-        
+
         timer.push("Forest: Evaluate")
 
         if overlap and self.gpu_flag:
@@ -183,7 +182,7 @@ class RKDForest:
                 tree.build_local()
                 neighbors = tree.search_local(k)
             elif (not self.gpu_flag) and (self.sparse_flag):
-                n, d = tree.host_data.shape 
+                n, d = tree.host_data.shape
                 neighbors = Primitives.cpu_sparse_knn_3(tree.global_ids, tree.host_data.indptr, tree.host_data.indices, tree.host_data.data, len(tree.host_data.data), tree.local_levels, ltrees, k, blocksize, n, d, cores)
 
         timer.pop("Forest: Evaluate")
@@ -197,7 +196,7 @@ class RKDForest:
 
         timer.push("Forest: Search")
 
-        result = None 
+        result = None
 
         if merge_flag:
             merge_location = self.location
@@ -222,12 +221,12 @@ class RKDForest:
             local_Q = self.host_data[active_subset_idx, :]
 
             truth = distributed_exact(local_Q, k)
-            
+
         current_tree = None
         next_tree = None
 
         for it in range(ntrees):
-            
+
             #Build Distributed Tree, Search, and if overlaping build next distributed tree
             neighbors, current_tree, next_tree = _build_and_search_local(self, k, current_tree, cores, blocksize, blockleaf, ltrees, verbose, overlap)
 
@@ -258,7 +257,7 @@ class RKDForest:
                 test = (rlist[:nq, ...], rdist[:nq, ...])
 
                 if k_acc_list is not None:
-                    if k_acc_list is "Default":
+                    if k_acc_list == "Default":
                         acc = Primitives.accuracy_stride(truth, test, None)
                     else:
                         acc = Primitives.accuracy_stride(truth, test, k_acc_list)
@@ -276,16 +275,16 @@ class RKDForest:
             timer.pop("Forest: Compare")
         timer.pop("Forest: Search")
 
-        return result        
+        return result
 
 
 
 
 
-def distributed_exact(self, Q, k):
-    tree = RKDT(data=self.host_data)
-    truth = tree.distributed_exact(Q, k)
-    return truth
+    def distributed_exact(self, Q, k):
+        tree = RKDT(data=self.host_data)
+        truth = tree.distributed_exact(Q, k)
+        return truth
 
 
 
@@ -299,7 +298,7 @@ def distributed_exact(self, Q, k):
         record = Primitives.Recorder()
 
         timer.push("Total Time")
-        result = None 
+        result = None
 
         if merge_flag:
             merge_location = self.location
@@ -314,7 +313,7 @@ def distributed_exact(self, Q, k):
             assert(nq == truth[1].shape[0])
             assert(truth[0].shape[1] == truth[1].shape[1])
             assert(truth[0].shape[1]>=k)
-        
+
         current_tree = None
 
         for it in range(ntrees):
@@ -330,7 +329,7 @@ def distributed_exact(self, Q, k):
                 tree.collect_data()
                 timer.pop("Distribute Coordinates")
                 current_tree = tree
-            
+
             timer.push("Evaluate")
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -383,14 +382,14 @@ def distributed_exact(self, Q, k):
             timer.pop("Forest: Compare")
         timer.pop("Total Time")
 
-        return result        
+        return result
 
     def all_search(self, k, ntrees=5, truth=None, cores=56, blocksize=64, blockleaf=128, ltrees=3, threshold=0.95, merge_flag=True, verbose=True):
         timer = Primitives.Profiler()
         record = Primitives.Recorder()
 
         timer.push("Forest: Search")
-        result = None 
+        result = None
 
         if merge_flag:
             merge_location = self.location
@@ -399,16 +398,16 @@ def distributed_exact(self, Q, k):
 
         rank = self.comm.Get_rank()
         mpi_size = self.comm.Get_size()
-        break_flag = False 
+        break_flag = False
 
         if truth is not None:
             nq = truth[0].shape[0]
             assert(nq == truth[1].shape[0])
             assert(truth[0].shape[1] == truth[1].shape[1])
             assert(truth[0].shape[1]>=k)
-        
+
         for it in range(ntrees):
-            
+
             #Build Tree
             timer.push("Forest: Build Dist Tree")
             if mpi_size > 1:
@@ -426,7 +425,7 @@ def distributed_exact(self, Q, k):
                 tree.collect_data()
             timer.pop("Forest: Distribute Coordinates")
 
-            
+
             timer.push("Forest: Evaluate")
             #TODO: Either support int64 or change to local_ids and update in python
             if self.gpu_flag and (not self.sparse_flag):
@@ -437,10 +436,10 @@ def distributed_exact(self, Q, k):
                 tree.build_local()
                 neighbors = tree.search_local(k)
             elif (not self.gpu_flag) and (self.sparse_flag):
-                n, d = tree.host_data.shape 
+                n, d = tree.host_data.shape
                 neighbors = Primitives.cpu_sparse_knn_3(tree.global_ids, tree.host_data.indptr, tree.host_data.indices, tree.host_data.data, len(tree.host_data.data), tree.local_levels, ltrees, k, blocksize, n, d, cores)
-            timer.pop("Forest: Evaluate")           
- 
+            timer.pop("Forest: Evaluate")
+
             #Sort to check
             #neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
             #print(rank, "Neighbors before merge: : ", neighbors, flush=True)
@@ -469,13 +468,13 @@ def distributed_exact(self, Q, k):
 
                 record.push("Recall", acc[0])
                 record.push("Distance", acc[1])
-                
+
                 if verbose:
                     print("Iteration:", it, "Recall:", acc, flush=True)
                 if acc[0] > threshold:
                     break_flag = True
 
-            break_flag = self.comm.bcast(break_flag, root=0) 
+            break_flag = self.comm.bcast(break_flag, root=0)
             timer.pop("Forest: Compare")
 
             if break_flag:
@@ -483,4 +482,4 @@ def distributed_exact(self, Q, k):
 
         timer.pop("Forest: Search")
         return result
-        
+

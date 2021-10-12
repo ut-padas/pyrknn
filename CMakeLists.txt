@@ -51,18 +51,27 @@ macro(descend_static return_list)
     set(${return_list} ${dir_list})
 endmacro()
 
-#-- Look for Required Python/Cython 
+#-- Look for Required Python/Cython
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
+#find_package(NumPy REQUIRED)
+
+
+set(Python3_ROOT_DIR "${CONDA_PREFIX}")
+set(Python3_ROOT "${CONDA_PREFIX}")
+set(Python3_FIND_STRATEGY "LOCATION")
+find_package(Python3 3.8 EXACT REQUIRED COMPONENTS Interpreter NumPy)
+#include_directories(${NumPy_INCLUDE_DIRS})
+include_directories(${_Python3_NumPy_INCLUDE_DIR})
 
 #-- Look for MKL
-#set(BLA_VENDOR intel10_64lp) 
+#set(BLA_VENDOR intel10_64lp)
 #TODO: Ensure MKL is found (not openblas due to sparse library requirement)
 find_package(BLAS REQUIRED)
 
 if (BLAS_FOUND)
     link_libraries(${BLAS_LIBRARIES})
-    #This is still missing something.... currently need to Preload with mkl Python modules. 
+    #This is still missing something.... currently need to Preload with mkl Python modules.
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 endif()
 
@@ -76,6 +85,7 @@ if(OpenMP_FOUND)
     set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set ( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+    include_directories(${OpenMP_CXX_INCLUDE_DIRS})
 endif()
 
 #-- Install GSKNN

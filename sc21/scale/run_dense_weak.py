@@ -1,6 +1,6 @@
-from pyrknn.kdforest.mpi.tree import *
-from pyrknn.kdforest.mpi.util import *
-from pyrknn.kdforest.mpi.forest import *
+from pyrknn.kdforest.tree import *
+from pyrknn.kdforest.util import *
+from pyrknn.kdforest.forest import *
 
 from mpi4py import MPI
 import numpy as np
@@ -16,7 +16,7 @@ from joblib import Memory
 import argparse
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
-parser.add_argument('-n', type=int, default=2**22)
+parser.add_argument('-n', type=int, default=2**19)
 parser.add_argument('-d', type=int, default=15)
 parser.add_argument('-iter', type=int, default=10)
 parser.add_argument('-dataset', default="gauss")
@@ -41,7 +41,7 @@ mem = Memory("./mycache")
 def get_gauss_data(rank, N, d, nq):
     t = time.time()
 
-    #Load query set 
+    #Load query set
     np.random.seed(10)
     data = np.random.rand(N, d)
     data = np.asarray(data, dtype=np.float32)
@@ -68,7 +68,7 @@ def get_file_data(rank, dataset, nq):
     query = np.load(filename_q)
     query = np.asarray(query, dtype=np.float32)
     Q = query[:nq]
-    del query 
+    del query
 
     #Load data for local
     data = np.load(filename_r)
@@ -83,7 +83,7 @@ size = comm.Get_size()
 rank = comm.Get_rank()
 
 if args.dataset == "gauss":
-    get_data = get_gauss_data(rank, args.n, args.d, args.q) 
+    get_data = get_gauss_data(rank, args.n, args.d, args.q)
 elif args.dataset == "hard":
     get_data = get_file_data(rank, "hard", args.nq)
 
@@ -105,7 +105,7 @@ def run():
 
     t = time.time()
     X, Q = get_data
-    t = time.time() - t 
+    t = time.time() - t
 
     if rank == 0:
         print("Finished Reading Data: ", X.shape, flush=True)
@@ -119,7 +119,7 @@ def run():
     t = time.time()
 
     timer = Profiler()
-    record = Recorder() 
+    record = Recorder()
 
     #Compute true solution with brute force on nq subset
     #C = X.copy()
@@ -151,7 +151,7 @@ def run():
         timer.print()
         print("=======")
         record.print()
-        
+
 run()
 
 

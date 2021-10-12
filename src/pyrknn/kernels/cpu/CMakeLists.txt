@@ -5,6 +5,9 @@ add_compile_options(-DFRONTERA)
 add_subdirectory(impl/exact)
 add_subdirectory(impl/sparse)
 
+find_package(NumPy REQUIRED)
+
+
 add_cython_target(core core.pyx CXX PY3)
 add_library(core MODULE ${core})
 #link_libraries(${MPI_C_LIBRARIES})
@@ -18,6 +21,7 @@ install(TARGETS core LIBRARY DESTINATION ${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/py
 target_link_libraries(core gsknn)
 target_link_libraries(core ${PYTHON_LIBRARIES})
 target_link_libraries(core ${MPI_C_LIBRARIES})
+target_include_directories(core PUBLIC ${NumPy_INCLUDE_DIRS})
 target_include_directories(core PUBLIC include)
 target_include_directories(core PUBLIC impl)
 target_include_directories(core PUBLIC impl/exact)
