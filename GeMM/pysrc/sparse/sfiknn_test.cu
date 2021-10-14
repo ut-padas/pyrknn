@@ -439,7 +439,8 @@ __global__ void S_MergeHorizNP2(float* KNN, int* KNN_Id, int k_nn, int ppl, int 
   for (int col_batch = 0; col_batch < num_batches; col_batch++){
     for (int j_tmp = tid; j_tmp < size_sort; j_tmp += blockDim.x){
       
-      int colId_leaf = (col_batch == 0) ? partsize * (blockInd + 1) + j_tmp - k_nn : partsize * blockInd + col_batch * (size_sort - k_nn) + j_tmp;
+      //int colId_leaf = (col_batch == 0) ? partsize * (blockInd + 1) + j_tmp - k_nn : partsize * blockInd + col_batch * (size_sort - k_nn) + j_tmp;
+      int colId_leaf = (col_batch == 0) ? partsize * (blockInd + 1) + j_tmp - k_nn : partsize * blockInd + col_batch * (size_sort - k_nn) + j_tmp - k_nn + partsize;
       
       if (col_batch == 0 && j_tmp < k_nn){
         
@@ -447,7 +448,7 @@ __global__ void S_MergeHorizNP2(float* KNN, int* KNN_Id, int k_nn, int ppl, int 
         int ind_read = ind_pt * k_nn + j_tmp;
         SM_dist[j_tmp] = KNN[ind_read];
         SM_Id[j_tmp] = KNN_Id[ind_read];
-        //if (ind_pt ==  777478) printf(" Neighbors , D[%d] = %.4f at %d \n", j_tmp, SM_dist[j_tmp], SM_Id[j_tmp]);
+        //if (ind_pt ==  0) printf(" Neighbors , D[%d] = %.4f at %d \n", j_tmp, SM_dist[j_tmp], SM_Id[j_tmp]);
       } else if (colId_leaf < ppl && j_tmp >= k_nn){
 
         int size_tmp = size_part - partsize;
@@ -539,8 +540,8 @@ __global__ void S_MergeHorizNP2(float* KNN, int* KNN_Id, int k_nn, int ppl, int 
 
 __global__ void S_MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int blockInd, float* d_temp_knn, int* G_Id, bool init, int bl, int sizebleaves, int partsize, int M){
 
-  __shared__ float SM_dist[SM_SIZE_1];
-  __shared__ int SM_Id[SM_SIZE_1];
+  __shared__ float SM_dist[SM_SIZE_2];
+  __shared__ int SM_Id[SM_SIZE_2];
 
 
   int j = threadIdx.x;
@@ -555,21 +556,23 @@ __global__ void S_MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int block
   int size_part = (init) ? ppl : ppl - (blockInd + 1) * partsize;
 
 
+  int size_read = (partsize > k_nn) ? partsize : k_nn;
   //float norm_i = Norms[leafId_g * ppl + colId_leaf];
 
   int ind_pt_knn = leafId_g * ppl + colId_leaf;
   int ind_pt_knn_g = G_Id[ind_pt_knn];
 
-  for (int ind = j; ind < 2 * partsize; ind += blockDim.x){
+  //for (int ind = j; ind < 2 * partsize; ind += blockDim.x){
+  for (int ind = j; ind < 2 * size_read; ind += blockDim.x){
     SM_dist[ind] = 1e30;
     SM_Id[ind] = -1;
   }
   __syncthreads();
 
 
-  for (int j_tmp = j; j_tmp < partsize; j_tmp += blockDim.x){
+  for (int j_tmp = j; j_tmp < size_read; j_tmp += blockDim.x){
 
-    //int ind_tmp = (init) ? leafId_local * ppl * partsize + col * partsize + j_tmp : leafId_local * partsize * size_part + j_tmp + col * partsize;
+    if (j_tmp < partsize){
     int ind_tmp = (init) ? leafId_local * ppl * partsize + col * partsize + j_tmp : leafId_local * partsize * size_part + j_tmp * size_part + col;
 
     int block = col / partsize;
@@ -582,8 +585,6 @@ __global__ void S_MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int block
 
     SM_Id[j_tmp] = (rowId_g < M) ? G_Id[rowId_g] : -1;
     SM_dist[j_tmp] = (Max_blocks == block && j_tmp >= rem_len && init == 1) ? 1e30 : d_temp_knn[ind_tmp];
-    //tmp_f = (rowId_g < M) ? -2 * d_temp_knn[ind_tmp] + norm_i + Norms[rowId_g] : 1e30;
-    //tmp_f = d_temp_knn[ind_tmp] + norm_i + Norms[rowId_g];
 
     /*
     if (init){
@@ -591,17 +592,25 @@ __global__ void S_MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int block
     }
 
     */
-
+    } else {
+      SM_dist[j_tmp] = 1e30;
+      SM_Id[j_tmp] = -1; 
+    } 
     int ind_knn = ind_pt_knn_g * k_nn + j_tmp;
     if (j_tmp < k_nn){
-      SM_dist[j_tmp + partsize] = KNN[ind_knn];
-      SM_Id[j_tmp + partsize] = KNN_Id[ind_knn];
+      //SM_dist[j_tmp + partsize] = KNN[ind_knn];
+      //SM_Id[j_tmp + partsize] = KNN_Id[ind_knn];
+      SM_dist[j_tmp + size_read] = KNN[ind_knn];
+      SM_Id[j_tmp + size_read] = KNN_Id[ind_knn];
      
     } else {
-      SM_dist[j_tmp + partsize] = 1e30;
-      SM_Id[j_tmp + partsize] = -1;
+      //SM_dist[j_tmp + partsize] = 1e30;
+      //SM_Id[j_tmp + partsize] = -1;
+      SM_dist[j_tmp + size_read] = 1e30;
+      SM_Id[j_tmp + size_read] = -1;
     }
-
+    //if (ind_pt_knn_g == 0 && init == 1) printf("tmp D[%d] = %.4f at %d \n", j_tmp, SM_dist[j_tmp], SM_Id[j_tmp]);
+    //if (ind_pt_knn_g == 0 && init == 1) printf("true D[%d] = %.4f at %d \n", j_tmp+size_read, SM_dist[j_tmp+size_read], SM_Id[j_tmp+size_read]);
 
   }
 
@@ -609,9 +618,11 @@ __global__ void S_MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int block
 
 
   for (int j_tmp = j; j_tmp < partsize; j_tmp += blockDim.x){
+  //for (int j_tmp = j; j_tmp < size_read; j_tmp += blockDim.x){
     int index = SM_Id[j_tmp];
     for (int ind_check = 0; ind_check < k_nn; ind_check++){
-      if (index == SM_Id[ind_check + partsize]){
+      //if (index == SM_Id[ind_check + partsize]){
+      if (index == SM_Id[ind_check + size_read]){
         SM_dist[j_tmp] = 1e30;
         SM_Id[j_tmp] = -1;
         break;
@@ -661,6 +672,8 @@ __global__ void S_MergeVer(float* KNN, int* KNN_Id, int k_nn, int ppl, int block
       __syncthreads();
     }
   }
+    //if (ind_pt_knn_g == 0 && init == 1) printf("sorted tmp D[%d] = %.4f at %d \n", j, SM_dist[j], SM_Id[j]);
+    //if (ind_pt_knn_g == 0 && init == 1) printf("sorted true D[%d] = %.4f at %d \n", j+size_read, SM_dist[j+size_read], SM_Id[j+size_read]);
 
   if (j < k_nn){
     int ind_pt_knn = leafId_g * ppl + colId_leaf;
@@ -680,7 +693,7 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
 
 
 
-  float dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8, dt9, dt_tmp;
+  float dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8, dt9, dt_tmp, dt_diagdist;
   checkCudaErrors(cudaSetDevice(deviceId));
   cudaEvent_t t0;
   cudaEvent_t t1;
@@ -692,6 +705,7 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   cudaEvent_t t7;
   cudaEvent_t t8;
   cudaEvent_t t9;
+  cudaEvent_t t_diagdist;
 
   checkCudaErrors(cudaEventCreate(&t0));
   checkCudaErrors(cudaEventCreate(&t1));
@@ -703,10 +717,11 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   checkCudaErrors(cudaEventCreate(&t7));
   checkCudaErrors(cudaEventCreate(&t8));
   checkCudaErrors(cudaEventCreate(&t9));
+  checkCudaErrors(cudaEventCreate(&t_diagdist));
 
   checkCudaErrors(cudaEventRecord(t0, 0));
 
-  int verbose = 0;
+  int verbose = 1;
 	if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
 
   size_t free, total, m1, m2, m3;
@@ -714,6 +729,9 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   int ppl = M/leaves;
 
   int partsize = (k > 32) ? k : 32;
+  //int partsize = (k > 16) ? k : 16;
+  if (partsize > 128) partsize = 128;
+  
   //int partsize = k;
   
   cudaMemGetInfo(&free, &total);
@@ -722,16 +740,19 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
 
   size_t size_req = sizeof(float) * partsize * M;
   int counter=0;
-	while (size_req < free && partsize < 256 && counter < 6) {
+  bool div_flag = false;
+  /*
+	while (size_req < free && partsize < k && counter < 6) {
     counter++;
     size_req *= 2;
     partsize *= 2;
+    div_flag=true;
     //printf("partsize = %d,  free = %.4f , size_req = %.4f,\n", partsize, free/1e9, size_req/1e9);
   }
-  partsize /= 2;
+  if (div_flag) partsize /= 2;
   partsize = (partsize > ppl) ? ppl : partsize;
   partsize = (partsize < k) ? k : partsize;  
-
+  */
 
   int num_blocks_tri = ppl / partsize;
   int rem_len = (num_blocks_tri * partsize < ppl) ? ppl - num_blocks_tri * partsize : 0;
@@ -800,11 +821,11 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
 
   size_t size_tmp = sizeof(float) * M * partsize;
   if (verbose) printf(" Needed %.4f GB , avail : %.4f \n", size_tmp/1e9, m2/1e9);
-  float s1 = size_tmp/1e9;
+  float s1 = size_tmp/1e9 + 0.1;
   float s2 = m2/1e9;
   float tmp2 = ceil(s1/s2);
    
-  int bleaves = (size_tmp > m2) ? log2(tmp2) : 0;
+  int bleaves = (size_tmp > m2) ? ceil(log2(tmp2)) : 0;
   int numbleaves = 1 << bleaves;
   int sizebleaves = leaves / numbleaves;
   if (verbose){
@@ -814,7 +835,7 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   }
 
   float * d_temp_knn;
-  checkCudaErrors(cudaMalloc((void **) &d_temp_knn, sizeof(float) * M * partsize));
+  checkCudaErrors(cudaMalloc((void **) &d_temp_knn, sizeof(float) * sizebleaves * ppl * partsize));
   cudaMemGetInfo(&m3, &total);
 
 
@@ -825,13 +846,14 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   int batch_leaves_2 = (sizebleaves > 64000) ? num_splits : 1;
 
 
-
   dim3 BlockDistTri(blockDim_tri, 1, 1);
   dim3 GridDistTri(num_blocks_tri, batch_leaves_1, batch_leaves_2);
   dim3 BlockDistTri_last(blockDim_tri_last, 1, 1);
   dim3 GridDistTri_last(1, batch_leaves_1, batch_leaves_2);
   dim3 GridDistRec(partsize, batch_leaves_1, batch_leaves_2);
-  dim3 BlockMergeVer(partsize, 1, 1); 
+  int mergever_blocksize = (partsize > k) ? partsize : k;
+  dim3 BlockMergeVer(mergever_blocksize, 1, 1); 
+  //dim3 BlockMergeVer(, 1, 1); 
   dim3 GridMergeHoriz(partsize, batch_leaves_1, batch_leaves_2);
 
   if (verbose){
@@ -876,6 +898,7 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
       checkCudaErrors(cudaDeviceSynchronize());
     }
 
+    checkCudaErrors(cudaEventRecord(t_diagdist, 0));
     int size_v = ppl;
     dim3 GridMergeVer(size_v, batch_leaves_1, batch_leaves_2);    
 		S_MergeVer <<< GridMergeVer, BlockMergeVer >>> (d_knn, d_knn_Id, k, ppl, 0, d_temp_knn, d_GId, true, bl, sizebleaves, partsize, M);
@@ -896,7 +919,7 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
 			int size_part = ppl - (blockInd+1) * partsize + k;
 			int size_sort = size_part;
 
-			while (size_sort > SM_SIZE_2) size_sort = ceil((size_sort+k)/2);
+			while (size_sort > SM_SIZE_2) size_sort = ceil((size_sort+k)/2.0);
 		 
 			float tmp = size_sort/2.0;
 			int blocksize = ceil(tmp);
@@ -910,9 +933,11 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
 			int blocksize_dist = size_part - k;
 			while(blocksize_dist > SM_SIZE_1) blocksize_dist = ceil(blocksize_dist / 2.0);
 
-
+       
 			dim3 BlockDistRec( blocksize_dist, 1, 1);
 			dim3 BlockMergeHoriz( blocksize, 1, 1);
+      //printf("blockDistRec %d, %d, %d \n", BlockDistRec.x, BlockDistRec.y, BlockDistRec.z);
+      //printf("blockMergeHoriz %d, %d, %d \n", BlockMergeHoriz.x, BlockMergeHoriz.y, BlockMergeHoriz.z);
 
 			int size_v2 = ppl - (blockInd + 1) * partsize;
 			dim3 GridMergeVer(size_v2, batch_leaves_1, batch_leaves_2);
@@ -956,7 +981,8 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   checkCudaErrors(cudaEventElapsedTime(&dt1, t0, t1));
   checkCudaErrors(cudaEventElapsedTime(&dt2, t1, t2));
   checkCudaErrors(cudaEventElapsedTime(&dt3, t2, t3));
-  checkCudaErrors(cudaEventElapsedTime(&dt4, t3, t4));
+  checkCudaErrors(cudaEventElapsedTime(&dt_diagdist, t3, t_diagdist));
+  checkCudaErrors(cudaEventElapsedTime(&dt4, t_diagdist, t4));
   checkCudaErrors(cudaEventElapsedTime(&dt8, t4, t9));
   checkCudaErrors(cudaEventElapsedTime(&dt9, t0, t9));
 
@@ -984,14 +1010,15 @@ void sfi_leafknn(int *d_R, int *d_C, float *d_V, int *d_GId, int M, int leaves, 
   checkCudaErrors(cudaEventDestroy(t9));
   if (verbose){
   printf("--------------- Timings ----------------\n");
-  printf("\t Memory allocation :%.4f (%.f %%) \n", dt1/1000, dt1/dt9);
-  printf("\t Precomp sortId (vertical)  = %.4f (%.f %%) \n", dt2/1000, dt2/dt9);
-  printf("\t Computing norms = %.4f (%.f %%) \n", dt3/1000, dt3/dt9);
-  printf("\t Diagonal part = %.4f (%.f %%) \n", dt4/1000, dt4/dt9);
-  printf("\t Iterative part = %.4f (%.f %%) \n", dt8/1000, dt8/dt9);
-  printf("\t\t	 Compute Dists = %.4f (%.f %%) \n", dt5/1000, dt5/dt9);
-  printf("\t\t	 Merge Horizontally = %.4f (%.f %%) \n", dt6/1000, dt6/dt9);
-  printf("\t\t	 Merge Vertically  = %.4f (%.f %%) \n", dt7/1000, dt7/dt9);
+  printf("\t Memory allocation :%.4f (%.f %%) \n", dt1/1000, dt1*100/dt9);
+  printf("\t Precomp sortId (vertical)  = %.4f (%.f %%) \n", dt2/1000, dt2*100/dt9);
+  printf("\t Computing norms = %.4f (%.f %%) \n", dt3/1000, dt3*100/dt9);
+  printf("\t Diagonal dist = %.4f (%.f %%) \n", dt_diagdist/1000, dt_diagdist*100/dt9);
+  printf("\t Diagonal sort = %.4f (%.f %%) \n", dt4/1000, dt4*100/dt9);
+  printf("\t Iterative part = %.4f (%.f %%) \n", dt8/1000, dt8*100/dt9);
+  printf("\t\t	 Compute Dists = %.4f (%.f %%) \n", dt5/1000, dt5*100/dt9);
+  printf("\t\t	 Merge Horizontally = %.4f (%.f %%) \n", dt6/1000, dt6*100/dt9);
+  printf("\t\t	 Merge Vertically  = %.4f (%.f %%) \n", dt7/1000, dt7*100/dt9);
   printf("\t Total = %.4f \n", dt9/1000);
   printf("--------------- Memory usage ----------------\n");
   printf("\t Storing norms = %.4f GB \n", (m1-m2)/1e9);
