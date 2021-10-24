@@ -10,7 +10,7 @@
 #include "Norms.h"
 
 
-void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, float *V_q, int *GId, int const ppl, int const leaves, int const k, float *d_knn, int *d_knn_Id, int const deviceId, int const verbose, int const nq, int *leafIds, int const dim, int const avgnnz, int const num_search_leaves){
+void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, float *V_q, int *QId, int const ppl, int const leaves, int const k, float *d_knn, int *d_knn_Id, int const deviceId, int const verbose, int const nq, int *leafIds, int const dim, int const avgnnz, int const num_search_leaves){
 
 
   float dt_dist, dt_tot, dt_qsearch_ind, dt_norms_q, dt_norms_ref, dt_tmp, dt_mem;
@@ -36,10 +36,20 @@ void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, f
   size_t qsearch_size = sizeof(int) * numqsearch * nq;
   size_t tmp_NDist_size = sizeof(float) * k * nq;
   size_t norm_q_size = sizeof(float) * nq;
-  size_t norm_ref_size = sizeof(float) * num_search_leaves; 
+  size_t norm_ref_size = sizeof(float) * num_search_leaves * ppl; 
+
+  printf("==========================\n");
+  printf("ppl = %d \n", ppl);
+  printf("leaves = %d \n", leaves);
+  printf("k = %d \n", k);
+  printf("nq = %d \n", nq);
+  printf("dim = %d \n", dim);
+  printf("avgnnz = %d \n", avgnnz);
+  printf("num_search_leaves = %d \n", num_search_leaves);
  
   printf("Require %.4f (GB) for qsearch \n", qsearch_size/1e9);
   printf("Require %.4f (GB) for tmp NDists\n", tmp_NDist_size/1e9);
+  printf("Require %.4e (MB) for tmp NDists\n", tmp_NDist_size/1e6);
   printf("Require %.4f (GB) for norm refs\n", norm_ref_size/1e9);
   printf("Require %.4f (GB) for norm queries\n", norm_q_size/1e9);
 
@@ -51,13 +61,14 @@ void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, f
   checkCudaErrors(cudaMalloc((void **) &tmp_NDist, tmp_NDist_size));
   checkCudaErrors(cudaMalloc((void **) &Norms_ref, norm_ref_size));
   checkCudaErrors(cudaMalloc((void **) &Norms_q, norm_q_size));
-   
+  checkCudaErrors(cudaMemset(tmp_NDist, 0, tmp_NDist_size));  
+ 
   checkCudaErrors(cudaEventRecord(t_memalloc, 0));
   checkCudaErrors(cudaEventSynchronize(t_memalloc));
   checkCudaErrors(cudaEventElapsedTime(&dt_mem, t_start, t_memalloc));
 
   
-  dim3 BlockQSearch(size_search, 1, 1);
+  dim3 BlockQSearch(numqsearch, 1, 1);
   dim3 GridQSearch(nq, 1, 1);
   
   int t_b = (ppl > MAX_BLOCK_SIZE) ? MAX_BLOCK_SIZE : ppl;
@@ -70,7 +81,12 @@ void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, f
   
   dim3 BlockNorm_q(1, 1,1);
   dim3 GridNorm_q(nq, 1, 1);
+ 
+  printf("Block QSearch : (%d, %d, %d) \n", BlockQSearch.x, BlockQSearch.y, BlockQSearch.z);
+  printf("Grid QSearch : (%d, %d, %d) \n", GridQSearch.x, GridQSearch.y, GridQSearch.z);
   
+
+ 
   ComputeNorms <<< GridNorm_q, BlockNorm_q >>> (R_q, C_q, V_q, Norms_q);
 
   checkCudaErrors(cudaDeviceSynchronize());  
@@ -94,7 +110,7 @@ void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, f
   checkCudaErrors(cudaEventElapsedTime(&dt_qsearch_ind, t_norms_ref, t_qsearch));
 
   
-  ComputeDists <<< GridDist, BlockDist >>> (R_ref, C_ref, V_ref, R_q, C_q, V_q, leafIds, Norms_q, Norms_ref, k, tmp_NDist, ppl, qsearch_ind, size_search, dim, GId);
+  ComputeDists <<< GridDist, BlockDist >>> (R_ref, C_ref, V_ref, R_q, C_q, V_q, leafIds, Norms_q, Norms_ref, k, tmp_NDist, ppl, qsearch_ind, size_search, dim, QId, numqsearch);
 
   checkCudaErrors(cudaDeviceSynchronize());  
   checkCudaErrors(cudaEventRecord(t_dist, 0));
