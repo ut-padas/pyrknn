@@ -33,7 +33,8 @@ lib_dirs = lib_dirs + [CUDA_LIB]
 lib_dirs = lib_dirs + [CUDA_LIB+"/stubs/"]
 lib_dirs = lib_dirs + [CUDA_INC]
 
-object_list=["src/sparse/Norms.o", "src/sparse/GuidedBinSearch.o", "src/sparse/queryknn_guided.o"]
+object_list=["src/sparse/Norms.o", "src/sparse/GuidedBinSearch.o", "src/sparse/queryknn_guided.o", \
+            "src/sparse/merge.o"]
 
 def scandir(dir, files=[]):
     for file in os.listdir(dir):
