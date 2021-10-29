@@ -7,37 +7,37 @@
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
 
-#include "queryknn_guided.h"
-#include "GuidedBinSearch.h"
+#include "queryknn_seqsearch.h"
+#include "SeqBinSearch.h"
 #include "Norms.h"
 #include "merge.h"
 
 
-void query_leafknn_guided(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, float *V_q, int *QId, int const ppl, int const leaves, int const k, float *NDist, int *NId, int const deviceId, int const verbose, int const nq, int *local_leafIds, int const dim, int const avgnnz, int const num_search_leaves, int *glob_leafIds){
+void query_leafknn_seqsearch(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, float *V_q, int *QId, int const ppl, int const leaves, int const k, float *NDist, int *NId, int const deviceId, int const verbose, int const nq, int const dim, int const avgnnz, int *glob_leafIds, int num_search_leaves, int *local_leafIds){
 
 
-  float dt_dist, dt_tot, dt_qsearch_ind, dt_norms_q, dt_norms_ref, dt_tmp, dt_mem, dt_merge;
-
+  float dt_dist, dt_tot, dt_norms_q, dt_norms_ref, dt_tmp, dt_mem, dt_merge;
+  size_t free, total;
+  
+  cudaMemGetInfo(&free, &total);
+  if (verbose) printf(" Available Memory : %.4f MB from %.4f \n", free/1e6, total/1e6);
+  
   checkCudaErrors(cudaSetDevice(deviceId));
-  cudaEvent_t t_start, t_end, t_qsearch, t_dist, t_norms_ref, t_norms_q, t_memalloc, t_merge;
+  cudaEvent_t t_start, t_end, t_dist, t_norms_ref, t_norms_q, t_memalloc, t_merge;
  
   checkCudaErrors(cudaEventCreate(&t_start));
   checkCudaErrors(cudaEventCreate(&t_end));
-  checkCudaErrors(cudaEventCreate(&t_qsearch));
   checkCudaErrors(cudaEventCreate(&t_dist));
   checkCudaErrors(cudaEventCreate(&t_norms_ref));
   checkCudaErrors(cudaEventCreate(&t_norms_q));
   checkCudaErrors(cudaEventCreate(&t_memalloc));
   checkCudaErrors(cudaEventCreate(&t_merge));
  
-
+  
   checkCudaErrors(cudaEventRecord(t_start, 0));
   
   if (verbose) printf("----------------------------- start leaf queries in pyrknn -----------------------------------\n");
   
-  int numqsearch = 2*avgnnz;
-  int size_search = dim / numqsearch;
-  size_t qsearch_size = sizeof(int) * numqsearch * nq;
   size_t tmp_NDist_size = sizeof(float) * ppl * nq;
   size_t norm_q_size = sizeof(float) * nq;
   size_t norm_ref_size = sizeof(float) * num_search_leaves * ppl; 
@@ -51,17 +51,14 @@ void query_leafknn_guided(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *
   printf("avgnnz = %d \n", avgnnz);
   printf("num_search_leaves = %d \n", num_search_leaves);
  
-  printf("Require %.4f (GB) for qsearch \n", qsearch_size/1e9);
   printf("Require %.4f (GB) for tmp NDists\n", tmp_NDist_size/1e9);
   printf("Require %.4f (GB) for norm refs\n", norm_ref_size/1e9);
   printf("Require %.4f (GB) for norm queries\n", norm_q_size/1e9);
 
-  int *qsearch_ind;  
   float *tmp_NDist, *Norms_ref, *Norms_q;
   int *SortInd, *StepLen, *StepStart, *tidIdMap, *tidSortDir;
   
 
-  checkCudaErrors(cudaMalloc((void **) &qsearch_ind, qsearch_size));
   checkCudaErrors(cudaMalloc((void **) &tmp_NDist, tmp_NDist_size));
   checkCudaErrors(cudaMalloc((void **) &Norms_ref, norm_ref_size));
   checkCudaErrors(cudaMalloc((void **) &Norms_q, norm_q_size));
@@ -93,10 +90,10 @@ void query_leafknn_guided(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *
 
 
   
-  dim3 BlockQSearch(numqsearch, 1, 1);
-  dim3 GridQSearch(nq, 1, 1);
-  
-  int t_b = (ppl > MAX_BLOCK_SIZE) ? MAX_BLOCK_SIZE : ppl;
+  int t_b = ppl;
+  while (t_b > MAX_BLOCK_SIZE) t_b /= ceil(t_b/2.0);
+ 
+  //int t_b = (ppl > MAX_BLOCK_SIZE) ? MAX_BLOCK_SIZE : ppl;
  
   dim3 BlockDist(t_b, 1, 1);
   dim3 GridDist(nq, 1, 1);
@@ -110,8 +107,6 @@ void query_leafknn_guided(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *
   dim3 BlockMerge(blocksize, 1, 1);
   dim3 GridMerge(nq, 1, 1);
  
-
-
   ComputeNorms <<< GridNorm_q, BlockNorm_q >>> (R_q, C_q, V_q, Norms_q);
 
   checkCudaErrors(cudaDeviceSynchronize());  
@@ -125,22 +120,13 @@ void query_leafknn_guided(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *
   checkCudaErrors(cudaEventRecord(t_norms_ref, 0));
   checkCudaErrors(cudaEventSynchronize(t_norms_ref));
   checkCudaErrors(cudaEventElapsedTime(&dt_norms_ref, t_norms_q, t_norms_ref));
-
   
-  ComputeSearchGuide <<< GridQSearch, BlockQSearch >>> (R_q, C_q, size_search, qsearch_ind);
-
-  checkCudaErrors(cudaDeviceSynchronize());  
-  checkCudaErrors(cudaEventRecord(t_qsearch, 0));
-  checkCudaErrors(cudaEventSynchronize(t_qsearch));
-  checkCudaErrors(cudaEventElapsedTime(&dt_qsearch_ind, t_norms_ref, t_qsearch));
-
-  
-  ComputeDists_guided <<< GridDist, BlockDist >>> (R_ref, C_ref, V_ref, R_q, C_q, V_q, local_leafIds, Norms_q, Norms_ref, k, tmp_NDist, ppl, qsearch_ind, size_search, dim, QId, numqsearch);
+  ComputeDists_seq <<< GridDist, BlockDist >>> (R_ref, C_ref, V_ref, R_q, C_q, V_q, local_leafIds, Norms_q, Norms_ref, k, tmp_NDist, ppl, dim, QId);
 
   checkCudaErrors(cudaDeviceSynchronize());  
   checkCudaErrors(cudaEventRecord(t_dist, 0));
   checkCudaErrors(cudaEventSynchronize(t_dist));
-  checkCudaErrors(cudaEventElapsedTime(&dt_dist, t_qsearch, t_dist));
+  checkCudaErrors(cudaEventElapsedTime(&dt_dist, t_norms_ref, t_dist));
 
   S_PrecompMergeNP2 <<< 1, blocksize >>> (SortInd, StepLen, StepStart, tidIdMap, tidSortDir, steps);
   checkCudaErrors(cudaDeviceSynchronize());  
@@ -152,11 +138,9 @@ void query_leafknn_guided(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *
   checkCudaErrors(cudaEventSynchronize(t_merge));
   checkCudaErrors(cudaEventElapsedTime(&dt_merge, t_dist, t_merge));
 
-  // TODO : compute the qsearch_ind before the leafknn for all the iterations
 
   checkCudaErrors(cudaFree(Norms_ref));
   checkCudaErrors(cudaFree(Norms_q));
-  checkCudaErrors(cudaFree(qsearch_ind));
   checkCudaErrors(cudaFree(tmp_NDist));
   checkCudaErrors(cudaFree(SortInd));
   checkCudaErrors(cudaFree(StepLen));
@@ -164,21 +148,21 @@ void query_leafknn_guided(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *
   checkCudaErrors(cudaFree(tidIdMap));
   checkCudaErrors(cudaFree(tidSortDir));
 
-
   checkCudaErrors(cudaEventRecord(t_end, 0));
   checkCudaErrors(cudaEventSynchronize(t_end));
   checkCudaErrors(cudaEventElapsedTime(&dt_tot, t_start, t_end));
 
+  cudaMemGetInfo(&free, &total);
+  if (verbose) printf(" Available Memory : %.4f MB from %.4f \n", free/1e6, total/1e6);
   if (verbose){
-  printf("----------------- Timings ------------\n");
-  printf(" Memory : %.4f (%.f %%) \n", dt_mem/1000, 100*dt_mem/dt_tot);
-  printf(" Norms queries : %.4f (%.f %%) \n", dt_norms_q/1000, 100*dt_norms_q/dt_tot);
-  printf(" Norms ref : %.4f (%.f %%) \n", dt_norms_ref/1000, 100*dt_norms_ref/dt_tot);
-  printf(" QBinsearch : %.4f (%.f %%) \n", dt_qsearch_ind/1000, 100*dt_qsearch_ind/dt_tot);
-  printf(" Dist : %.4f (%.f %%) \n", dt_dist/1000, 100*dt_dist/dt_tot);
-  printf(" Merge : %.4f (%.f %%) \n", dt_merge/1000, 100*dt_merge/dt_tot);
-  printf("\n Total : %.4f \n", dt_tot/1000);
-  printf("-----------------------------------\n");
+		printf("----------------- Timings ------------\n");
+		printf(" Memory : %.4f (%.f %%) \n", dt_mem/1000, 100*dt_mem/dt_tot);
+		printf(" Norms queries : %.4f (%.f %%) \n", dt_norms_q/1000, 100*dt_norms_q/dt_tot);
+		printf(" Norms ref : %.4f (%.f %%) \n", dt_norms_ref/1000, 100*dt_norms_ref/dt_tot);
+		printf(" Dist : %.4f (%.f %%) \n", dt_dist/1000, 100*dt_dist/dt_tot);
+		printf(" Merge : %.4f (%.f %%) \n", dt_merge/1000, 100*dt_merge/dt_tot);
+		printf("\n Total : %.4f \n", dt_tot/1000);
+		printf("-----------------------------------\n");
   }
 
 

@@ -626,8 +626,8 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__src__sparse__queryknn_guided
-#define __PYX_HAVE_API__src__sparse__queryknn_guided
+#define __PYX_HAVE__seqsearch_fused__queryknn_seqsearch
+#define __PYX_HAVE_API__seqsearch_fused__queryknn_seqsearch
 /* Early includes */
 #include "ios"
 #include "new"
@@ -636,7 +636,7 @@ static CYTHON_INLINE float __PYX_NAN() {
 #include <vector>
 #include <string.h>
 #include <string>
-#include "../../include/sparse/queryknn.h"
+#include "queryknn_seqsearch.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
@@ -845,7 +845,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "src/sparse/queryknn_guided.pyx",
+  "seqsearch_fused/queryknn_seqsearch.pyx",
 };
 
 /*--- Type declarations ---*/
@@ -1189,14 +1189,13 @@ static int __Pyx_InitStrings(__Pyx_StringTabEntry *t);
 
 /* Module declarations from 'cython' */
 
-/* Module declarations from 'src.sparse.queryknn_guided' */
-static PyObject *__pyx_f_3src_6sparse_15queryknn_guided_wrapper_sparse_queryknn(size_t, size_t, size_t, size_t, size_t, size_t, size_t, int, int, int, size_t, size_t, int, int, int, size_t, int, int, int); /*proto*/
-#define __Pyx_MODULE_NAME "src.sparse.queryknn_guided"
-extern int __pyx_module_is_main_src__sparse__queryknn_guided;
-int __pyx_module_is_main_src__sparse__queryknn_guided = 0;
+/* Module declarations from 'seqsearch_fused.queryknn_seqsearch' */
+static PyObject *__pyx_f_15seqsearch_fused_18queryknn_seqsearch_wrapper_sparse_queryknn_seqsearch(size_t, size_t, size_t, size_t, size_t, size_t, size_t, int, int, int, size_t, size_t, int, int, int, int, int, size_t, int, size_t); /*proto*/
+#define __Pyx_MODULE_NAME "seqsearch_fused.queryknn_seqsearch"
+extern int __pyx_module_is_main_seqsearch_fused__queryknn_seqsearch;
+int __pyx_module_is_main_seqsearch_fused__queryknn_seqsearch = 0;
 
-/* Implementation of 'src.sparse.queryknn_guided' */
-static const char __pyx_k_F[] = "F";
+/* Implementation of 'seqsearch_fused.queryknn_seqsearch' */
 static const char __pyx_k_d[] = "d";
 static const char __pyx_k_k[] = "k";
 static const char __pyx_k__2[] = "_";
@@ -1219,6 +1218,7 @@ static const char __pyx_k_name[] = "__name__";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_tile[] = "tile";
 static const char __pyx_k_time[] = "time";
+static const char __pyx_k_X_q_c[] = "X_q_c";
 static const char __pyx_k_X_ref[] = "X_ref";
 static const char __pyx_k_dtype[] = "dtype";
 static const char __pyx_k_idx_q[] = "idx_q";
@@ -1247,16 +1247,16 @@ static const char __pyx_k_rowptr_q[] = "rowptr_q";
 static const char __pyx_k_X_ref_cop[] = "X_ref_cop";
 static const char __pyx_k_rowptr_ref[] = "rowptr_ref";
 static const char __pyx_k_expand_dims[] = "expand_dims";
-static const char __pyx_k_py_queryknn[] = "py_queryknn";
-static const char __pyx_k_SortedLeafIds[] = "SortedLeafIds";
+static const char __pyx_k_glob_leafIds[] = "glob_leafIds";
+static const char __pyx_k_local_leafIds[] = "local_leafIds";
 static const char __pyx_k_return_inverse[] = "return_inverse";
 static const char __pyx_k_num_search_leaves[] = "num_search_leaves";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
-static const char __pyx_k_src_sparse_queryknn_guided[] = "src.sparse.queryknn_guided";
-static const char __pyx_k_src_sparse_queryknn_guided_pyx[] = "src/sparse/queryknn_guided.pyx";
-static PyObject *__pyx_n_s_F;
-static PyObject *__pyx_n_s_SortedLeafIds;
+static const char __pyx_k_py_queryknn_seqsearch_fused[] = "py_queryknn_seqsearch_fused";
+static const char __pyx_k_seqsearch_fused_queryknn_seqsear[] = "seqsearch_fused/queryknn_seqsearch.pyx";
+static const char __pyx_k_seqsearch_fused_queryknn_seqsear_2[] = "seqsearch_fused.queryknn_seqsearch";
 static PyObject *__pyx_n_s_X_q;
+static PyObject *__pyx_n_s_X_q_c;
 static PyObject *__pyx_n_s_X_ref;
 static PyObject *__pyx_n_s_X_ref_cop;
 static PyObject *__pyx_n_s__2;
@@ -1273,6 +1273,7 @@ static PyObject *__pyx_n_s_deviceId;
 static PyObject *__pyx_n_s_diff;
 static PyObject *__pyx_n_s_dtype;
 static PyObject *__pyx_n_s_expand_dims;
+static PyObject *__pyx_n_s_glob_leafIds;
 static PyObject *__pyx_n_s_hId;
 static PyObject *__pyx_n_s_idx_q;
 static PyObject *__pyx_n_s_idx_ref;
@@ -1286,6 +1287,7 @@ static PyObject *__pyx_n_s_knndis;
 static PyObject *__pyx_n_s_knnidx;
 static PyObject *__pyx_n_s_leafIds;
 static PyObject *__pyx_n_s_leaves;
+static PyObject *__pyx_n_s_local_leafIds;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_mean;
 static PyObject *__pyx_n_s_nDist;
@@ -1295,15 +1297,15 @@ static PyObject *__pyx_n_s_nq;
 static PyObject *__pyx_n_s_num_search_leaves;
 static PyObject *__pyx_n_s_ppl;
 static PyObject *__pyx_n_s_ptr;
-static PyObject *__pyx_n_s_py_queryknn;
+static PyObject *__pyx_n_s_py_queryknn_seqsearch_fused;
 static PyObject *__pyx_n_s_qId;
 static PyObject *__pyx_n_s_ravel;
 static PyObject *__pyx_n_s_return_inverse;
 static PyObject *__pyx_n_s_rowptr_q;
 static PyObject *__pyx_n_s_rowptr_ref;
+static PyObject *__pyx_kp_s_seqsearch_fused_queryknn_seqsear;
+static PyObject *__pyx_n_s_seqsearch_fused_queryknn_seqsear_2;
 static PyObject *__pyx_n_s_shape;
-static PyObject *__pyx_n_s_src_sparse_queryknn_guided;
-static PyObject *__pyx_kp_s_src_sparse_queryknn_guided_pyx;
 static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_n_s_tile;
 static PyObject *__pyx_n_s_time;
@@ -1312,7 +1314,7 @@ static PyObject *__pyx_n_s_unique;
 static PyObject *__pyx_n_s_v_q;
 static PyObject *__pyx_n_s_v_ref;
 static PyObject *__pyx_n_s_verbose;
-static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_X_ref, PyObject *__pyx_v_X_q, PyObject *__pyx_v_leaves, PyObject *__pyx_v_ppl, PyObject *__pyx_v_k, PyObject *__pyx_v_knndis, PyObject *__pyx_v_knnidx, PyObject *__pyx_v_deviceId, PyObject *__pyx_v_verbose, PyObject *__pyx_v_leafIds, PyObject *__pyx_v_num_search_leaves); /* proto */
+static PyObject *__pyx_pf_15seqsearch_fused_18queryknn_seqsearch_py_queryknn_seqsearch_fused(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_X_ref, PyObject *__pyx_v_X_q, PyObject *__pyx_v_leaves, PyObject *__pyx_v_ppl, PyObject *__pyx_v_k, PyObject *__pyx_v_knndis, PyObject *__pyx_v_knnidx, PyObject *__pyx_v_deviceId, PyObject *__pyx_v_verbose, PyObject *__pyx_v_leafIds); /* proto */
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_1;
 static PyObject *__pyx_slice_;
@@ -1320,33 +1322,33 @@ static PyObject *__pyx_tuple__3;
 static PyObject *__pyx_codeobj__4;
 /* Late includes */
 
-/* "src/sparse/queryknn_guided.pyx":11
- *   void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *C_q, float *V_q, int *QId, int ppl, int leaves, int k, float *d_knn, int *d_knn_Id, int deviceId, int verbose, int nq, int *leafIds, int dim, int avgnnz, int num_search_leaves);
+/* "seqsearch_fused/queryknn_seqsearch.pyx":11
+ *   void query_leafknn_seqsearch(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *C_q, float *V_q, int *QId, int ppl, int leaves, int k, float *d_knn, int *d_knn_Id, int deviceId, int verbose, int nq, int dim, int avgnnz, int *glob_leafIds, int num_search_leaves, int *local_leafIds);
  * 
- * cdef wrapper_sparse_queryknn(size_t R_ref, size_t C_ref, size_t V_ref, size_t R_q, size_t C_q, size_t V_q, size_t QId, int ppl, int leaves, int k, size_t NDistPtr, size_t NIdPtr, int deviceId, int verbose, int nq, size_t leafIds, int dim, int avgnnz, int num_search_leaves):             # <<<<<<<<<<<<<<
- *   query_leafknn(<int*> R_ref, <int*> C_ref, <float*> V_ref, <int*> R_q, <int*> C_q, <float*> V_q, <int*> QId, ppl, leaves, k, <float*> NDistPtr, <int*> NIdPtr, deviceId, verbose, nq, <int*> leafIds, dim, avgnnz, num_search_leaves);
+ * cdef wrapper_sparse_queryknn_seqsearch(size_t R_ref, size_t C_ref, size_t V_ref, size_t R_q, size_t C_q, size_t V_q, size_t QId, int ppl, int leaves, int k, size_t NDistPtr, size_t NIdPtr, int deviceId, int verbose, int nq, int dim, int avgnnz, size_t glob_leafIds, int num_search_leaves, size_t local_leafIds):             # <<<<<<<<<<<<<<
+ *   query_leafknn_seqsearch(<int*> R_ref, <int*> C_ref, <float*> V_ref, <int*> R_q, <int*> C_q, <float*> V_q, <int*> QId, ppl, leaves, k, <float*> NDistPtr, <int*> NIdPtr, deviceId, verbose, nq,  dim, avgnnz, <int*> glob_leafIds, num_search_leaves, <int*> local_leafIds);
  * 
  */
 
-static PyObject *__pyx_f_3src_6sparse_15queryknn_guided_wrapper_sparse_queryknn(size_t __pyx_v_R_ref, size_t __pyx_v_C_ref, size_t __pyx_v_V_ref, size_t __pyx_v_R_q, size_t __pyx_v_C_q, size_t __pyx_v_V_q, size_t __pyx_v_QId, int __pyx_v_ppl, int __pyx_v_leaves, int __pyx_v_k, size_t __pyx_v_NDistPtr, size_t __pyx_v_NIdPtr, int __pyx_v_deviceId, int __pyx_v_verbose, int __pyx_v_nq, size_t __pyx_v_leafIds, int __pyx_v_dim, int __pyx_v_avgnnz, int __pyx_v_num_search_leaves) {
+static PyObject *__pyx_f_15seqsearch_fused_18queryknn_seqsearch_wrapper_sparse_queryknn_seqsearch(size_t __pyx_v_R_ref, size_t __pyx_v_C_ref, size_t __pyx_v_V_ref, size_t __pyx_v_R_q, size_t __pyx_v_C_q, size_t __pyx_v_V_q, size_t __pyx_v_QId, int __pyx_v_ppl, int __pyx_v_leaves, int __pyx_v_k, size_t __pyx_v_NDistPtr, size_t __pyx_v_NIdPtr, int __pyx_v_deviceId, int __pyx_v_verbose, int __pyx_v_nq, int __pyx_v_dim, int __pyx_v_avgnnz, size_t __pyx_v_glob_leafIds, int __pyx_v_num_search_leaves, size_t __pyx_v_local_leafIds) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("wrapper_sparse_queryknn", 0);
+  __Pyx_RefNannySetupContext("wrapper_sparse_queryknn_seqsearch", 0);
 
-  /* "src/sparse/queryknn_guided.pyx":12
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":12
  * 
- * cdef wrapper_sparse_queryknn(size_t R_ref, size_t C_ref, size_t V_ref, size_t R_q, size_t C_q, size_t V_q, size_t QId, int ppl, int leaves, int k, size_t NDistPtr, size_t NIdPtr, int deviceId, int verbose, int nq, size_t leafIds, int dim, int avgnnz, int num_search_leaves):
- *   query_leafknn(<int*> R_ref, <int*> C_ref, <float*> V_ref, <int*> R_q, <int*> C_q, <float*> V_q, <int*> QId, ppl, leaves, k, <float*> NDistPtr, <int*> NIdPtr, deviceId, verbose, nq, <int*> leafIds, dim, avgnnz, num_search_leaves);             # <<<<<<<<<<<<<<
+ * cdef wrapper_sparse_queryknn_seqsearch(size_t R_ref, size_t C_ref, size_t V_ref, size_t R_q, size_t C_q, size_t V_q, size_t QId, int ppl, int leaves, int k, size_t NDistPtr, size_t NIdPtr, int deviceId, int verbose, int nq, int dim, int avgnnz, size_t glob_leafIds, int num_search_leaves, size_t local_leafIds):
+ *   query_leafknn_seqsearch(<int*> R_ref, <int*> C_ref, <float*> V_ref, <int*> R_q, <int*> C_q, <float*> V_q, <int*> QId, ppl, leaves, k, <float*> NDistPtr, <int*> NIdPtr, deviceId, verbose, nq,  dim, avgnnz, <int*> glob_leafIds, num_search_leaves, <int*> local_leafIds);             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  query_leafknn(((int *)__pyx_v_R_ref), ((int *)__pyx_v_C_ref), ((float *)__pyx_v_V_ref), ((int *)__pyx_v_R_q), ((int *)__pyx_v_C_q), ((float *)__pyx_v_V_q), ((int *)__pyx_v_QId), __pyx_v_ppl, __pyx_v_leaves, __pyx_v_k, ((float *)__pyx_v_NDistPtr), ((int *)__pyx_v_NIdPtr), __pyx_v_deviceId, __pyx_v_verbose, __pyx_v_nq, ((int *)__pyx_v_leafIds), __pyx_v_dim, __pyx_v_avgnnz, __pyx_v_num_search_leaves);
+  query_leafknn_seqsearch(((int *)__pyx_v_R_ref), ((int *)__pyx_v_C_ref), ((float *)__pyx_v_V_ref), ((int *)__pyx_v_R_q), ((int *)__pyx_v_C_q), ((float *)__pyx_v_V_q), ((int *)__pyx_v_QId), __pyx_v_ppl, __pyx_v_leaves, __pyx_v_k, ((float *)__pyx_v_NDistPtr), ((int *)__pyx_v_NIdPtr), __pyx_v_deviceId, __pyx_v_verbose, __pyx_v_nq, __pyx_v_dim, __pyx_v_avgnnz, ((int *)__pyx_v_glob_leafIds), __pyx_v_num_search_leaves, ((int *)__pyx_v_local_leafIds));
 
-  /* "src/sparse/queryknn_guided.pyx":11
- *   void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *C_q, float *V_q, int *QId, int ppl, int leaves, int k, float *d_knn, int *d_knn_Id, int deviceId, int verbose, int nq, int *leafIds, int dim, int avgnnz, int num_search_leaves);
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":11
+ *   void query_leafknn_seqsearch(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int *C_q, float *V_q, int *QId, int ppl, int leaves, int k, float *d_knn, int *d_knn_Id, int deviceId, int verbose, int nq, int dim, int avgnnz, int *glob_leafIds, int num_search_leaves, int *local_leafIds);
  * 
- * cdef wrapper_sparse_queryknn(size_t R_ref, size_t C_ref, size_t V_ref, size_t R_q, size_t C_q, size_t V_q, size_t QId, int ppl, int leaves, int k, size_t NDistPtr, size_t NIdPtr, int deviceId, int verbose, int nq, size_t leafIds, int dim, int avgnnz, int num_search_leaves):             # <<<<<<<<<<<<<<
- *   query_leafknn(<int*> R_ref, <int*> C_ref, <float*> V_ref, <int*> R_q, <int*> C_q, <float*> V_q, <int*> QId, ppl, leaves, k, <float*> NDistPtr, <int*> NIdPtr, deviceId, verbose, nq, <int*> leafIds, dim, avgnnz, num_search_leaves);
+ * cdef wrapper_sparse_queryknn_seqsearch(size_t R_ref, size_t C_ref, size_t V_ref, size_t R_q, size_t C_q, size_t V_q, size_t QId, int ppl, int leaves, int k, size_t NDistPtr, size_t NIdPtr, int deviceId, int verbose, int nq, int dim, int avgnnz, size_t glob_leafIds, int num_search_leaves, size_t local_leafIds):             # <<<<<<<<<<<<<<
+ *   query_leafknn_seqsearch(<int*> R_ref, <int*> C_ref, <float*> V_ref, <int*> R_q, <int*> C_q, <float*> V_q, <int*> QId, ppl, leaves, k, <float*> NDistPtr, <int*> NIdPtr, deviceId, verbose, nq,  dim, avgnnz, <int*> glob_leafIds, num_search_leaves, <int*> local_leafIds);
  * 
  */
 
@@ -1357,18 +1359,18 @@ static PyObject *__pyx_f_3src_6sparse_15queryknn_guided_wrapper_sparse_queryknn(
   return __pyx_r;
 }
 
-/* "src/sparse/queryknn_guided.pyx":19
+/* "seqsearch_fused/queryknn_seqsearch.pyx":19
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def py_queryknn(X_ref, X_q, leaves, ppl, k, knndis, knnidx, deviceId, verbose, leafIds, num_search_leaves):             # <<<<<<<<<<<<<<
+ * def py_queryknn_seqsearch_fused(X_ref, X_q, leaves, ppl, k, knndis, knnidx, deviceId, verbose, leafIds):             # <<<<<<<<<<<<<<
  * 
  * 
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_3src_6sparse_15queryknn_guided_1py_queryknn(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_3src_6sparse_15queryknn_guided_1py_queryknn = {"py_queryknn", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_3src_6sparse_15queryknn_guided_1py_queryknn, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_3src_6sparse_15queryknn_guided_1py_queryknn(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_15seqsearch_fused_18queryknn_seqsearch_1py_queryknn_seqsearch_fused(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_15seqsearch_fused_18queryknn_seqsearch_1py_queryknn_seqsearch_fused = {"py_queryknn_seqsearch_fused", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_15seqsearch_fused_18queryknn_seqsearch_1py_queryknn_seqsearch_fused, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_15seqsearch_fused_18queryknn_seqsearch_1py_queryknn_seqsearch_fused(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_X_ref = 0;
   PyObject *__pyx_v_X_q = 0;
   PyObject *__pyx_v_leaves = 0;
@@ -1379,22 +1381,19 @@ static PyObject *__pyx_pw_3src_6sparse_15queryknn_guided_1py_queryknn(PyObject *
   PyObject *__pyx_v_deviceId = 0;
   PyObject *__pyx_v_verbose = 0;
   PyObject *__pyx_v_leafIds = 0;
-  PyObject *__pyx_v_num_search_leaves = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("py_queryknn (wrapper)", 0);
+  __Pyx_RefNannySetupContext("py_queryknn_seqsearch_fused (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_X_ref,&__pyx_n_s_X_q,&__pyx_n_s_leaves,&__pyx_n_s_ppl,&__pyx_n_s_k,&__pyx_n_s_knndis,&__pyx_n_s_knnidx,&__pyx_n_s_deviceId,&__pyx_n_s_verbose,&__pyx_n_s_leafIds,&__pyx_n_s_num_search_leaves,0};
-    PyObject* values[11] = {0,0,0,0,0,0,0,0,0,0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_X_ref,&__pyx_n_s_X_q,&__pyx_n_s_leaves,&__pyx_n_s_ppl,&__pyx_n_s_k,&__pyx_n_s_knndis,&__pyx_n_s_knnidx,&__pyx_n_s_deviceId,&__pyx_n_s_verbose,&__pyx_n_s_leafIds,0};
+    PyObject* values[10] = {0,0,0,0,0,0,0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
-        case 11: values[10] = PyTuple_GET_ITEM(__pyx_args, 10);
-        CYTHON_FALLTHROUGH;
         case 10: values[9] = PyTuple_GET_ITEM(__pyx_args, 9);
         CYTHON_FALLTHROUGH;
         case  9: values[8] = PyTuple_GET_ITEM(__pyx_args, 8);
@@ -1427,67 +1426,61 @@ static PyObject *__pyx_pw_3src_6sparse_15queryknn_guided_1py_queryknn(PyObject *
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_X_q)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 1); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 1); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_leaves)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 2); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 2); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_ppl)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 3); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 3); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_k)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 4); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 4); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  5:
         if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_knndis)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 5); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 5); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  6:
         if (likely((values[6] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_knnidx)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 6); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 6); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  7:
         if (likely((values[7] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_deviceId)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 7); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 7); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  8:
         if (likely((values[8] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_verbose)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 8); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 8); __PYX_ERR(0, 19, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  9:
         if (likely((values[9] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_leafIds)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 9); __PYX_ERR(0, 19, __pyx_L3_error)
-        }
-        CYTHON_FALLTHROUGH;
-        case 10:
-        if (likely((values[10] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_num_search_leaves)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, 10); __PYX_ERR(0, 19, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, 9); __PYX_ERR(0, 19, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "py_queryknn") < 0)) __PYX_ERR(0, 19, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "py_queryknn_seqsearch_fused") < 0)) __PYX_ERR(0, 19, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 11) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 10) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
@@ -1500,7 +1493,6 @@ static PyObject *__pyx_pw_3src_6sparse_15queryknn_guided_1py_queryknn(PyObject *
       values[7] = PyTuple_GET_ITEM(__pyx_args, 7);
       values[8] = PyTuple_GET_ITEM(__pyx_args, 8);
       values[9] = PyTuple_GET_ITEM(__pyx_args, 9);
-      values[10] = PyTuple_GET_ITEM(__pyx_args, 10);
     }
     __pyx_v_X_ref = values[0];
     __pyx_v_X_q = values[1];
@@ -1512,38 +1504,40 @@ static PyObject *__pyx_pw_3src_6sparse_15queryknn_guided_1py_queryknn(PyObject *
     __pyx_v_deviceId = values[7];
     __pyx_v_verbose = values[8];
     __pyx_v_leafIds = values[9];
-    __pyx_v_num_search_leaves = values[10];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("py_queryknn", 1, 11, 11, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 19, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("py_queryknn_seqsearch_fused", 1, 10, 10, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 19, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("src.sparse.queryknn_guided.py_queryknn", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("seqsearch_fused.queryknn_seqsearch.py_queryknn_seqsearch_fused", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(__pyx_self, __pyx_v_X_ref, __pyx_v_X_q, __pyx_v_leaves, __pyx_v_ppl, __pyx_v_k, __pyx_v_knndis, __pyx_v_knnidx, __pyx_v_deviceId, __pyx_v_verbose, __pyx_v_leafIds, __pyx_v_num_search_leaves);
+  __pyx_r = __pyx_pf_15seqsearch_fused_18queryknn_seqsearch_py_queryknn_seqsearch_fused(__pyx_self, __pyx_v_X_ref, __pyx_v_X_q, __pyx_v_leaves, __pyx_v_ppl, __pyx_v_k, __pyx_v_knndis, __pyx_v_knnidx, __pyx_v_deviceId, __pyx_v_verbose, __pyx_v_leafIds);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_X_ref, PyObject *__pyx_v_X_q, PyObject *__pyx_v_leaves, PyObject *__pyx_v_ppl, PyObject *__pyx_v_k, PyObject *__pyx_v_knndis, PyObject *__pyx_v_knnidx, PyObject *__pyx_v_deviceId, PyObject *__pyx_v_verbose, PyObject *__pyx_v_leafIds, PyObject *__pyx_v_num_search_leaves) {
+static PyObject *__pyx_pf_15seqsearch_fused_18queryknn_seqsearch_py_queryknn_seqsearch_fused(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_X_ref, PyObject *__pyx_v_X_q, PyObject *__pyx_v_leaves, PyObject *__pyx_v_ppl, PyObject *__pyx_v_k, PyObject *__pyx_v_knndis, PyObject *__pyx_v_knnidx, PyObject *__pyx_v_deviceId, PyObject *__pyx_v_verbose, PyObject *__pyx_v_leafIds) {
   PyObject *__pyx_v_qId = NULL;
   PyObject *__pyx_v_unique = NULL;
-  CYTHON_UNUSED PyObject *__pyx_v_inverse = NULL;
+  PyObject *__pyx_v_inverse = NULL;
   PyObject *__pyx_v_tmp = NULL;
   PyObject *__pyx_v_indices = NULL;
   PyObject *__pyx_v_X_ref_cop = NULL;
+  PyObject *__pyx_v_X_q_c = NULL;
   PyObject *__pyx_v_v_ref = NULL;
   PyObject *__pyx_v_idx_ref = NULL;
   PyObject *__pyx_v_rowptr_ref = NULL;
-  PyObject *__pyx_v_SortedLeafIds = NULL;
+  PyObject *__pyx_v_num_search_leaves = NULL;
   PyObject *__pyx_v_v_q = NULL;
   PyObject *__pyx_v_idx_q = NULL;
   PyObject *__pyx_v_rowptr_q = NULL;
   PyObject *__pyx_v_hId = NULL;
+  PyObject *__pyx_v_glob_leafIds = NULL;
+  PyObject *__pyx_v_local_leafIds = NULL;
   PyObject *__pyx_v_nDist = NULL;
   PyObject *__pyx_v_nId = NULL;
   CYTHON_UNUSED PyObject *__pyx_v__ = NULL;
@@ -1574,17 +1568,17 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   int __pyx_t_20;
   int __pyx_t_21;
   int __pyx_t_22;
-  size_t __pyx_t_23;
+  int __pyx_t_23;
   int __pyx_t_24;
-  int __pyx_t_25;
+  size_t __pyx_t_25;
   int __pyx_t_26;
+  size_t __pyx_t_27;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("py_queryknn", 0);
-  __Pyx_INCREF(__pyx_v_X_q);
+  __Pyx_RefNannySetupContext("py_queryknn_seqsearch_fused", 0);
 
-  /* "src/sparse/queryknn_guided.pyx":23
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":23
  * 
  * 
  *   qId = cp.asarray(cp.argsort(leafIds), dtype=cp.int32)             # <<<<<<<<<<<<<<
@@ -1638,7 +1632,7 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   __pyx_v_qId = __pyx_t_5;
   __pyx_t_5 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":24
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":24
  * 
  *   qId = cp.asarray(cp.argsort(leafIds), dtype=cp.int32)
  *   unique, inverse = cp.unique(leafIds[qId], return_inverse=True)             # <<<<<<<<<<<<<<
@@ -1716,12 +1710,12 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   __pyx_v_inverse = __pyx_t_4;
   __pyx_t_4 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":25
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":25
  *   qId = cp.asarray(cp.argsort(leafIds), dtype=cp.int32)
  *   unique, inverse = cp.unique(leafIds[qId], return_inverse=True)
  *   tmp = cp.arange(0, ppl, dtype=cp.int32)             # <<<<<<<<<<<<<<
  *   indices = cp.tile(tmp, (unique.shape[0], 1))
- *   indices += cp.tile(cp.expand_dims(unique,1),(1, indices.shape[1]))*ppl
+ *   indices += cp.tile(cp.expand_dims(unique, 1), (1, indices.shape[1]))*ppl
  */
   __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_cp); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 25, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -1753,12 +1747,12 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   __pyx_v_tmp = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":26
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":26
  *   unique, inverse = cp.unique(leafIds[qId], return_inverse=True)
  *   tmp = cp.arange(0, ppl, dtype=cp.int32)
  *   indices = cp.tile(tmp, (unique.shape[0], 1))             # <<<<<<<<<<<<<<
- *   indices += cp.tile(cp.expand_dims(unique,1),(1, indices.shape[1]))*ppl
- * 
+ *   indices += cp.tile(cp.expand_dims(unique, 1), (1, indices.shape[1]))*ppl
+ *   indices = indices.ravel()
  */
   __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_cp); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
@@ -1828,12 +1822,12 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   __pyx_v_indices = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":27
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":27
  *   tmp = cp.arange(0, ppl, dtype=cp.int32)
  *   indices = cp.tile(tmp, (unique.shape[0], 1))
- *   indices += cp.tile(cp.expand_dims(unique,1),(1, indices.shape[1]))*ppl             # <<<<<<<<<<<<<<
- * 
- *   #indices = cp.linspace(unique, unique + ppl, ppl, endpoint=False, dtype=cp.int32).flatten('F')
+ *   indices += cp.tile(cp.expand_dims(unique, 1), (1, indices.shape[1]))*ppl             # <<<<<<<<<<<<<<
+ *   indices = indices.ravel()
+ *   X_ref_cop = X_ref[indices, :]
  */
   __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_cp); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 27, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -1961,74 +1955,41 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   __Pyx_DECREF_SET(__pyx_v_indices, __pyx_t_3);
   __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":30
- * 
- *   #indices = cp.linspace(unique, unique + ppl, ppl, endpoint=False, dtype=cp.int32).flatten('F')
- *   indices = cp.ravel(indices, 'F')             # <<<<<<<<<<<<<<
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":28
+ *   indices = cp.tile(tmp, (unique.shape[0], 1))
+ *   indices += cp.tile(cp.expand_dims(unique, 1), (1, indices.shape[1]))*ppl
+ *   indices = indices.ravel()             # <<<<<<<<<<<<<<
  *   X_ref_cop = X_ref[indices, :]
- *   X_q = X_q[qId, :]
+ * 
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_cp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 30, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_indices, __pyx_n_s_ravel); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 28, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_ravel); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 30, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = NULL;
-  __pyx_t_7 = 0;
-  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_5))) {
-    __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_5);
-    if (likely(__pyx_t_1)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_5);
-      __Pyx_INCREF(__pyx_t_1);
+  __pyx_t_5 = NULL;
+  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_1))) {
+    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_1);
+    if (likely(__pyx_t_5)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
+      __Pyx_INCREF(__pyx_t_5);
       __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_5, function);
-      __pyx_t_7 = 1;
+      __Pyx_DECREF_SET(__pyx_t_1, function);
     }
   }
-  #if CYTHON_FAST_PYCALL
-  if (PyFunction_Check(__pyx_t_5)) {
-    PyObject *__pyx_temp[3] = {__pyx_t_1, __pyx_v_indices, __pyx_n_s_F};
-    __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-__pyx_t_7, 2+__pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
-    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __Pyx_GOTREF(__pyx_t_3);
-  } else
-  #endif
-  #if CYTHON_FAST_PYCCALL
-  if (__Pyx_PyFastCFunction_Check(__pyx_t_5)) {
-    PyObject *__pyx_temp[3] = {__pyx_t_1, __pyx_v_indices, __pyx_n_s_F};
-    __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-__pyx_t_7, 2+__pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
-    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __Pyx_GOTREF(__pyx_t_3);
-  } else
-  #endif
-  {
-    __pyx_t_4 = PyTuple_New(2+__pyx_t_7); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 30, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_4);
-    if (__pyx_t_1) {
-      __Pyx_GIVEREF(__pyx_t_1); PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_1); __pyx_t_1 = NULL;
-    }
-    __Pyx_INCREF(__pyx_v_indices);
-    __Pyx_GIVEREF(__pyx_v_indices);
-    PyTuple_SET_ITEM(__pyx_t_4, 0+__pyx_t_7, __pyx_v_indices);
-    __Pyx_INCREF(__pyx_n_s_F);
-    __Pyx_GIVEREF(__pyx_n_s_F);
-    PyTuple_SET_ITEM(__pyx_t_4, 1+__pyx_t_7, __pyx_n_s_F);
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_4, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_3);
-    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  }
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_t_3 = (__pyx_t_5) ? __Pyx_PyObject_CallOneArg(__pyx_t_1, __pyx_t_5) : __Pyx_PyObject_CallNoArg(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
+  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 28, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF_SET(__pyx_v_indices, __pyx_t_3);
   __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":31
- *   #indices = cp.linspace(unique, unique + ppl, ppl, endpoint=False, dtype=cp.int32).flatten('F')
- *   indices = cp.ravel(indices, 'F')
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":29
+ *   indices += cp.tile(cp.expand_dims(unique, 1), (1, indices.shape[1]))*ppl
+ *   indices = indices.ravel()
  *   X_ref_cop = X_ref[indices, :]             # <<<<<<<<<<<<<<
- *   X_q = X_q[qId, :]
+ * 
  * 
  */
-  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 31, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 29, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_INCREF(__pyx_v_indices);
   __Pyx_GIVEREF(__pyx_v_indices);
@@ -2036,35 +1997,35 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   __Pyx_INCREF(__pyx_slice_);
   __Pyx_GIVEREF(__pyx_slice_);
   PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_slice_);
-  __pyx_t_5 = __Pyx_PyObject_GetItem(__pyx_v_X_ref, __pyx_t_3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 31, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_1 = __Pyx_PyObject_GetItem(__pyx_v_X_ref, __pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 29, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_X_ref_cop = __pyx_t_5;
-  __pyx_t_5 = 0;
+  __pyx_v_X_ref_cop = __pyx_t_1;
+  __pyx_t_1 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":32
- *   indices = cp.ravel(indices, 'F')
- *   X_ref_cop = X_ref[indices, :]
- *   X_q = X_q[qId, :]             # <<<<<<<<<<<<<<
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":32
+ * 
+ * 
+ *   X_q_c = X_q[qId, :]             # <<<<<<<<<<<<<<
  * 
  *   v_ref = X_ref_cop.data.data.ptr
  */
-  __pyx_t_5 = PyTuple_New(2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 32, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 32, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_INCREF(__pyx_v_qId);
   __Pyx_GIVEREF(__pyx_v_qId);
-  PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_v_qId);
+  PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_qId);
   __Pyx_INCREF(__pyx_slice_);
   __Pyx_GIVEREF(__pyx_slice_);
-  PyTuple_SET_ITEM(__pyx_t_5, 1, __pyx_slice_);
-  __pyx_t_3 = __Pyx_PyObject_GetItem(__pyx_v_X_q, __pyx_t_5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 32, __pyx_L1_error)
+  PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_slice_);
+  __pyx_t_3 = __Pyx_PyObject_GetItem(__pyx_v_X_q, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 32, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __Pyx_DECREF_SET(__pyx_v_X_q, __pyx_t_3);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_v_X_q_c = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":34
- *   X_q = X_q[qId, :]
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":34
+ *   X_q_c = X_q[qId, :]
  * 
  *   v_ref = X_ref_cop.data.data.ptr             # <<<<<<<<<<<<<<
  *   idx_ref = X_ref_cop.indices.data.ptr
@@ -2072,390 +2033,244 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
  */
   __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_ref_cop, __pyx_n_s_data); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 34, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 34, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 34, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_v_ref = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":35
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":35
  * 
  *   v_ref = X_ref_cop.data.data.ptr
  *   idx_ref = X_ref_cop.indices.data.ptr             # <<<<<<<<<<<<<<
  *   rowptr_ref = X_ref_cop.indptr.data.ptr
- *   unique = cp.asarray(unique, dtype=cp.int32)
+ * 
  */
   __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_ref_cop, __pyx_n_s_indices); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 35, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 35, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 35, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 35, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 35, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_idx_ref = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":36
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":36
  *   v_ref = X_ref_cop.data.data.ptr
  *   idx_ref = X_ref_cop.indices.data.ptr
  *   rowptr_ref = X_ref_cop.indptr.data.ptr             # <<<<<<<<<<<<<<
- *   unique = cp.asarray(unique, dtype=cp.int32)
- *   SortedLeafIds = unique.data.ptr
+ * 
+ * 
  */
   __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_ref_cop, __pyx_n_s_indptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 36, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 36, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 36, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 36, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 36, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_rowptr_ref = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":37
- *   idx_ref = X_ref_cop.indices.data.ptr
- *   rowptr_ref = X_ref_cop.indptr.data.ptr
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":39
+ * 
+ * 
  *   unique = cp.asarray(unique, dtype=cp.int32)             # <<<<<<<<<<<<<<
- *   SortedLeafIds = unique.data.ptr
+ *   inverse = cp.asarray(inverse, dtype=cp.int32)
  * 
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_cp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 37, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_cp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_asarray); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 37, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_asarray); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 39, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 37, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_INCREF(__pyx_v_unique);
   __Pyx_GIVEREF(__pyx_v_unique);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_unique);
-  __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 37, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 39, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_cp); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_cp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 37, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_int32); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 37, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_int32); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 39, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_dtype, __pyx_t_2) < 0) __PYX_ERR(0, 39, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_3, __pyx_t_5); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_dtype, __pyx_t_2) < 0) __PYX_ERR(0, 37, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 37, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF_SET(__pyx_v_unique, __pyx_t_2);
   __pyx_t_2 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":38
- *   rowptr_ref = X_ref_cop.indptr.data.ptr
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":40
+ * 
  *   unique = cp.asarray(unique, dtype=cp.int32)
- *   SortedLeafIds = unique.data.ptr             # <<<<<<<<<<<<<<
+ *   inverse = cp.asarray(inverse, dtype=cp.int32)             # <<<<<<<<<<<<<<
  * 
- *   v_q = X_q.data.data.ptr
+ *   num_search_leaves = unique.shape[0]
  */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_unique, __pyx_n_s_data); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_cp); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 40, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 38, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_asarray); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 40, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_SortedLeafIds = __pyx_t_4;
-  __pyx_t_4 = 0;
-
-  /* "src/sparse/queryknn_guided.pyx":40
- *   SortedLeafIds = unique.data.ptr
- * 
- *   v_q = X_q.data.data.ptr             # <<<<<<<<<<<<<<
- *   idx_q = X_q.indices.data.ptr
- *   rowptr_q = X_q.indptr.data.ptr
- */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 40, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_data); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 40, __pyx_L1_error)
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 40, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_INCREF(__pyx_v_inverse);
+  __Pyx_GIVEREF(__pyx_v_inverse);
+  PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_v_inverse);
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 40, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_cp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 40, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_int32); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 40, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_4) < 0) __PYX_ERR(0, 40, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 40, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 40, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_v_q = __pyx_t_4;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __Pyx_DECREF_SET(__pyx_v_inverse, __pyx_t_4);
   __pyx_t_4 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":41
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":42
+ *   inverse = cp.asarray(inverse, dtype=cp.int32)
  * 
- *   v_q = X_q.data.data.ptr
- *   idx_q = X_q.indices.data.ptr             # <<<<<<<<<<<<<<
- *   rowptr_q = X_q.indptr.data.ptr
+ *   num_search_leaves = unique.shape[0]             # <<<<<<<<<<<<<<
+ * 
+ *   v_q = X_q_c.data.data.ptr
+ */
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_unique, __pyx_n_s_shape); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_4, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_v_num_search_leaves = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":44
+ *   num_search_leaves = unique.shape[0]
+ * 
+ *   v_q = X_q_c.data.data.ptr             # <<<<<<<<<<<<<<
+ *   idx_q = X_q_c.indices.data.ptr
+ *   rowptr_q = X_q_c.indptr.data.ptr
+ */
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q_c, __pyx_n_s_data); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_v_v_q = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":45
+ * 
+ *   v_q = X_q_c.data.data.ptr
+ *   idx_q = X_q_c.indices.data.ptr             # <<<<<<<<<<<<<<
+ *   rowptr_q = X_q_c.indptr.data.ptr
  * 
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q, __pyx_n_s_indices); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 41, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q_c, __pyx_n_s_indices); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 45, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_data); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 41, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 45, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 41, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_idx_q = __pyx_t_4;
-  __pyx_t_4 = 0;
+  __pyx_v_idx_q = __pyx_t_3;
+  __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":42
- *   v_q = X_q.data.data.ptr
- *   idx_q = X_q.indices.data.ptr
- *   rowptr_q = X_q.indptr.data.ptr             # <<<<<<<<<<<<<<
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":46
+ *   v_q = X_q_c.data.data.ptr
+ *   idx_q = X_q_c.indices.data.ptr
+ *   rowptr_q = X_q_c.indptr.data.ptr             # <<<<<<<<<<<<<<
  * 
  *   hId = qId.data.ptr
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q, __pyx_n_s_indptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q_c, __pyx_n_s_indptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_data); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 42, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 42, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_rowptr_q = __pyx_t_4;
-  __pyx_t_4 = 0;
+  __pyx_v_rowptr_q = __pyx_t_3;
+  __pyx_t_3 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":44
- *   rowptr_q = X_q.indptr.data.ptr
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":48
+ *   rowptr_q = X_q_c.indptr.data.ptr
  * 
  *   hId = qId.data.ptr             # <<<<<<<<<<<<<<
+ *   glob_leafIds = unique.data.ptr
+ *   local_leafIds = inverse.data.ptr
+ */
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_qId, __pyx_n_s_data); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 48, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 48, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_hId = __pyx_t_4;
+  __pyx_t_4 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":49
+ * 
+ *   hId = qId.data.ptr
+ *   glob_leafIds = unique.data.ptr             # <<<<<<<<<<<<<<
+ *   local_leafIds = inverse.data.ptr
+ * 
+ */
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_unique, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 49, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 49, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_v_glob_leafIds = __pyx_t_3;
+  __pyx_t_3 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":50
+ *   hId = qId.data.ptr
+ *   glob_leafIds = unique.data.ptr
+ *   local_leafIds = inverse.data.ptr             # <<<<<<<<<<<<<<
  * 
  *   nDist = knndis.ravel().data.ptr
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_qId, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_inverse, __pyx_n_s_data); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 50, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 44, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_v_hId = __pyx_t_2;
-  __pyx_t_2 = 0;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_local_leafIds = __pyx_t_4;
+  __pyx_t_4 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":46
- *   hId = qId.data.ptr
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":52
+ *   local_leafIds = inverse.data.ptr
  * 
  *   nDist = knndis.ravel().data.ptr             # <<<<<<<<<<<<<<
  *   nId = knnidx.ravel().data.ptr
- *   _, d = X_q.shape;
+ *   _, d = X_q_c.shape;
  */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_knndis, __pyx_n_s_ravel); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 46, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_4))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_4);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_4);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_4, function);
-    }
-  }
-  __pyx_t_2 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 46, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 46, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 46, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_v_nDist = __pyx_t_2;
-  __pyx_t_2 = 0;
-
-  /* "src/sparse/queryknn_guided.pyx":47
- * 
- *   nDist = knndis.ravel().data.ptr
- *   nId = knnidx.ravel().data.ptr             # <<<<<<<<<<<<<<
- *   _, d = X_q.shape;
- *   avgnnz = cp.mean(cp.diff(X_q.indptr))
- */
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_knnidx, __pyx_n_s_ravel); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 47, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = NULL;
-  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_4))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_4);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_4);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_4, function);
-    }
-  }
-  __pyx_t_2 = (__pyx_t_3) ? __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallNoArg(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 47, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_data); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 47, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_ptr); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 47, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_v_nId = __pyx_t_2;
-  __pyx_t_2 = 0;
-
-  /* "src/sparse/queryknn_guided.pyx":48
- *   nDist = knndis.ravel().data.ptr
- *   nId = knnidx.ravel().data.ptr
- *   _, d = X_q.shape;             # <<<<<<<<<<<<<<
- *   avgnnz = cp.mean(cp.diff(X_q.indptr))
- *   avgnnz = int(avgnnz)
- */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q, __pyx_n_s_shape); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 48, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  if ((likely(PyTuple_CheckExact(__pyx_t_2))) || (PyList_CheckExact(__pyx_t_2))) {
-    PyObject* sequence = __pyx_t_2;
-    Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
-    if (unlikely(size != 2)) {
-      if (size > 2) __Pyx_RaiseTooManyValuesError(2);
-      else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-      __PYX_ERR(0, 48, __pyx_L1_error)
-    }
-    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    if (likely(PyTuple_CheckExact(sequence))) {
-      __pyx_t_4 = PyTuple_GET_ITEM(sequence, 0); 
-      __pyx_t_3 = PyTuple_GET_ITEM(sequence, 1); 
-    } else {
-      __pyx_t_4 = PyList_GET_ITEM(sequence, 0); 
-      __pyx_t_3 = PyList_GET_ITEM(sequence, 1); 
-    }
-    __Pyx_INCREF(__pyx_t_4);
-    __Pyx_INCREF(__pyx_t_3);
-    #else
-    __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 48, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_3 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 48, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_3);
-    #endif
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  } else {
-    Py_ssize_t index = -1;
-    __pyx_t_5 = PyObject_GetIter(__pyx_t_2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 48, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_6 = Py_TYPE(__pyx_t_5)->tp_iternext;
-    index = 0; __pyx_t_4 = __pyx_t_6(__pyx_t_5); if (unlikely(!__pyx_t_4)) goto __pyx_L5_unpacking_failed;
-    __Pyx_GOTREF(__pyx_t_4);
-    index = 1; __pyx_t_3 = __pyx_t_6(__pyx_t_5); if (unlikely(!__pyx_t_3)) goto __pyx_L5_unpacking_failed;
-    __Pyx_GOTREF(__pyx_t_3);
-    if (__Pyx_IternextUnpackEndCheck(__pyx_t_6(__pyx_t_5), 2) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
-    __pyx_t_6 = NULL;
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    goto __pyx_L6_unpacking_done;
-    __pyx_L5_unpacking_failed:;
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_6 = NULL;
-    if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-    __PYX_ERR(0, 48, __pyx_L1_error)
-    __pyx_L6_unpacking_done:;
-  }
-  __pyx_v__ = __pyx_t_4;
-  __pyx_t_4 = 0;
-  __pyx_v_d = __pyx_t_3;
-  __pyx_t_3 = 0;
-
-  /* "src/sparse/queryknn_guided.pyx":49
- *   nId = knnidx.ravel().data.ptr
- *   _, d = X_q.shape;
- *   avgnnz = cp.mean(cp.diff(X_q.indptr))             # <<<<<<<<<<<<<<
- *   avgnnz = int(avgnnz)
- *   nq = X_q.shape[0]
- */
-  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_cp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 49, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_knndis, __pyx_n_s_ravel); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 52, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_mean); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 49, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_cp); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 49, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_diff); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 49, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q, __pyx_n_s_indptr); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 49, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_8 = NULL;
-  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_1))) {
-    __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_1);
-    if (likely(__pyx_t_8)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
-      __Pyx_INCREF(__pyx_t_8);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_1, function);
-    }
-  }
-  __pyx_t_3 = (__pyx_t_8) ? __Pyx_PyObject_Call2Args(__pyx_t_1, __pyx_t_8, __pyx_t_5) : __Pyx_PyObject_CallOneArg(__pyx_t_1, __pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 49, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = NULL;
-  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_4))) {
-    __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_4);
-    if (likely(__pyx_t_1)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_4);
-      __Pyx_INCREF(__pyx_t_1);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_4, function);
-    }
-  }
-  __pyx_t_2 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_4, __pyx_t_1, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_v_avgnnz = __pyx_t_2;
-  __pyx_t_2 = 0;
-
-  /* "src/sparse/queryknn_guided.pyx":50
- *   _, d = X_q.shape;
- *   avgnnz = cp.mean(cp.diff(X_q.indptr))
- *   avgnnz = int(avgnnz)             # <<<<<<<<<<<<<<
- *   nq = X_q.shape[0]
- *   nq = cp.int32(nq)
- */
-  __pyx_t_2 = __Pyx_PyNumber_Int(__pyx_v_avgnnz); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 50, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF_SET(__pyx_v_avgnnz, __pyx_t_2);
-  __pyx_t_2 = 0;
-
-  /* "src/sparse/queryknn_guided.pyx":51
- *   avgnnz = cp.mean(cp.diff(X_q.indptr))
- *   avgnnz = int(avgnnz)
- *   nq = X_q.shape[0]             # <<<<<<<<<<<<<<
- *   nq = cp.int32(nq)
- *   d = int(d)
- */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q, __pyx_n_s_shape); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 51, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_4 = __Pyx_GetItemInt(__pyx_t_2, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 51, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_nq = __pyx_t_4;
-  __pyx_t_4 = 0;
-
-  /* "src/sparse/queryknn_guided.pyx":52
- *   avgnnz = int(avgnnz)
- *   nq = X_q.shape[0]
- *   nq = cp.int32(nq)             # <<<<<<<<<<<<<<
- *   d = int(d)
- *   wrapper_sparse_queryknn(rowptr_ref, idx_ref, v_ref, rowptr_q, idx_q, v_q, hId, ppl, leaves, k, nDist, nId, deviceId, verbose, nq, SortedLeafIds, d, avgnnz, num_search_leaves)
- */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_cp); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 52, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_int32); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 52, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_2 = NULL;
-  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_3))) {
+  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
     __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_3);
     if (likely(__pyx_t_2)) {
       PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
@@ -2464,80 +2279,275 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
       __Pyx_DECREF_SET(__pyx_t_3, function);
     }
   }
-  __pyx_t_4 = (__pyx_t_2) ? __Pyx_PyObject_Call2Args(__pyx_t_3, __pyx_t_2, __pyx_v_nq) : __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_v_nq);
+  __pyx_t_4 = (__pyx_t_2) ? __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_2) : __Pyx_PyObject_CallNoArg(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
   if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 52, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_data); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 52, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 52, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_nDist = __pyx_t_4;
+  __pyx_t_4 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":53
+ * 
+ *   nDist = knndis.ravel().data.ptr
+ *   nId = knnidx.ravel().data.ptr             # <<<<<<<<<<<<<<
+ *   _, d = X_q_c.shape;
+ *   avgnnz = cp.mean(cp.diff(X_q_c.indptr), dtype = cp.int32)
+ */
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_knnidx, __pyx_n_s_ravel); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 53, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_2 = NULL;
+  if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_3))) {
+    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_3);
+    if (likely(__pyx_t_2)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+      __Pyx_INCREF(__pyx_t_2);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_3, function);
+    }
+  }
+  __pyx_t_4 = (__pyx_t_2) ? __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_2) : __Pyx_PyObject_CallNoArg(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 53, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_data); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 53, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_ptr); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 53, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_nId = __pyx_t_4;
+  __pyx_t_4 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":54
+ *   nDist = knndis.ravel().data.ptr
+ *   nId = knnidx.ravel().data.ptr
+ *   _, d = X_q_c.shape;             # <<<<<<<<<<<<<<
+ *   avgnnz = cp.mean(cp.diff(X_q_c.indptr), dtype = cp.int32)
+ *   nq = X_q_c.shape[0]
+ */
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q_c, __pyx_n_s_shape); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  if ((likely(PyTuple_CheckExact(__pyx_t_4))) || (PyList_CheckExact(__pyx_t_4))) {
+    PyObject* sequence = __pyx_t_4;
+    Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
+    if (unlikely(size != 2)) {
+      if (size > 2) __Pyx_RaiseTooManyValuesError(2);
+      else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
+      __PYX_ERR(0, 54, __pyx_L1_error)
+    }
+    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    if (likely(PyTuple_CheckExact(sequence))) {
+      __pyx_t_3 = PyTuple_GET_ITEM(sequence, 0); 
+      __pyx_t_2 = PyTuple_GET_ITEM(sequence, 1); 
+    } else {
+      __pyx_t_3 = PyList_GET_ITEM(sequence, 0); 
+      __pyx_t_2 = PyList_GET_ITEM(sequence, 1); 
+    }
+    __Pyx_INCREF(__pyx_t_3);
+    __Pyx_INCREF(__pyx_t_2);
+    #else
+    __pyx_t_3 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 54, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_2 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 54, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    #endif
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  } else {
+    Py_ssize_t index = -1;
+    __pyx_t_5 = PyObject_GetIter(__pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 54, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_6 = Py_TYPE(__pyx_t_5)->tp_iternext;
+    index = 0; __pyx_t_3 = __pyx_t_6(__pyx_t_5); if (unlikely(!__pyx_t_3)) goto __pyx_L5_unpacking_failed;
+    __Pyx_GOTREF(__pyx_t_3);
+    index = 1; __pyx_t_2 = __pyx_t_6(__pyx_t_5); if (unlikely(!__pyx_t_2)) goto __pyx_L5_unpacking_failed;
+    __Pyx_GOTREF(__pyx_t_2);
+    if (__Pyx_IternextUnpackEndCheck(__pyx_t_6(__pyx_t_5), 2) < 0) __PYX_ERR(0, 54, __pyx_L1_error)
+    __pyx_t_6 = NULL;
+    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+    goto __pyx_L6_unpacking_done;
+    __pyx_L5_unpacking_failed:;
+    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+    __pyx_t_6 = NULL;
+    if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
+    __PYX_ERR(0, 54, __pyx_L1_error)
+    __pyx_L6_unpacking_done:;
+  }
+  __pyx_v__ = __pyx_t_3;
+  __pyx_t_3 = 0;
+  __pyx_v_d = __pyx_t_2;
+  __pyx_t_2 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":55
+ *   nId = knnidx.ravel().data.ptr
+ *   _, d = X_q_c.shape;
+ *   avgnnz = cp.mean(cp.diff(X_q_c.indptr), dtype = cp.int32)             # <<<<<<<<<<<<<<
+ *   nq = X_q_c.shape[0]
+ *   nq = cp.int32(nq)
+ */
+  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_cp); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_mean); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_cp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_diff); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q_c, __pyx_n_s_indptr); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_1 = NULL;
+  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_5))) {
+    __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_5);
+    if (likely(__pyx_t_1)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_5);
+      __Pyx_INCREF(__pyx_t_1);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_5, function);
+    }
+  }
+  __pyx_t_4 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_5, __pyx_t_1, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_t_5 = PyTuple_New(1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_GIVEREF(__pyx_t_4);
+  PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_4);
+  __pyx_t_4 = 0;
+  __pyx_t_4 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_cp); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_int32); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_dtype, __pyx_t_1) < 0) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_v_avgnnz = __pyx_t_1;
+  __pyx_t_1 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":56
+ *   _, d = X_q_c.shape;
+ *   avgnnz = cp.mean(cp.diff(X_q_c.indptr), dtype = cp.int32)
+ *   nq = X_q_c.shape[0]             # <<<<<<<<<<<<<<
+ *   nq = cp.int32(nq)
+ * 
+ */
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_X_q_c, __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_4 = __Pyx_GetItemInt(__pyx_t_1, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 56, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_v_nq = __pyx_t_4;
+  __pyx_t_4 = 0;
+
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":57
+ *   avgnnz = cp.mean(cp.diff(X_q_c.indptr), dtype = cp.int32)
+ *   nq = X_q_c.shape[0]
+ *   nq = cp.int32(nq)             # <<<<<<<<<<<<<<
+ * 
+ *   wrapper_sparse_queryknn_seqsearch(rowptr_ref, idx_ref, v_ref, rowptr_q, idx_q, v_q, hId, ppl, leaves, k, nDist, nId, deviceId, verbose, nq, d, avgnnz, glob_leafIds, num_search_leaves, local_leafIds)
+ */
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_cp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_int32); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 57, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_1 = NULL;
+  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_5))) {
+    __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_5);
+    if (likely(__pyx_t_1)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_5);
+      __Pyx_INCREF(__pyx_t_1);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_5, function);
+    }
+  }
+  __pyx_t_4 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_5, __pyx_t_1, __pyx_v_nq) : __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_v_nq);
+  __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+  if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 57, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF_SET(__pyx_v_nq, __pyx_t_4);
   __pyx_t_4 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":53
- *   nq = X_q.shape[0]
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":59
  *   nq = cp.int32(nq)
- *   d = int(d)             # <<<<<<<<<<<<<<
- *   wrapper_sparse_queryknn(rowptr_ref, idx_ref, v_ref, rowptr_q, idx_q, v_q, hId, ppl, leaves, k, nDist, nId, deviceId, verbose, nq, SortedLeafIds, d, avgnnz, num_search_leaves)
+ * 
+ *   wrapper_sparse_queryknn_seqsearch(rowptr_ref, idx_ref, v_ref, rowptr_q, idx_q, v_q, hId, ppl, leaves, k, nDist, nId, deviceId, verbose, nq, d, avgnnz, glob_leafIds, num_search_leaves, local_leafIds)             # <<<<<<<<<<<<<<
+ *   return knnidx, knndis, qId[0]
  * 
  */
-  __pyx_t_4 = __Pyx_PyNumber_Int(__pyx_v_d); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 53, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF_SET(__pyx_v_d, __pyx_t_4);
-  __pyx_t_4 = 0;
-
-  /* "src/sparse/queryknn_guided.pyx":54
- *   nq = cp.int32(nq)
- *   d = int(d)
- *   wrapper_sparse_queryknn(rowptr_ref, idx_ref, v_ref, rowptr_q, idx_q, v_q, hId, ppl, leaves, k, nDist, nId, deviceId, verbose, nq, SortedLeafIds, d, avgnnz, num_search_leaves)             # <<<<<<<<<<<<<<
- * 
- *   return (knnidx, knndis)
- */
-  __pyx_t_9 = __Pyx_PyInt_As_size_t(__pyx_v_rowptr_ref); if (unlikely((__pyx_t_9 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_10 = __Pyx_PyInt_As_size_t(__pyx_v_idx_ref); if (unlikely((__pyx_t_10 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_11 = __Pyx_PyInt_As_size_t(__pyx_v_v_ref); if (unlikely((__pyx_t_11 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_12 = __Pyx_PyInt_As_size_t(__pyx_v_rowptr_q); if (unlikely((__pyx_t_12 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_13 = __Pyx_PyInt_As_size_t(__pyx_v_idx_q); if (unlikely((__pyx_t_13 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_14 = __Pyx_PyInt_As_size_t(__pyx_v_v_q); if (unlikely((__pyx_t_14 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_15 = __Pyx_PyInt_As_size_t(__pyx_v_hId); if (unlikely((__pyx_t_15 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_7 = __Pyx_PyInt_As_int(__pyx_v_ppl); if (unlikely((__pyx_t_7 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_16 = __Pyx_PyInt_As_int(__pyx_v_leaves); if (unlikely((__pyx_t_16 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_17 = __Pyx_PyInt_As_int(__pyx_v_k); if (unlikely((__pyx_t_17 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_18 = __Pyx_PyInt_As_size_t(__pyx_v_nDist); if (unlikely((__pyx_t_18 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_19 = __Pyx_PyInt_As_size_t(__pyx_v_nId); if (unlikely((__pyx_t_19 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_20 = __Pyx_PyInt_As_int(__pyx_v_deviceId); if (unlikely((__pyx_t_20 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_21 = __Pyx_PyInt_As_int(__pyx_v_verbose); if (unlikely((__pyx_t_21 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_22 = __Pyx_PyInt_As_int(__pyx_v_nq); if (unlikely((__pyx_t_22 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_23 = __Pyx_PyInt_As_size_t(__pyx_v_SortedLeafIds); if (unlikely((__pyx_t_23 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_24 = __Pyx_PyInt_As_int(__pyx_v_d); if (unlikely((__pyx_t_24 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_25 = __Pyx_PyInt_As_int(__pyx_v_avgnnz); if (unlikely((__pyx_t_25 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_26 = __Pyx_PyInt_As_int(__pyx_v_num_search_leaves); if (unlikely((__pyx_t_26 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L1_error)
-  __pyx_t_4 = __pyx_f_3src_6sparse_15queryknn_guided_wrapper_sparse_queryknn(__pyx_t_9, __pyx_t_10, __pyx_t_11, __pyx_t_12, __pyx_t_13, __pyx_t_14, __pyx_t_15, __pyx_t_7, __pyx_t_16, __pyx_t_17, __pyx_t_18, __pyx_t_19, __pyx_t_20, __pyx_t_21, __pyx_t_22, __pyx_t_23, __pyx_t_24, __pyx_t_25, __pyx_t_26); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyInt_As_size_t(__pyx_v_rowptr_ref); if (unlikely((__pyx_t_9 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_10 = __Pyx_PyInt_As_size_t(__pyx_v_idx_ref); if (unlikely((__pyx_t_10 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_PyInt_As_size_t(__pyx_v_v_ref); if (unlikely((__pyx_t_11 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_12 = __Pyx_PyInt_As_size_t(__pyx_v_rowptr_q); if (unlikely((__pyx_t_12 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_13 = __Pyx_PyInt_As_size_t(__pyx_v_idx_q); if (unlikely((__pyx_t_13 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_14 = __Pyx_PyInt_As_size_t(__pyx_v_v_q); if (unlikely((__pyx_t_14 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_15 = __Pyx_PyInt_As_size_t(__pyx_v_hId); if (unlikely((__pyx_t_15 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyInt_As_int(__pyx_v_ppl); if (unlikely((__pyx_t_7 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_16 = __Pyx_PyInt_As_int(__pyx_v_leaves); if (unlikely((__pyx_t_16 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_17 = __Pyx_PyInt_As_int(__pyx_v_k); if (unlikely((__pyx_t_17 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_18 = __Pyx_PyInt_As_size_t(__pyx_v_nDist); if (unlikely((__pyx_t_18 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_19 = __Pyx_PyInt_As_size_t(__pyx_v_nId); if (unlikely((__pyx_t_19 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_20 = __Pyx_PyInt_As_int(__pyx_v_deviceId); if (unlikely((__pyx_t_20 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_21 = __Pyx_PyInt_As_int(__pyx_v_verbose); if (unlikely((__pyx_t_21 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_22 = __Pyx_PyInt_As_int(__pyx_v_nq); if (unlikely((__pyx_t_22 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_23 = __Pyx_PyInt_As_int(__pyx_v_d); if (unlikely((__pyx_t_23 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_24 = __Pyx_PyInt_As_int(__pyx_v_avgnnz); if (unlikely((__pyx_t_24 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_25 = __Pyx_PyInt_As_size_t(__pyx_v_glob_leafIds); if (unlikely((__pyx_t_25 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_26 = __Pyx_PyInt_As_int(__pyx_v_num_search_leaves); if (unlikely((__pyx_t_26 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_27 = __Pyx_PyInt_As_size_t(__pyx_v_local_leafIds); if (unlikely((__pyx_t_27 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_4 = __pyx_f_15seqsearch_fused_18queryknn_seqsearch_wrapper_sparse_queryknn_seqsearch(__pyx_t_9, __pyx_t_10, __pyx_t_11, __pyx_t_12, __pyx_t_13, __pyx_t_14, __pyx_t_15, __pyx_t_7, __pyx_t_16, __pyx_t_17, __pyx_t_18, __pyx_t_19, __pyx_t_20, __pyx_t_21, __pyx_t_22, __pyx_t_23, __pyx_t_24, __pyx_t_25, __pyx_t_26, __pyx_t_27); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 59, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":56
- *   wrapper_sparse_queryknn(rowptr_ref, idx_ref, v_ref, rowptr_q, idx_q, v_q, hId, ppl, leaves, k, nDist, nId, deviceId, verbose, nq, SortedLeafIds, d, avgnnz, num_search_leaves)
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":60
  * 
- *   return (knnidx, knndis)             # <<<<<<<<<<<<<<
+ *   wrapper_sparse_queryknn_seqsearch(rowptr_ref, idx_ref, v_ref, rowptr_q, idx_q, v_q, hId, ppl, leaves, k, nDist, nId, deviceId, verbose, nq, d, avgnnz, glob_leafIds, num_search_leaves, local_leafIds)
+ *   return knnidx, knndis, qId[0]             # <<<<<<<<<<<<<<
  * 
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 56, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_qId, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_5 = PyTuple_New(3); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 60, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
   __Pyx_INCREF(__pyx_v_knnidx);
   __Pyx_GIVEREF(__pyx_v_knnidx);
-  PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_v_knnidx);
+  PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_v_knnidx);
   __Pyx_INCREF(__pyx_v_knndis);
   __Pyx_GIVEREF(__pyx_v_knndis);
-  PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_v_knndis);
-  __pyx_r = __pyx_t_4;
+  PyTuple_SET_ITEM(__pyx_t_5, 1, __pyx_v_knndis);
+  __Pyx_GIVEREF(__pyx_t_4);
+  PyTuple_SET_ITEM(__pyx_t_5, 2, __pyx_t_4);
   __pyx_t_4 = 0;
+  __pyx_r = __pyx_t_5;
+  __pyx_t_5 = 0;
   goto __pyx_L0;
 
-  /* "src/sparse/queryknn_guided.pyx":19
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":19
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def py_queryknn(X_ref, X_q, leaves, ppl, k, knndis, knnidx, deviceId, verbose, leafIds, num_search_leaves):             # <<<<<<<<<<<<<<
+ * def py_queryknn_seqsearch_fused(X_ref, X_q, leaves, ppl, k, knndis, knnidx, deviceId, verbose, leafIds):             # <<<<<<<<<<<<<<
  * 
  * 
  */
@@ -2550,7 +2560,7 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   __Pyx_XDECREF(__pyx_t_4);
   __Pyx_XDECREF(__pyx_t_5);
   __Pyx_XDECREF(__pyx_t_8);
-  __Pyx_AddTraceback("src.sparse.queryknn_guided.py_queryknn", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("seqsearch_fused.queryknn_seqsearch.py_queryknn_seqsearch_fused", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_qId);
@@ -2559,21 +2569,23 @@ static PyObject *__pyx_pf_3src_6sparse_15queryknn_guided_py_queryknn(CYTHON_UNUS
   __Pyx_XDECREF(__pyx_v_tmp);
   __Pyx_XDECREF(__pyx_v_indices);
   __Pyx_XDECREF(__pyx_v_X_ref_cop);
+  __Pyx_XDECREF(__pyx_v_X_q_c);
   __Pyx_XDECREF(__pyx_v_v_ref);
   __Pyx_XDECREF(__pyx_v_idx_ref);
   __Pyx_XDECREF(__pyx_v_rowptr_ref);
-  __Pyx_XDECREF(__pyx_v_SortedLeafIds);
+  __Pyx_XDECREF(__pyx_v_num_search_leaves);
   __Pyx_XDECREF(__pyx_v_v_q);
   __Pyx_XDECREF(__pyx_v_idx_q);
   __Pyx_XDECREF(__pyx_v_rowptr_q);
   __Pyx_XDECREF(__pyx_v_hId);
+  __Pyx_XDECREF(__pyx_v_glob_leafIds);
+  __Pyx_XDECREF(__pyx_v_local_leafIds);
   __Pyx_XDECREF(__pyx_v_nDist);
   __Pyx_XDECREF(__pyx_v_nId);
   __Pyx_XDECREF(__pyx_v__);
   __Pyx_XDECREF(__pyx_v_d);
   __Pyx_XDECREF(__pyx_v_avgnnz);
   __Pyx_XDECREF(__pyx_v_nq);
-  __Pyx_XDECREF(__pyx_v_X_q);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
@@ -2586,17 +2598,17 @@ static PyMethodDef __pyx_methods[] = {
 #if PY_MAJOR_VERSION >= 3
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 static PyObject* __pyx_pymod_create(PyObject *spec, PyModuleDef *def); /*proto*/
-static int __pyx_pymod_exec_queryknn_guided(PyObject* module); /*proto*/
+static int __pyx_pymod_exec_queryknn_seqsearch(PyObject* module); /*proto*/
 static PyModuleDef_Slot __pyx_moduledef_slots[] = {
   {Py_mod_create, (void*)__pyx_pymod_create},
-  {Py_mod_exec, (void*)__pyx_pymod_exec_queryknn_guided},
+  {Py_mod_exec, (void*)__pyx_pymod_exec_queryknn_seqsearch},
   {0, NULL}
 };
 #endif
 
 static struct PyModuleDef __pyx_moduledef = {
     PyModuleDef_HEAD_INIT,
-    "queryknn_guided",
+    "queryknn_seqsearch",
     0, /* m_doc */
   #if CYTHON_PEP489_MULTI_PHASE_INIT
     0, /* m_size */
@@ -2625,9 +2637,8 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
-  {&__pyx_n_s_F, __pyx_k_F, sizeof(__pyx_k_F), 0, 0, 1, 1},
-  {&__pyx_n_s_SortedLeafIds, __pyx_k_SortedLeafIds, sizeof(__pyx_k_SortedLeafIds), 0, 0, 1, 1},
   {&__pyx_n_s_X_q, __pyx_k_X_q, sizeof(__pyx_k_X_q), 0, 0, 1, 1},
+  {&__pyx_n_s_X_q_c, __pyx_k_X_q_c, sizeof(__pyx_k_X_q_c), 0, 0, 1, 1},
   {&__pyx_n_s_X_ref, __pyx_k_X_ref, sizeof(__pyx_k_X_ref), 0, 0, 1, 1},
   {&__pyx_n_s_X_ref_cop, __pyx_k_X_ref_cop, sizeof(__pyx_k_X_ref_cop), 0, 0, 1, 1},
   {&__pyx_n_s__2, __pyx_k__2, sizeof(__pyx_k__2), 0, 0, 1, 1},
@@ -2644,6 +2655,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_diff, __pyx_k_diff, sizeof(__pyx_k_diff), 0, 0, 1, 1},
   {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
   {&__pyx_n_s_expand_dims, __pyx_k_expand_dims, sizeof(__pyx_k_expand_dims), 0, 0, 1, 1},
+  {&__pyx_n_s_glob_leafIds, __pyx_k_glob_leafIds, sizeof(__pyx_k_glob_leafIds), 0, 0, 1, 1},
   {&__pyx_n_s_hId, __pyx_k_hId, sizeof(__pyx_k_hId), 0, 0, 1, 1},
   {&__pyx_n_s_idx_q, __pyx_k_idx_q, sizeof(__pyx_k_idx_q), 0, 0, 1, 1},
   {&__pyx_n_s_idx_ref, __pyx_k_idx_ref, sizeof(__pyx_k_idx_ref), 0, 0, 1, 1},
@@ -2657,6 +2669,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_knnidx, __pyx_k_knnidx, sizeof(__pyx_k_knnidx), 0, 0, 1, 1},
   {&__pyx_n_s_leafIds, __pyx_k_leafIds, sizeof(__pyx_k_leafIds), 0, 0, 1, 1},
   {&__pyx_n_s_leaves, __pyx_k_leaves, sizeof(__pyx_k_leaves), 0, 0, 1, 1},
+  {&__pyx_n_s_local_leafIds, __pyx_k_local_leafIds, sizeof(__pyx_k_local_leafIds), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_mean, __pyx_k_mean, sizeof(__pyx_k_mean), 0, 0, 1, 1},
   {&__pyx_n_s_nDist, __pyx_k_nDist, sizeof(__pyx_k_nDist), 0, 0, 1, 1},
@@ -2666,15 +2679,15 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_num_search_leaves, __pyx_k_num_search_leaves, sizeof(__pyx_k_num_search_leaves), 0, 0, 1, 1},
   {&__pyx_n_s_ppl, __pyx_k_ppl, sizeof(__pyx_k_ppl), 0, 0, 1, 1},
   {&__pyx_n_s_ptr, __pyx_k_ptr, sizeof(__pyx_k_ptr), 0, 0, 1, 1},
-  {&__pyx_n_s_py_queryknn, __pyx_k_py_queryknn, sizeof(__pyx_k_py_queryknn), 0, 0, 1, 1},
+  {&__pyx_n_s_py_queryknn_seqsearch_fused, __pyx_k_py_queryknn_seqsearch_fused, sizeof(__pyx_k_py_queryknn_seqsearch_fused), 0, 0, 1, 1},
   {&__pyx_n_s_qId, __pyx_k_qId, sizeof(__pyx_k_qId), 0, 0, 1, 1},
   {&__pyx_n_s_ravel, __pyx_k_ravel, sizeof(__pyx_k_ravel), 0, 0, 1, 1},
   {&__pyx_n_s_return_inverse, __pyx_k_return_inverse, sizeof(__pyx_k_return_inverse), 0, 0, 1, 1},
   {&__pyx_n_s_rowptr_q, __pyx_k_rowptr_q, sizeof(__pyx_k_rowptr_q), 0, 0, 1, 1},
   {&__pyx_n_s_rowptr_ref, __pyx_k_rowptr_ref, sizeof(__pyx_k_rowptr_ref), 0, 0, 1, 1},
+  {&__pyx_kp_s_seqsearch_fused_queryknn_seqsear, __pyx_k_seqsearch_fused_queryknn_seqsear, sizeof(__pyx_k_seqsearch_fused_queryknn_seqsear), 0, 0, 1, 0},
+  {&__pyx_n_s_seqsearch_fused_queryknn_seqsear_2, __pyx_k_seqsearch_fused_queryknn_seqsear_2, sizeof(__pyx_k_seqsearch_fused_queryknn_seqsear_2), 0, 0, 1, 1},
   {&__pyx_n_s_shape, __pyx_k_shape, sizeof(__pyx_k_shape), 0, 0, 1, 1},
-  {&__pyx_n_s_src_sparse_queryknn_guided, __pyx_k_src_sparse_queryknn_guided, sizeof(__pyx_k_src_sparse_queryknn_guided), 0, 0, 1, 1},
-  {&__pyx_kp_s_src_sparse_queryknn_guided_pyx, __pyx_k_src_sparse_queryknn_guided_pyx, sizeof(__pyx_k_src_sparse_queryknn_guided_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
   {&__pyx_n_s_tile, __pyx_k_tile, sizeof(__pyx_k_tile), 0, 0, 1, 1},
   {&__pyx_n_s_time, __pyx_k_time, sizeof(__pyx_k_time), 0, 0, 1, 1},
@@ -2693,28 +2706,28 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "src/sparse/queryknn_guided.pyx":31
- *   #indices = cp.linspace(unique, unique + ppl, ppl, endpoint=False, dtype=cp.int32).flatten('F')
- *   indices = cp.ravel(indices, 'F')
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":29
+ *   indices += cp.tile(cp.expand_dims(unique, 1), (1, indices.shape[1]))*ppl
+ *   indices = indices.ravel()
  *   X_ref_cop = X_ref[indices, :]             # <<<<<<<<<<<<<<
- *   X_q = X_q[qId, :]
+ * 
  * 
  */
-  __pyx_slice_ = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice_)) __PYX_ERR(0, 31, __pyx_L1_error)
+  __pyx_slice_ = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice_)) __PYX_ERR(0, 29, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_slice_);
   __Pyx_GIVEREF(__pyx_slice_);
 
-  /* "src/sparse/queryknn_guided.pyx":19
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":19
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def py_queryknn(X_ref, X_q, leaves, ppl, k, knndis, knnidx, deviceId, verbose, leafIds, num_search_leaves):             # <<<<<<<<<<<<<<
+ * def py_queryknn_seqsearch_fused(X_ref, X_q, leaves, ppl, k, knndis, knnidx, deviceId, verbose, leafIds):             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  __pyx_tuple__3 = PyTuple_Pack(31, __pyx_n_s_X_ref, __pyx_n_s_X_q, __pyx_n_s_leaves, __pyx_n_s_ppl, __pyx_n_s_k, __pyx_n_s_knndis, __pyx_n_s_knnidx, __pyx_n_s_deviceId, __pyx_n_s_verbose, __pyx_n_s_leafIds, __pyx_n_s_num_search_leaves, __pyx_n_s_qId, __pyx_n_s_unique, __pyx_n_s_inverse, __pyx_n_s_tmp, __pyx_n_s_indices, __pyx_n_s_X_ref_cop, __pyx_n_s_v_ref, __pyx_n_s_idx_ref, __pyx_n_s_rowptr_ref, __pyx_n_s_SortedLeafIds, __pyx_n_s_v_q, __pyx_n_s_idx_q, __pyx_n_s_rowptr_q, __pyx_n_s_hId, __pyx_n_s_nDist, __pyx_n_s_nId, __pyx_n_s__2, __pyx_n_s_d, __pyx_n_s_avgnnz, __pyx_n_s_nq); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(0, 19, __pyx_L1_error)
+  __pyx_tuple__3 = PyTuple_Pack(33, __pyx_n_s_X_ref, __pyx_n_s_X_q, __pyx_n_s_leaves, __pyx_n_s_ppl, __pyx_n_s_k, __pyx_n_s_knndis, __pyx_n_s_knnidx, __pyx_n_s_deviceId, __pyx_n_s_verbose, __pyx_n_s_leafIds, __pyx_n_s_qId, __pyx_n_s_unique, __pyx_n_s_inverse, __pyx_n_s_tmp, __pyx_n_s_indices, __pyx_n_s_X_ref_cop, __pyx_n_s_X_q_c, __pyx_n_s_v_ref, __pyx_n_s_idx_ref, __pyx_n_s_rowptr_ref, __pyx_n_s_num_search_leaves, __pyx_n_s_v_q, __pyx_n_s_idx_q, __pyx_n_s_rowptr_q, __pyx_n_s_hId, __pyx_n_s_glob_leafIds, __pyx_n_s_local_leafIds, __pyx_n_s_nDist, __pyx_n_s_nId, __pyx_n_s__2, __pyx_n_s_d, __pyx_n_s_avgnnz, __pyx_n_s_nq); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(0, 19, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__3);
   __Pyx_GIVEREF(__pyx_tuple__3);
-  __pyx_codeobj__4 = (PyObject*)__Pyx_PyCode_New(11, 0, 31, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__3, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_src_sparse_queryknn_guided_pyx, __pyx_n_s_py_queryknn, 19, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__4)) __PYX_ERR(0, 19, __pyx_L1_error)
+  __pyx_codeobj__4 = (PyObject*)__Pyx_PyCode_New(10, 0, 33, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__3, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_seqsearch_fused_queryknn_seqsear, __pyx_n_s_py_queryknn_seqsearch_fused, 19, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__4)) __PYX_ERR(0, 19, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -2814,11 +2827,11 @@ static int __Pyx_modinit_function_import_code(void) {
 
 
 #if PY_MAJOR_VERSION < 3
-__Pyx_PyMODINIT_FUNC initqueryknn_guided(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC initqueryknn_guided(void)
+__Pyx_PyMODINIT_FUNC initqueryknn_seqsearch(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC initqueryknn_seqsearch(void)
 #else
-__Pyx_PyMODINIT_FUNC PyInit_queryknn_guided(void) CYTHON_SMALL_CODE; /*proto*/
-__Pyx_PyMODINIT_FUNC PyInit_queryknn_guided(void)
+__Pyx_PyMODINIT_FUNC PyInit_queryknn_seqsearch(void) CYTHON_SMALL_CODE; /*proto*/
+__Pyx_PyMODINIT_FUNC PyInit_queryknn_seqsearch(void)
 #if CYTHON_PEP489_MULTI_PHASE_INIT
 {
   return PyModuleDef_Init(&__pyx_moduledef);
@@ -2885,7 +2898,7 @@ bad:
 }
 
 
-static CYTHON_SMALL_CODE int __pyx_pymod_exec_queryknn_guided(PyObject *__pyx_pyinit_module)
+static CYTHON_SMALL_CODE int __pyx_pymod_exec_queryknn_seqsearch(PyObject *__pyx_pyinit_module)
 #endif
 #endif
 {
@@ -2897,7 +2910,7 @@ static CYTHON_SMALL_CODE int __pyx_pymod_exec_queryknn_guided(PyObject *__pyx_py
   #if CYTHON_PEP489_MULTI_PHASE_INIT
   if (__pyx_m) {
     if (__pyx_m == __pyx_pyinit_module) return 0;
-    PyErr_SetString(PyExc_RuntimeError, "Module 'queryknn_guided' has already been imported. Re-initialisation is not supported.");
+    PyErr_SetString(PyExc_RuntimeError, "Module 'queryknn_seqsearch' has already been imported. Re-initialisation is not supported.");
     return -1;
   }
   #elif PY_MAJOR_VERSION >= 3
@@ -2912,7 +2925,7 @@ if (!__Pyx_RefNanny) {
       Py_FatalError("failed to import 'refnanny' module");
 }
 #endif
-  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_queryknn_guided(void)", 0);
+  __Pyx_RefNannySetupContext("__Pyx_PyMODINIT_FUNC PyInit_queryknn_seqsearch(void)", 0);
   if (__Pyx_check_binary_version() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #ifdef __Pxy_PyFrame_Initialize_Offsets
   __Pxy_PyFrame_Initialize_Offsets();
@@ -2949,7 +2962,7 @@ if (!__Pyx_RefNanny) {
   Py_INCREF(__pyx_m);
   #else
   #if PY_MAJOR_VERSION < 3
-  __pyx_m = Py_InitModule4("queryknn_guided", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
+  __pyx_m = Py_InitModule4("queryknn_seqsearch", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
   #else
   __pyx_m = PyModule_Create(&__pyx_moduledef);
   #endif
@@ -2967,14 +2980,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_src__sparse__queryknn_guided) {
+  if (__pyx_module_is_main_seqsearch_fused__queryknn_seqsearch) {
     if (PyObject_SetAttr(__pyx_m, __pyx_n_s_name, __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "src.sparse.queryknn_guided")) {
-      if (unlikely(PyDict_SetItemString(modules, "src.sparse.queryknn_guided", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "seqsearch_fused.queryknn_seqsearch")) {
+      if (unlikely(PyDict_SetItemString(modules, "seqsearch_fused.queryknn_seqsearch", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -2995,7 +3008,7 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "src/sparse/queryknn_guided.pyx":4
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":4
  * from libcpp.string cimport string
  * import cython
  * import cupy as cp             # <<<<<<<<<<<<<<
@@ -3007,7 +3020,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_cp, __pyx_t_1) < 0) __PYX_ERR(0, 4, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":5
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":5
  * import cython
  * import cupy as cp
  * import time             # <<<<<<<<<<<<<<
@@ -3019,19 +3032,19 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_time, __pyx_t_1) < 0) __PYX_ERR(0, 5, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":19
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":19
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * def py_queryknn(X_ref, X_q, leaves, ppl, k, knndis, knnidx, deviceId, verbose, leafIds, num_search_leaves):             # <<<<<<<<<<<<<<
+ * def py_queryknn_seqsearch_fused(X_ref, X_q, leaves, ppl, k, knndis, knnidx, deviceId, verbose, leafIds):             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3src_6sparse_15queryknn_guided_1py_queryknn, NULL, __pyx_n_s_src_sparse_queryknn_guided); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 19, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_15seqsearch_fused_18queryknn_seqsearch_1py_queryknn_seqsearch_fused, NULL, __pyx_n_s_seqsearch_fused_queryknn_seqsear_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 19, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_py_queryknn, __pyx_t_1) < 0) __PYX_ERR(0, 19, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_py_queryknn_seqsearch_fused, __pyx_t_1) < 0) __PYX_ERR(0, 19, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "src/sparse/queryknn_guided.pyx":1
+  /* "seqsearch_fused/queryknn_seqsearch.pyx":1
  * from libcpp.vector cimport vector             # <<<<<<<<<<<<<<
  * from libcpp.string cimport string
  * import cython
@@ -3048,11 +3061,11 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_1);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init src.sparse.queryknn_guided", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init seqsearch_fused.queryknn_seqsearch", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     Py_CLEAR(__pyx_m);
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init src.sparse.queryknn_guided");
+    PyErr_SetString(PyExc_ImportError, "init seqsearch_fused.queryknn_seqsearch");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
