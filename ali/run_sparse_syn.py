@@ -19,7 +19,12 @@ from datetime import datetime
 from scipy.sparse import csr_matrix
 import scipy.sparse as sp
 from utils.gensparse import gen_random_sparse_csr
-from src.sparse.queryknn_seqsearch import *
+from src.sparse.seqsearch_full.queryknn_seqsearch import *
+from src.sparse.seqsearch_fused.queryknn_seqsearch import *
+
+from src.sparse.guided_full.queryknn_guided import *
+from src.sparse.guided_full_nodatacopy.queryknn_guided import *
+from src.sparse.guided_full_copydata.queryknn_guided import *
 from utils.queryknn import queriesleafknn
 
 
@@ -181,29 +186,92 @@ print("Done !")
 
 nq = 10000
 
+seed = int(time.time())
+cp.random.seed(seed)
 pt_ind = cp.random.randint(0, n, nq, dtype=cp.int32)
 
 X_q = X[pt_ind, :]
 
 
 leafIds = cp.random.randint(0, leaves, nq, dtype=cp.int32) 
+#leafIds = cp.ones(nq, dtype=cp.int32) 
+
 
  
 knndis = 1e30*cp.ones((nq,K), dtype = cp.float32)
 knnidx = -cp.ones((nq,K), dtype = cp.int32)         
 
 #knnidx, knndis = py_queryknn(X, X_q, leaves, ppl, K, knndis, knnidx, 0, 1, leafIds, num_search_leaves)
-print("leaf for q=0, ", leafIds[0])
+
+print("seq full")
+tic = time.time()
 knnidx, knndis , qId = py_queryknn_seqsearch(X, X_q, leaves, ppl, K, knndis, knnidx, 0, 1, leafIds)
+toc = time.time() - tic
+print("taks %.4f sec"%toc)
+
+print("qId = %d, leaf = %d"%(qId, leafIds[qId]))
 
 tic = time.time()
 knnidx_ex, knndis_ex = queriesleafknn(X, X_q, leaves, ppl, K, leafIds, qId)
-
 toc = time.time() - tic 
 print("Exact for one point takes %.4f sec"%toc)
-er = cp.linalg.norm(knndis[qId, :] - knndis_ex)
 
+er = cp.linalg.norm(knndis[qId, :] - knndis_ex)
 print("err = %.4f"%er)
+
+
+knndis = 1e30*cp.ones((nq,K), dtype = cp.float32)
+knnidx = -cp.ones((nq,K), dtype = cp.int32)         
+
+print("seq fused")
+tic = time.time()
+knnidx, knndis , qId = py_queryknn_seqsearch_fused(X, X_q, leaves, ppl, K, knndis, knnidx, 0, 1, leafIds)
+toc = time.time() - tic
+print("taks %.4f sec"%toc)
+
+
+print("qId = %d, leaf = %d"%(qId, leafIds[qId]))
+
+tic = time.time()
+knnidx_ex, knndis_ex = queriesleafknn(X, X_q, leaves, ppl, K, leafIds, qId)
+toc = time.time() - tic 
+print("Exact for one point takes %.4f sec"%toc)
+
+
+er = cp.linalg.norm(knndis[qId, :] - knndis_ex)
+print("\nerr = %.4f\n"%er)
+
+
+
+knndis = 1e30*cp.ones((nq,K), dtype = cp.float32)
+knnidx = -cp.ones((nq,K), dtype = cp.int32)         
+
+print("guided full")
+tic = time.time()
+knnidx, knndis , qId = py_queryknn_guided(X, X_q, leaves, ppl, K, knndis, knnidx, 0, 1, leafIds)
+toc = time.time() - tic
+print("taks %.4f sec"%toc)
+
+
+tic = time.time()
+knnidx_ex, knndis_ex = queriesleafknn(X, X_q, leaves, ppl, K, leafIds, qId)
+toc = time.time() - tic 
+print("Exact for one point takes %.4f sec"%toc)
+
+
+er = cp.linalg.norm(knndis[qId, :] - knndis_ex)
+print("err = %.4f"%er)
+
+
+print(knnidx[qId, :])
+print(knndis[qId, :])
+
+print(knnidx_ex)
+print(knndis_ex)
+
+
+
+
 '''
 print(knnidx[qId, :])
 print(knndis[qId, :])

@@ -1,9 +1,29 @@
 #!/bin/bash
 
+: '
+cd src/sparse
+(cd seqsearch_full && rm -f *.o && rm -f *.so && rm -f *.cpp &&  make)
+(cd seqsearch_fused && rm -f *.o && rm -f *.so && rm -f *.cpp &&  make)
+(cd guided_full && rm -f *.o && rm -f *.so && rm -f *.cpp &&  make)
+#(cd guided_full_copydata && rm -f *.o && rm -f *.so && rm -f *.cpp &&  make)
+#(cd guided_full_nodatacopy && rm -f *.o && rm -f *.so && rm -f *.cpp &&  make)
 
-#(cd dense && rm -f *.o && rm -f *.so && make)
-(cd src/sparse && rm -f *.o && rm -f *.so && make)
 
-python setup.py build_ext --inplace 
-#python setup1.py build_ext --inplace 
+
+python setup_s_full.py build_ext --inplace 
+python setup_s_fused.py build_ext --inplace 
+python setup_g_f.py build_ext --inplace 
+#python setup_g_f_nc.py build_ext --inplace 
+#python setup_g_f_cd.py build_ext --inplace 
+cd ../../
+'
+
+
+cd src/dense 
+
+(cd seqsearch_full && rm -f *.o && rm -f *.so && rm -f *.cpp &&  make)
+python setup_s_full.py build_ext --inplace 
+
+cd ../../
+
 
