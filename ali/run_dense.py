@@ -17,6 +17,8 @@ import numpy as np
 import cupy as cp
 from src.dense.seqsearch_full.queryknn_seqsearch import *
 from src.dense.utils.queryknn import *
+import utils.queryknn as tools
+from tree.rkdtgpu import *
 
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
@@ -89,9 +91,9 @@ def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
     err = 0.0
     for i in range(nc):
       miss_array_id = [1 if ap_id[test_pt[i],j] in ex_id[i,:] else 0 for j in range(K)]
-      miss_array_dist = [1 if ap_dist[test_pt[i],j] <= ex_dist[i,-1]+1e-7 else 0 for j in range(K)]
-      err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
-      #err += np.sum(miss_array_id)
+      #miss_array_dist = [1 if ap_dist[test_pt[i],j] <= ex_dist[i,-1]+1e-7 else 0 for j in range(K)]
+      #err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
+      err += np.sum(miss_array_id)
     hit_rate = err/(nc*K)
     mean_sim = np.mean(ap_dist.ravel())
     #last_array = np.abs(ap_dist[test_pt,-1] - ex_dist[:,-1])/ex_dist[:,-1]
@@ -99,7 +101,7 @@ def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
     return hit_rate, mean_sim
 
 def apknnerr_dis(ex,ap,nc):
-    err = np.linalg.norm(ex[:nc,]-ap[test_pt,])/np.linalg.norm(ex[:nc,])
+    err = np.linalg.norm(ex[:nc,]-ap[test_pt,])
     return err
 
 
@@ -174,38 +176,50 @@ print('Warning depth<=dim, will use non-orthogonal directions')
 
 nex = points_per_leaf
 
-nq = 10000
+nq = 1000
 
 seed = int(time.time())
 cp.random.seed(seed)
 pt_ind = cp.random.randint(0, n, nq, dtype = cp.int32)
 
 X = cp.asarray(X, dtype = cp.float32)
-X_q = X[pt_ind, :]
+Xq = X[pt_ind, :]
 leaves = cp.int32(leaves)
 
-leafIds = cp.random.randint(0, leaves, nq, dtype = cp.int32)
-
-knndis = 1e30 * cp.ones((nq, K), dtype = cp.float32)
-knnidx = -cp.ones((nq, K), dtype = cp.int32)
-print(type(ppl))
-ppl = cp.int32(ppl)
-knnidx, knndis, qId = py_queryknn_seqsearch(X, X_q, leaves, ppl, K, knndis, knnidx, 0, 1, leafIds)
-
+numtest = 100
+test_pt = np.random.randint(0, nq, numtest)
 tic = time.time()
-knnidx_ex, knndis_ex = queriesleafknn(X, X_q, leaves, ppl, K, leafIds, qId)
+knnidx_ex, knndis_ex = tools.dense_queriesExact(X, Xq, leaves, ppl, K, test_pt)
 toc = time.time() - tic
 print("Exact for one point takes %.4f sec"%toc)
 
-er = cp.linalg.norm(knndis[qId, :] - knndis_ex)
-print("\nerr = %.4f\n"%er)
+knnidx_ex = cp.asnumpy(knnidx_ex)
+knndis_ex = cp.asnumpy(knndis_ex)
 
 
-print(knnidx[qId, :])
-print(knndis[qId, :])
 
-print(knnidx_ex)
-print(knndis_ex)
+
+knndis = 1e30 * cp.ones((nq, K), dtype = cp.float32)
+knnidx = -cp.ones((nq, K), dtype = cp.int32)
+ppl = cp.int32(ppl)
+maxiter = 100
+
+print("# refs : %d"%X.shape[0])
+print("# queries : %d"%Xq.shape[0])
+
+tic = time.time()
+knnidx, knndis, _ = rkdt_a2a_it(X, Xq, depth, knnidx, knndis, K, maxiter, monitor, 0, True, 0, 1)
+toc = time.time() - tic
+
+print("RKDT took %.4f sec"%toc)
+
+
+print(knnidx_ex[80,:])
+print(knndis_ex[80,:])
+
+print(knnidx[test_pt[80], :])
+print(knndis[test_pt[80], :])
+
 
 '''
 print("computing the exact neghobors")

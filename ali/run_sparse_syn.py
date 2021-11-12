@@ -3,7 +3,6 @@
 import sys
 from sklearn.neighbors import NearestNeighbors
 from sklearn.datasets import load_svmlight_file
-sys.path.append("..")
 
 import time
 import platform 
@@ -19,14 +18,14 @@ from datetime import datetime
 from scipy.sparse import csr_matrix
 import scipy.sparse as sp
 from utils.gensparse import gen_random_sparse_csr
-from src.sparse.seqsearch_full.queryknn_seqsearch import *
-from src.sparse.seqsearch_fused.queryknn_seqsearch import *
+#from src.sparse.seqsearch_fused.queryknn_seqsearch import *
 
-from src.sparse.guided_full.queryknn_guided import *
-from src.sparse.guided_full_nodatacopy.queryknn_guided import *
-from src.sparse.guided_full_copydata.queryknn_guided import *
-from utils.queryknn import queriesleafknn
-
+#from src.sparse.guided_full.queryknn_guided import *
+#from src.sparse.guided_full_nodatacopy.queryknn_guided import *
+#from src.sparse.guided_full_copydata.queryknn_guided import *
+from utils.queryknn import sparse_queriesleafknn
+import utils.queryknn as utex
+from tree.rkdtgpu import *
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
 parser.add_argument('-n', type=int, default=2**22)
@@ -53,22 +52,32 @@ args = parser.parse_args()
 print("Starting Script", flush=True)
 mem = Memory("./mycache")
 
+err_prev = 0.0
 
 def apknnerr( ex_id,ex_dist, ap_id,ap_dist ,nc):
 
     err = 0.0
     for i in range(nc):
       miss_array_id = [1 if ap_id[test_pt[i],j] in ex_id[i,:] else 0 for j in range(K)]
-      miss_array_dist = [1 if ap_dist[test_pt[i],j] <= ex_dist[i,-1]+1e-7 else 0 for j in range(K)]
+      miss_array_dist = [1 if ap_dist[test_pt[i],j] <= ex_dist[i,-1]+1e-5 else 0 for j in range(K)]
       err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
+      #err += np.sum(miss_array_id, miss_array_dist)
+      #err += np.sum(miss_array_id)
     hit_rate = err/(nc*K)
     mean_sim = np.mean(ap_dist.ravel())
+    '''
+    print(ex_id[0, :])
+    print(ex_dist[0, :])
+    print(ap_id[test_pt[0], :])
+    print(ap_dist[test_pt[0], :])
+    '''
     #last_array = np.abs(ap_dist[test_pt,-1] - ex_dist[:,-1])/ex_dist[:,-1]
     #mean_rel_err = np.mean(last_array)
+        
     return hit_rate, mean_sim
 
 def apknnerr_dis(ex,ap,nc):
-    err = np.linalg.norm(ex[:nc,]-ap[test_pt,])/np.linalg.norm(ex[:nc,])
+    err = np.linalg.norm((ex[:nc,]-ap[test_pt,]).flatten())
     return err
 
 
@@ -82,9 +91,20 @@ def monitor(t,knnidx,knndis):
     derr = apknnerr_dis(knndis_ex,knndis,num_test)
     #derr = cp.asnumpy(derr)
     cost = t*ppl
-    print('it = ', '{:3d}'.format(t), 'Recall accuracy:', '{:.4f}'.format(acc), 'mean rel distance error = {:.4f}'.format(derr), 'cost = %.4f'%cost)
+    
+    print('it = ', '{:3d}'.format(t), 'Recall accuracy:', '{:.4f}'.format(acc), 'mean rel distance error = {:.4f}'.format(derr))
     break_iter = False
     break_iter =  (acc>tol or cost>n)
+    '''
+    global err_prev
+    break_iter = (acc < err_prev)
+    if not break_iter:
+      global knnidx_prev
+      global knndis_prev
+      knnidx_prev = knnidx
+      knndis_prev = knndis
+      err_prev = acc
+    '''
     return break_iter
 
 @mem.cache()
@@ -141,6 +161,10 @@ if dataset == 'url':
   del v
   del idx
   del rowptr
+  '''
+  n = 2**15
+  X = X[:n,:]
+  '''
   n, dim = X.shape
   N = n 
   ppl = int(cp.ceil(n / leaves))
@@ -163,7 +187,34 @@ if dataset == 'url':
   n,dim = X.shape
 elif dataset == 'avazu':
   X = get_avazu_data()
-  n,dim = X.shape
+  v = cp.array(X.data, dtype = cp.float32)
+  idx = cp.array(X.indices, dtype = cp.int32)
+  rowptr = cp.array(X.indptr, dtype = cp.int32)
+  X = cpsp.csr_matrix((v, idx, rowptr))
+  del v
+  del idx
+  del rowptr
+  n, dim = X.shape
+  N = n 
+  ppl = int(cp.ceil(n / leaves))
+  n_true = cp.array(ppl * leaves)
+  diff = n_true - N
+  last = cp.asarray(X.indptr[N])
+  pad_width = np.zeros(2, dtype=np.int32)
+  end_val = cp.zeros(2, dtype=cp.int32)
+  pad_width[1] = diff
+  end_val[1] = last
+
+  if diff > 0:
+    X.indptr = cp.pad(X.indptr, pad_width, "edge") 
+    X = cpsp.csr_matrix((X.data, X.indices, X.indptr))
+    n, dim = X.shape
+
+  mempool = cp.get_default_memory_pool()
+  mempool.free_all_blocks()
+  mempool = cp.get_default_memory_pool()
+  print(" %.4f from %.4f is occupied "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
+
 elif dataset == 'syn':
   '''
   path = '/scratch/07544/ghafouri/pyrknn/GeMM/pysrc/dataset/syn/'
@@ -184,23 +235,104 @@ elif dataset == 'syn':
 print("Done !")
 
 
-nq = 10000
+nq = 1000
 
 seed = int(time.time())
 cp.random.seed(seed)
+print("Selecting Queries")
+
 pt_ind = cp.random.randint(0, n, nq, dtype=cp.int32)
 
-X_q = X[pt_ind, :]
+Xq = X[pt_ind, :]
 
+mempool = cp.get_default_memory_pool()
+mempool.free_all_blocks()
+mempool = cp.get_default_memory_pool()
+print(" %.4f from %.4f is occupied "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
 
 leafIds = cp.random.randint(0, leaves, nq, dtype=cp.int32) 
 #leafIds = cp.ones(nq, dtype=cp.int32) 
 
 
- 
+print("Initialize knn")
+
+numtest = 100
+
+
+'''
+test_pt = np.random.randint(0, nq, numtest)
+#test_pt = cp.arange(nq, dtype = cp.int32)
+
+
+print("Computing Exact ")
+tic = time.time()
+knnidx_ex,knndis_ex = utex.sparse_queriesExact(X, Xq, leaves, ppl, K, test_pt)
+toc = time.time() - tic 
+knnidx_ex = cp.asnumpy(knnidx_ex)
+knndis_ex = cp.asnumpy(knndis_ex)
+print("Exact takes %.4f sec for %d queries"%(toc, numtest)) 
+print(knnidx_ex[5,:])
+print(knndis_ex[5,:])
+
+cp.save('tmp_data/'+ dataset + '_pt_ind', pt_ind)
+cp.save('tmp_data/' + dataset + '_test_pt', test_pt) 
+cp.save("tmp_data/" + dataset + "_knndis_ex", knndis_ex)
+cp.save("tmp_data/" + dataset + "_knnidx_ex", knnidx_ex)
+
+'''
+
+pt_ind = cp.load('tmp_data/pt_ind.npy')
+Xq = X[pt_ind, :]
+#tmp = cp.random.permutation(cp.arange(nq))
+#Xq = Xq[tmp, :]
+test_pt = np.load("tmp_data/test_pt.npy")
+knndis_ex = np.load("tmp_data/knndis_ex.npy")
+knnidx_ex = np.load("tmp_data/knnidx_ex.npy")
+
+
+print("# refs : %d"%X.shape[0])
+print("# queries : %d"%Xq.shape[0])
+
+
+
+
 knndis = 1e30*cp.ones((nq,K), dtype = cp.float32)
 knnidx = -cp.ones((nq,K), dtype = cp.int32)         
+maxiter = 300
+knnidx, knndis, tmpid = rkdt_a2a_it(X, Xq, depth, knnidx, knndis, K, maxiter, monitor, 0, False, 0, 1)
 
+
+np.save("tmp_data/ap_knnidx.npy", knnidx)
+np.save("tmp_data/ap_knndis.npy", knndis)
+
+'''
+import tree.test as test
+
+N = 10000
+X_dense = cp.random.rand(N, 2)
+Nq = 100
+Xq_dense = cp.random.rand(Nq, 2)
+
+depth = 4
+maxit = 5
+knnidx, knndis, tmpid = test.rkdt_a2a_it(X_dense, Xq_dense, depth, knnidx, knndis, K,maxit, None, 0, True, 0, 1) 
+'''
+
+
+print(knnidx_ex[80,:])
+print(knndis_ex[80,:])
+print(knnidx[test_pt[80],:])
+print(knndis[test_pt[80],:])
+
+
+'''
+for i in range(100):
+  print('pt %d'%i)
+  print(knnidx_ex[i,:] - cp.asnumpy(knnidx[test_pt[i],:]))
+  print(knndis_ex[i,:] - cp.asnumpy(knndis[test_pt[i],:]))
+'''
+ 
+'''
 #knnidx, knndis = py_queryknn(X, X_q, leaves, ppl, K, knndis, knnidx, 0, 1, leafIds, num_search_leaves)
 
 print("seq full")
@@ -223,6 +355,22 @@ print("err = %.4f"%er)
 knndis = 1e30*cp.ones((nq,K), dtype = cp.float32)
 knnidx = -cp.ones((nq,K), dtype = cp.int32)         
 
+
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
 print("seq fused")
 tic = time.time()
 knnidx, knndis , qId = py_queryknn_seqsearch_fused(X, X_q, leaves, ppl, K, knndis, knnidx, 0, 1, leafIds)
@@ -272,7 +420,6 @@ print(knndis_ex)
 
 
 
-'''
 print(knnidx[qId, :])
 print(knndis[qId, :])
 

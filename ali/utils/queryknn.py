@@ -50,8 +50,7 @@ def sparse_queriesExact(X_ref, X_q, leaves, ppl, k, q_points):
       norm_ref[0,p] = cp.linalg.norm(X_ref.data[X_ref.indptr[l*ppl+p]:X_ref.indptr[l*ppl+p+1]])**2
     
     norms = norm_Q + cp.tile(norm_ref, (nq, 1))
-  
-     w = X_ref[l*ppl:(l+1)*ppl, :]
+    w = X_ref[l*ppl:(l+1)*ppl, :]
     c_tmp = w.dot(Q.transpose())
    
     NDist[:, k:] = norms - 2 * c_tmp.transpose()
@@ -79,9 +78,10 @@ def dense_queriesExact(X_ref, X_q, leaves, ppl, k, q_points):
     
     norm_ref = cp.tile( (cp.linalg.norm( X_ref[l*ppl:(l+1)*ppl, :], axis=1 )**2 ).reshape((1,ppl) ), (nq, 1))
     
-    norms = norm_Q + cp.tile(norm_ref, (nq, 1))
+    #print(nq, norm_Q.shape, norm_ref.shape)
+    norms = norm_Q + norm_ref
   
-     w = X_ref[l*ppl:(l+1)*ppl, :]
+    w = X_ref[l*ppl:(l+1)*ppl, :]
     c_tmp = w.dot(Q.transpose())
    
     NDist[:, k:] = norms - 2 * c_tmp.transpose()

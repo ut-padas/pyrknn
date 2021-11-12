@@ -6,7 +6,12 @@ import sys
 import time
 import cupy as cp
 import matplotlib.pyplot as plt
-
+import numpy as np
+sys.path.append("../")
+#from src.sparse.seqsearch_fused.queryknn_seqsearch import *
+import src.sparse.full_single_perm.queryleafknn as full
+import src.sparse.fused_single_perm.queryleafknn as fused
+import src.dense.full_single_perm.queryleafknn as full_dense
 
 #@jit        
 # TODO: THIS NEEDS TO BE REPLACED BY THE NEW CODE
@@ -53,8 +58,7 @@ def leaf_knn(X,gids,m,knnidx,knndis,k,init,overlap=0):
         D=cp.take_along_axis(D,S,axis=1)
         if init:
             knnidx[ls,:]=T[:,:k]
-            knndis[ls,:]=D[:,:k]
- 
+            knndis[ls,:]=D[:,:k] 
         kit=cp.concatenate( (knnidx[ls,:],T[:,:k]), axis = 1)
         kdt=cp.concatenate( (knndis[ls,:],D[:,:k]), axis = 1)
         ut.merge_knn(kdt,kit,k)
@@ -99,45 +103,69 @@ def rkdt_a2a_it(Xref, Xq, levels, knnidx, knndis, K, maxit,monitor=None, overlap
     tot_rkdt = 0.0
     n = Xref.shape[0]
     nq = Xq.shape[0]
+    dim = Xref.shape[1]
     leaves = 1 << levels
-    
-     
+    ppl = cp.int32(n // leaves) 
+    sizebatchIter = batchIter 
     mempool = cp.get_default_memory_pool()
-    numiters = cp.ceil(maxit/batchIter)
+    numiters = cp.ceil(maxit/sizebatchIter)
     for t in cp.arange(numiters):
       
-      morId_q = cp.zeros((nq, batchIter), dtype = cp.int32) 
-      gids_batches = cp.zeros((n, batchIter), dtype = cp.int32)
+      morId_q = cp.zeros((sizebatchIter, nq), dtype = cp.int32) 
+      gids_batches = cp.zeros((sizebatchIter, n), dtype = cp.int32)
 
       tic = time.time()
-      for b_t in cp.arange(batchIter):
+      for b_t in cp.arange(sizebatchIter):
        
-        gids_batches[:, b_t] = cp.arange(0, n,dtype=cp.int32)
+        gids_batches[b_t, :] = cp.arange(0, n,dtype=cp.int32)
         perm = cp.arange(0, n,dtype=cp.int32)
         Pref, Pq = ut.orthoproj_query(Xref, Xq, levels)
         segsize = n
         for i in range(0,levels):
             
           segsize = n>>i
-          perm , morId_q[:, b_t] = ut.segpermute_f_query(Pref[:,i], Pq[:,i], segsize,perm, morId_q[:, b_t])    
-          Pref[:,i]=Pref[:,i][perm]
-           
-          gids_batches[:, b_t]=gids_batches[:, b_t][perm]
+          perm , morId_q[b_t, :] = ut.segpermute_f_query(Pref[:, i], Pq[:, i], segsize,perm, morId_q[b_t, :])    
+          Pref[:, :]=Pref[perm, :]
+          
+          #morId_q[b_t, :] = cp.sort(morId_q[b_t, :])
+
+ 
+          gids_batches[b_t, :]=gids_batches[b_t, perm]
         del Pref
         del Pq
       
       toc = time.time() - tic
        
-      '''
-      print("batch of %d, Tree construction takes %.4f sec"%(batchIter,toc))
+      
+      print("batch of %d, Tree construction takes %.4f sec"%(sizebatchIter,toc))
       mempool = cp.get_default_memory_pool()
-      mempool.free_all_blocks() 
+      mempool.free_all_blocks()
+      
+      #i1 = morId_q[0]*ppl
+      #i2 = morId_q[0]*ppl + ppl 
+      
+   
+
+ 
+      
       if dense:
-          dim = X.shape[1]
-          py_dfiknn(gids_batches, Xref, Xq, leaves, K, knnidx, knndis, dim, deviceId, morId_q, batchIter) 
+          '''
+          a = morId_q[0, 0]
+          i1 = cp.int(morId_q[0, 0] * ppl)
+          i2 = cp.int(morId_q[0, 0] * ppl + ppl)
+          m0 = Xq[0, :]
+          m1 = Xref[gids_batches[0, i1:i2], :]
+          inner = m0.dot(m1.T)
+          print(inner)   
+          '''   
+          dim = Xref.shape[1]
+          knnidx, knndis, tmp_id = full_dense.py_queryleafknn(Xref, Xq, leaves, ppl, K, knndis, knnidx, 0, 1, morId_q, gids_batches, sizebatchIter) 
+      
       if not dense:
-          py_sfiknn(gids_batches, Xref, Xq, leaves, K, knndis, knnidx, deviceId, morId_q, batchIter) 
+          #knnidx, knndis, tmp_id = full.py_queryleafknn(Xref, Xq, leaves, ppl, K, knndis, knnidx, 0, 0, morId_q, gids_batches, sizebatchIter) 
+          knnidx, knndis, tmp_id = fused.py_queryleafknn(Xref, Xq, leaves, ppl, K, knndis, knnidx, 0, 0, morId_q, gids_batches, sizebatchIter) 
       begin_err = time.time()
+      last_it = t 
       if monitor is not None:
           if monitor(t,knnidx,knndis):
               break
@@ -146,13 +174,12 @@ def rkdt_a2a_it(Xref, Xq, levels, knnidx, knndis, K, maxit,monitor=None, overlap
       tot_err += err_time
       cur_time = time.time() - tot_err - begin
       print("it = %d, RKDT : %.4f sec"%(t, cur_time))
-      '''
+       
     end = time.time()
     tot_rkdt = end - begin - tot_err
-    print("RKDT takes %.4f sec "%tot_rkdt)
+    print("it = %d, RKDT : %.4f sec"%(last_it, tot_rkdt))
     print("Error takes %.4f sec "%tot_err)
-
-    return knnidx, knndis
+    return knnidx, knndis, tmp_id
 
 
 

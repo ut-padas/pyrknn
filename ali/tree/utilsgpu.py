@@ -51,16 +51,14 @@ def orthoproj_query(Xref, Xq, numdir):
 
 def segpermute_f_query(arr, arr_q, segsize, perm_ref, morId_q):
   
-  n = len(arr)
-  nq = len(arr_q)
+  n = arr.shape[0]
+  nq = arr_q.shape[0]
   b = n // segsize
   tmp = arr.reshape(b, segsize)
-
   perm_ref[:] = cp.argsort(tmp, axis=1).flatten()
-
   medians = cp.median(tmp, axis=1)
   offsets = cp.arange(0, n, segsize)
-  st = cp.tile(offsets, (segsize,1))
+  st = cp.tile(offsets, (segsize, 1))
   st = (st.T).ravel()
   perm_ref[:] = perm_ref[:] + st[:]
   
@@ -77,9 +75,6 @@ def segpermute_f_query(arr, arr_q, segsize, perm_ref, morId_q):
 
   return perm_ref, morId_q
   
-
-
-
 
 
 def orthoproj(X,numdir):
