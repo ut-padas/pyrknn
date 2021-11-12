@@ -33,8 +33,7 @@ lib_dirs = lib_dirs + [CUDA_LIB]
 lib_dirs = lib_dirs + [CUDA_LIB+"/stubs/"]
 lib_dirs = lib_dirs + [CUDA_INC]
 
-object_list=["seqsearch_full/Norms.o", "seqsearch_full/SeqBinSearch.o", "seqsearch_full/queryknn_seqsearch.o", \
-            "seqsearch_full/merge.o"]
+object_list=["fused_single_perm/norm.o", "fused_single_perm/fused_single_perm.o", "fused_single_perm/queryleafknn.o", "fused_single_perm/merge.o"]
 
 def scandir(dir, files=[]):
     for file in os.listdir(dir):
@@ -59,15 +58,15 @@ def makeExtension(extName):
         extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart", "-lcublas"]
     )
 
-extNames = scandir("seqsearch_full")
+extNames = scandir("fused_single_perm")
 print(extNames)
 extensions = [makeExtension(name) for name in extNames]
 print(extensions)
 
 
 setup(
-    name="queryknn",
-    packages=["queryknn"],
+    name="queryleafknn",
+    packages=["queryleafknn"],
     ext_modules=extensions,
     package_data={
         '':['*.pxd']

@@ -7,13 +7,13 @@
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
 
-#include "queryknn_seqsearch.h"
-#include "SeqBinSearch.h"
-#include "Norms.h"
+#include "queryleafknn.h"
+#include "dist_full_single.h"
+#include "norm.h"
 #include "merge.h"
 
 
-void query_leafknn_seqsearch(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, float *V_q, int *QId, int const ppl, int const leaves, int const k, float *NDist, int *NId, int const deviceId, int const verbose, int const nq, int const dim, int const avgnnz, int *glob_leafIds, int num_search_leaves, int *local_leafIds){
+void query_leafknn(int *R_ref, int *C_ref, float *V_ref, int *R_q,  int * C_q, float *V_q, int *QId, int const ppl, int const leaves, int const k, float *NDist, int *NId, int const deviceId, int const verbose, int const nq, int *glob_pointIds, int num_search_leaves, int *local_leafIds){
 
 
   float dt_dist, dt_tot, dt_norms_q, dt_norms_ref, dt_tmp, dt_mem, dt_merge;
@@ -41,20 +41,18 @@ void query_leafknn_seqsearch(int *R_ref, int *C_ref, float *V_ref, int *R_q,  in
   size_t tmp_NDist_size = sizeof(float) * ppl * nq;
   size_t norm_q_size = sizeof(float) * nq;
   size_t norm_ref_size = sizeof(float) * num_search_leaves * ppl; 
-
+  if (verbose){
   printf("==========================\n");
   printf("ppl = %d \n", ppl);
   printf("leaves = %d \n", leaves);
   printf("k = %d \n", k);
   printf("nq = %d \n", nq);
-  printf("dim = %d \n", dim);
-  printf("avgnnz = %d \n", avgnnz);
   printf("num_search_leaves = %d \n", num_search_leaves);
  
   printf("Require %.4f (GB) for tmp NDists\n", tmp_NDist_size/1e9);
   printf("Require %.4f (GB) for norm refs\n", norm_ref_size/1e9);
   printf("Require %.4f (GB) for norm queries\n", norm_q_size/1e9);
-
+  }
   float *tmp_NDist, *Norms_ref, *Norms_q;
   int *SortInd, *StepLen, *StepStart, *tidIdMap, *tidSortDir;
   
@@ -121,7 +119,7 @@ void query_leafknn_seqsearch(int *R_ref, int *C_ref, float *V_ref, int *R_q,  in
   checkCudaErrors(cudaEventSynchronize(t_norms_ref));
   checkCudaErrors(cudaEventElapsedTime(&dt_norms_ref, t_norms_q, t_norms_ref));
   
-  ComputeDists_seq <<< GridDist, BlockDist >>> (R_ref, C_ref, V_ref, R_q, C_q, V_q, local_leafIds, Norms_q, Norms_ref, k, tmp_NDist, ppl, dim, QId);
+  ComputeDists_seq <<< GridDist, BlockDist >>> (R_ref, C_ref, V_ref, R_q, C_q, V_q, local_leafIds, Norms_q, Norms_ref, k, tmp_NDist, ppl, QId, glob_pointIds);
 
   checkCudaErrors(cudaDeviceSynchronize());  
   checkCudaErrors(cudaEventRecord(t_dist, 0));
@@ -131,7 +129,7 @@ void query_leafknn_seqsearch(int *R_ref, int *C_ref, float *V_ref, int *R_q,  in
   S_PrecompMergeNP2 <<< 1, blocksize >>> (SortInd, StepLen, StepStart, tidIdMap, tidSortDir, steps);
   checkCudaErrors(cudaDeviceSynchronize());  
   
-  S_MergeHorizNP2<<< GridMerge, BlockMerge >>> (NDist, NId, k, ppl, tmp_NDist, glob_leafIds, steps, QId, SortInd, StepLen, StepStart, tidIdMap, tidSortDir, local_leafIds);
+  S_MergeHorizNP2<<< GridMerge, BlockMerge >>> (NDist, NId, k, ppl, tmp_NDist, glob_pointIds, steps, QId, SortInd, StepLen, StepStart, tidIdMap, tidSortDir, local_leafIds);
   
   checkCudaErrors(cudaDeviceSynchronize());  
   checkCudaErrors(cudaEventRecord(t_merge, 0));
