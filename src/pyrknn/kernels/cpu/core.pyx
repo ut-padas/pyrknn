@@ -10,6 +10,7 @@ from cython.operator cimport dereference as deref
 from cython.parallel import prange, parallel
 from cython.view cimport array as cvarray
 import cython
+cimport cython 
 
 cimport mpi4py.MPI as MPI
 cimport mpi4py.libmpi as libmpi
@@ -18,6 +19,102 @@ from mpi4py import MPI
 import math
 import time
 
+cdef fused real:
+    cython.char
+    cython.uchar
+    cython.short
+    cython.ushort
+    cython.int
+    cython.uint
+    cython.long
+    cython.ulong
+    cython.longlong
+    cython.ulonglong
+    cython.float
+    cython.double
+
+cdef fused index:
+    cython.char
+    cython.uchar
+    cython.short
+    cython.ushort
+    cython.int
+    cython.uint
+    cython.long
+    cython.ulong
+    cython.longlong
+    cython.ulonglong
+
+def argsort(index[:] idx, real[:] val):
+    cdef size_t c_length = len(idx)
+    arg_sort(&idx[0], &val[0], c_length)
+
+
+def reindex_1(real[:] val, index[:] idx, real[:] buf):
+    cdef size_t c_length = len(idx)
+    reindex_1D(&idx[0], &val[0], c_length, &buf[0])
+
+def reindex_2(real[:, :] val, index[:] idx, real[:, :] buf):
+    cdef size_t c_length = len(idx)
+    cdef size_t c_dim = val.shape[1]
+    reindex_2D(&idx[0], &val[0, 0], c_length, c_dim, &buf[0, 0])
+
+def map_1(real[:] val, index[:] idx, real[:] buf):
+    cdef size_t c_length = len(idx)
+    map_1D(&idx[0], &val[0], c_length, &buf[0])
+
+def map_2(real[:, :] val, index[:] idx, real[:, :] buf):
+    cdef size_t c_length = len(idx)
+    cdef size_t c_dim = val.shape[1]
+    map_2D(&idx[0], &val[0, 0], c_length, c_dim, &buf[0, 0])
+
+def reindex(val, index, copy_back=False, use_numpy=False):
+    source_shape = val.shape
+    target_length = len(index)
+    target_dim = val.shape[1]
+    
+    print(target_length, target_dim, val.ndim, flush=True)
+
+    if val.ndim < 2:
+        buf = np.empty(target_length, dtype=val.dtype)
+    elif val.ndim == 2:
+        buf = np.empty((target_length, target_dim), dtype=val.dtype)
+    else:
+        raise Exception("Reindex function only implemented for ndim <= 2")
+
+    if use_numpy:
+        if copy_back:
+            assert(target_length == source_shape[0])
+            val[:] = val[index]
+            return val
+        else:
+            return val[index]
+
+    if copy_back == True:
+        assert(target_length == source_shape[0])
+        if val.ndim < 2:
+            reindex_1(val, index, buf)
+        elif val.ndim == 2:
+            reindex_2(val, index, buf)
+        return val
+    else:
+        if val.ndim < 2:
+            map_1(val, index, buf)
+        elif val.ndim == 2:
+            map_2(val, index, buf)
+        return buf
+
+def interval(starts, sizes, index, nleaves, leaf_ids):
+    cdef unsigned char[:] c_index = index;
+    cdef int[:] c_starts = starts;
+    cdef int[:] c_sizes = sizes;
+    cdef int c_nleaves = nleaves;
+    cdef unsigned char[:] c_leaf_ids = leaf_ids;
+    cdef int c_len = len(index)
+
+    with nogil:
+        find_interval(<int*>(&c_starts[0]), <int*>(&c_sizes[0]), <unsigned
+                char*>(&c_index[0]), <int> c_len, <int> c_nleaves, <unsigned char*>(&c_leaf_ids[0]))
 
 #-- Dense KNN
 

@@ -7,6 +7,8 @@
 #include <vector>
 #include <random>
 #include <algorithm>
+#include <parallel/algorithm>
+//#include <execution>
 
 #include <omp.h>
 //#include<ompUtils.h>
@@ -39,6 +41,92 @@ template <typename T>
 using neigh_type = typename std::pair<T, idx_type<T>>;
 
 typedef std::vector<unsigned> ivec;
+
+
+template<typename index_t, typename value_t>
+void map_1D(index_t* idx, value_t *val, size_t length, value_t* output){
+    //Permute
+    #pragma omp parallel for
+    for(int i = 0; i < length; ++i){
+        output[i] = val[idx[i]];
+    }
+}
+
+template<typename index_t, typename value_t>
+void map_2D(index_t* idx, value_t *val, size_t length, size_t dim, value_t* output){
+    //Permute
+    #pragma omp parallel for
+    for(int i = 0; i < length; ++i){
+        #pragma simd
+        for(int j = 0; j < dim; ++j){
+            output[dim*i + j] = val[dim*idx[i] + j];
+        }
+    }
+}
+
+template<typename index_t, typename value_t>
+void reindex_1D(index_t* idx, value_t* val, size_t length, value_t* buffer){
+    //Fill buffer
+    #pragma omp parallel for schedule(static)
+    for(int i = 0; i < length; ++i){
+        buffer[i] = val[i];
+    }
+
+    //Permute
+    #pragma omp parallel for schedule(static)
+    for(int i = 0; i < length; ++i){
+        val[i] = buffer[idx[i]];
+    }
+}
+
+template<typename index_t, typename value_t>
+void reindex_2D(index_t* idx, value_t* val, size_t length, size_t dim, value_t* buffer){
+    //Fill buffer
+    #pragma omp parallel for
+    for(int i = 0; i < length; ++i){
+        #pragma simd
+        for(int j = 0; j < dim; ++j){
+            buffer[dim*i + j] = val[dim*i + j];
+        }
+    }
+
+    //Permute
+    #pragma omp parallel for
+    for(int i = 0; i < length; ++i){
+        #pragma simd
+        for(int j = 0; j < dim; ++j){
+            buffer[dim*i + j] = buffer[dim*idx[i] + j];
+        }
+    }
+}
+
+template<typename index_t, typename value_t>
+void arg_sort(index_t* idx, value_t* val, size_t length){
+    
+    #pragma omp parallel for
+    for(int i = 0; i < length; ++i){
+        idx[i] = i;
+    }
+
+    auto compare = [&val](size_t a, size_t b){return val[a] < val[b];};
+    //std::stable_sort(std::execution::par_unseq, idx, idx+length, compare);
+    __gnu_parallel::stable_sort(idx, idx+length, compare);
+}
+
+void find_interval(int* starts, int* sizes, unsigned char* index, int len, int nleaves, unsigned char* leaf_ids){
+
+    #pragma omp parallel for
+    for(int i = 0; i < nleaves; ++i){
+        unsigned char leaf = leaf_ids[i];
+        const auto p = std::equal_range(index, index+len, leaf);
+
+        int start = std::distance(index, std::get<0>(p));
+        int end = std::distance(index, std::get<1>(p));
+        starts[i] = start;
+        sizes[i] = end - start;
+    }
+
+}
 
 /* reorder kernels*/
 
