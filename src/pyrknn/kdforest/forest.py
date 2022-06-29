@@ -277,18 +277,110 @@ class RKDForest:
 
         return result
 
-
-
-
-
     def distributed_exact(self, Q, k):
         tree = RKDT(data=self.host_data)
         truth = tree.distributed_exact(Q, k)
         return truth
 
 
+    def query_search(self, Q=None, k=16, ntrees=5, truth=None, cores=56, blocksize=64, blockleaf=128, ltrees=3, threshold=0.95, merge_flag=True, verbose=True):
+        timer = Primitives.Profiler()
+        record = Primitives.Recorder()
+
+        timer.push("Forest: Search")
+        result = None
+
+        if merge_flag:
+            merge_location = self.location
+        else:
+            merge_location = "HOST"
+
+        rank = self.comm.Get_rank()
+        mpi_size = self.comm.Get_size()
+        break_flag = False
+
+        if truth is not None:
+            nq = truth[0].shape[0]
+            assert(nq == truth[1].shape[0])
+            assert(truth[0].shape[1] == truth[1].shape[1])
+            assert(truth[0].shape[1]>=k)
+
+        for it in range(ntrees):
+
+            #Build Tree
+            timer.push("Forest: Build Dist Tree")
+            if mpi_size > 1:
+                X = copy(self.host_data, self.sparse_flag)
+                tree = RKDT(data=X, levels=self.levels, leafsize=self.leafsize)
+                tree.distributed_build()
+            else:
+                X = copy(self.host_data, self.sparse_flag)
+                tree = RKDT(data=X, levels=self.levels, leafsize=self.leafsize)
+            timer.pop("Forest: Build Dist Tree")
+
+            #Communicate Distributed Coordinates
+            timer.push("Forest: Distribute Coordinates")
+            if mpi_size > 1:
+                tree.collect_data()
+            timer.pop("Forest: Distribute Coordinates")
 
 
+            timer.push("Forest: Evaluate")
+            #TODO: Either support int64 or change to local_ids and update in python
+            if self.gpu_flag and (not self.sparse_flag):
+                neighbors = Primitives.gpu_dense_knn(tree.global_ids, tree.host_data, tree.local_levels, ltrees, k, blocksize, self.device)
+            elif self.gpu_flag and self.sparse_flag:
+                neighbors = Primitives.gpu_sparse_knn(tree.global_ids, tree.host_data, tree.local_levels, ltrees, k, blockleaf, blocksize, self.device)
+            elif (not self.gpu_flag) and (not self.sparse_flag):
+                tree.build_local()
+                neighbors = tree.search_local(k)
+            elif (not self.gpu_flag) and (self.sparse_flag):
+                n, d = tree.host_data.shape
+                neighbors = Primitives.cpu_sparse_knn_3(tree.global_ids, tree.host_data.indptr, tree.host_data.indices, tree.host_data.data, len(tree.host_data.data), tree.local_levels, ltrees, k, blocksize, n, d, cores)
+            timer.pop("Forest: Evaluate")
+
+            #Sort to check
+            #neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
+            #print(rank, "Neighbors before merge: : ", neighbors, flush=True)
+
+            #Redistribute
+            timer.push("Forest: Redistribute")
+            if mpi_size > 1:
+                gids, neighbors = tree.redistribute_results(neighbors)
+            timer.pop("Forest: Redistribute")
+
+            #Merge
+            timer.push("Forest: Merge")
+            if result is None:
+                result = Primitives.merge_neighbors(neighbors, neighbors, k, merge_location, cores)
+            else:
+                result = Primitives.merge_neighbors(result, neighbors, k, merge_location,  cores)
+            timer.pop("Forest: Merge")
+
+            timer.push("Forest: Compare")
+            if ( truth is not None ) and ( rank == 0 ) :
+                rlist, rdist = result
+                test = (rlist[:nq, ...], rdist[:nq, ...])
+
+                acc = Primitives.check_accuracy(truth, test)
+                Primitives.accuracy.append( acc )
+
+                record.push("Recall", acc[0])
+                record.push("Distance", acc[1])
+
+                if verbose:
+                    print("Iteration:", it, "Recall:", acc, flush=True)
+                if acc[0] > threshold:
+                    break_flag = True
+
+            break_flag = self.comm.bcast(break_flag, root=0)
+            timer.pop("Forest: Compare")
+
+            if break_flag:
+                break
+
+        timer.pop("Forest: Search")
+        return result
 
 
 

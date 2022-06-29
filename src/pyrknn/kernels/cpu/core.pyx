@@ -20,30 +20,41 @@ import math
 import time
 
 cdef fused real:
-    cython.char
-    cython.uchar
-    cython.short
-    cython.ushort
-    cython.int
-    cython.uint
-    cython.long
-    cython.ulong
-    cython.longlong
-    cython.ulonglong
     cython.float
-    cython.double
+    #cython.double
+    #cython.int
+    #cython.long
 
 cdef fused index:
-    cython.char
-    cython.uchar
-    cython.short
-    cython.ushort
     cython.int
-    cython.uint
-    cython.long
-    cython.ulong
-    cython.longlong
-    cython.ulonglong
+    #cython.long
+
+#cdef fused real:
+#    cython.char
+#    cython.uchar
+#    cython.short
+#    cython.ushort
+#    cython.int
+#    cython.uint
+#    cython.long
+#    cython.ulong
+#    cython.longlong
+#    cython.ulonglong
+#    cython.float
+#    cython.double
+
+#cdef fused index:
+#    cython.char
+#    cython.uchar
+#    cython.short
+#    cython.ushort
+#    cython.int
+#    cython.uint
+#    cython.long
+#    cython.ulong
+#    cython.longlong
+#    cython.ulonglong
+
 
 def argsort(index[:] idx, real[:] val):
     cdef size_t c_length = len(idx)
@@ -115,6 +126,38 @@ def interval(starts, sizes, index, nleaves, leaf_ids):
     with nogil:
         find_interval(<int*>(&c_starts[0]), <int*>(&c_sizes[0]), <unsigned
                 char*>(&c_index[0]), <int> c_len, <int> c_nleaves, <unsigned char*>(&c_leaf_ids[0]))
+
+
+def bin_default(levels, real[:, :] projection, real[:] medians, index[:] output, real[:, :] buf):
+    cdef size_t n = projection.shape[0]
+    cdef int c_levels = levels
+
+    bin_queries(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
+    
+    
+def bin_pack(levels, real[:, :] projection, real[:] medians, index[:] output, real[:, :] buf):
+    cdef size_t n = projection.shape[0]
+    cdef int c_levels = levels
+
+    if (real is cython.float) and (index is cython.int):
+        print("USING SIMD", flush=True)
+        bin_queries_simd(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
+    else:
+        bin_queries_pack(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
+
+def query_to_bin(projection, medians, output, levels=None, pack=False):
+
+    if levels is None:
+        levels = projection.shape[1]
+
+    levels = min(projection.shape[1], levels)
+
+    buf = np.empty((projection.shape[0], projection.shape[1]), dtype=projection.dtype)
+
+    if pack:
+        bin_pack(levels, projection, medians, output, buf)
+    else:
+        bin_default(levels, projection, medians, output, buf)
 
 #-- Dense KNN
 

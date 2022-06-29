@@ -23,3 +23,6 @@ cdef extern from "impl/primitives_shared.hpp" nogil:
     cdef void reindex_2D[T1, T2](T1* idx, T2* val, size_t length, size_t dim, T2* buf) except +
     cdef void map_1D[T1, T2](T1* idx, T2* val, size_t length, T2* buf) except+
     cdef void map_2D[T1, T2](T1* idx, T2* val, size_t length, size_t dim, T2* buf) except +
+    cdef void bin_queries[T1, T2](size_t n, int levels, T2* proj, T2* medians, T1* idx, T2* buf) except + 
+    cdef void bin_queries_pack[T1, T2](size_t n, int levels, T2* proj, T2* medians, T1* idx, T2* buf) except + 
+    cdef void bin_queries_simd(size_t n, int levels, float* proj, float* medians, int* idx, float* buf) except + 
