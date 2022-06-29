@@ -765,8 +765,8 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaEventCreate(&t9));
 
   checkCudaErrors(cudaEventRecord(t0, 0));
-  int verbose = 0;
-  if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
+  int verbose = 1;
+  if (verbose) printf("----------------------------- Start of dfiknn ----------------------------- \n\n");
 
 
   //int C_len = M * dim;
@@ -780,7 +780,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   int partsize = (k > 32) ? k : 32;
 
   cudaMemGetInfo(&free, &total);
-  if (verbose) printf(" Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+  printf(" Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
   size_t size_req = sizeof(float) * partsize * M;
   int counter =0;
   while (size_req < free && partsize < k && counter < 6) {

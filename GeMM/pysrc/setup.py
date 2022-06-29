@@ -59,8 +59,8 @@ def makeExtension(extName):
         library_dirs = lib_dirs,
         runtime_library_dirs = lib_dirs,
         extra_objects=object_list,
-        extra_compile_args=["-std=c++11","-O3", "-fPIC"],
-        extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart", "-lcublas"]
+        extra_compile_args=["-std=c++11","-g", "-fPIC"],
+        extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart", "-lcublas", "-g"]
     )
 
 extNames = scandir("filknn/dense")

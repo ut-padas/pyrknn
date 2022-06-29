@@ -82,6 +82,7 @@ def merge_knn(dis,idx,k):
         tmp_idx = cp.argsort(dis[j,:m])
         dis[j,:k]=dis[j,tmp_idx[:k]]
         idx[j,:k]=idx[j,tmp_idx[:k]]
+    del temp_idx
 
 
 # THIS works only for contiguous local sets (ls) and it won't work for random sliced views

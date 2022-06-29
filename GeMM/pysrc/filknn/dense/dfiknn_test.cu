@@ -8,7 +8,7 @@
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
 #include <cublas_v2.h>
-
+#include "knn_handle.hpp"
 
 
 
@@ -493,6 +493,11 @@ __global__ void MergeVer_v2(float* KNN, int* KNN_Id, float* Norms, int k_nn, int
 
 }
 
+void memcheck(){
+  size_t free, total;
+  cudaMemGetInfo(&free, &total);
+  printf("Python Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+}
 
 void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_knn, int *d_knn_Id, int dim, int deviceId){
 
@@ -562,7 +567,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   checkCudaErrors(cudaEventRecord(t_begin, 0));
   checkCudaErrors(cudaEventSynchronize(t_begin));
   int verbose = 0;
-  if (verbose) printf("----------------------------- Start of sfiknn ----------------------------- \n\n");
+  if (verbose) printf("----------------------------- Start of dfiknn ----------------------------- \n\n");
 
 
   size_t free, total, m1, m2, m3;
@@ -574,7 +579,6 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   //int partsize = k;
 
   cudaMemGetInfo(&free, &total);
-  
   if (verbose) printf(" Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
   size_t size_req = sizeof(float) * partsize * M;
   int counter =0;
@@ -688,13 +692,14 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   
   dim3 GridMergeHoriz(partsize, batch_leaves_1, batch_leaves_2);
 
-	dt_mem = dt_tmp;
+  dt_mem = dt_tmp;
   int steps;
 
-	cublasStatus_t status;
-	cublasHandle_t handle;
+  cublasStatus_t status;
+  //cublasHandle_t handle;
+  //status = cublasCreate(&handle);
+  auto const& handle = knnHandle_t::instance();
 
-  status = cublasCreate(&handle);
   //int oneInt = 1;
   float oneFloat = 1.0;
 
@@ -754,7 +759,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
     //size_t offset_bl = bl * sizebleaves * ppl * dim * sizeof(int);
 
     num_gemms = ppl * sizebleaves / partsize;
-    CHECK_CUBLAS( cublasSgemmStridedBatched( handle, CUBLAS_OP_T, CUBLAS_OP_N,
+    CHECK_CUBLAS( cublasSgemmStridedBatched( handle.blas, CUBLAS_OP_T, CUBLAS_OP_N,
                                       partsize, partsize, dim,
                                       &oneFloat, d_data + offset_bl , dim, partsize*dim,
                                       d_data + offset_bl, dim, partsize*dim, 
@@ -762,6 +767,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
     
 
     checkCudaErrors(cudaDeviceSynchronize());
+    //printf("BATCH 1\n");
     
     
  
@@ -823,12 +829,13 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
       int sizecolumns = ppl - partsize * (blockInd + 1);
       checkCudaErrors(cudaEventRecord(t0_recdist, 0));
 
-      CHECK_CUBLAS( cublasSgemmStridedBatched( handle, CUBLAS_OP_T, CUBLAS_OP_N,
+      CHECK_CUBLAS( cublasSgemmStridedBatched( handle.blas, CUBLAS_OP_T, CUBLAS_OP_N,
                                       partsize, sizecolumns, dim,
                                       &oneFloat, d_data + offsetA * dim, dim, ppl * dim,
                                       d_data + offsetB * dim, dim, ppl * dim, 
                                       &zeroFloat, d_temp_knn, partsize, sizecolumns * partsize, num_gemms) );           
     	checkCudaErrors(cudaDeviceSynchronize());
+      //printf("Batch 2\n");
       checkCudaErrors(cudaEventRecord(t1_recdist, 0));
       checkCudaErrors(cudaEventSynchronize(t1_recdist));
       checkCudaErrors(cudaEventElapsedTime(&dt_tmp, t0_recdist, t1_recdist));
@@ -881,7 +888,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
  
 
 
- 
+  //cublasDestroy(handle); 
   checkCudaErrors(cudaEventDestroy(t_begin));
   checkCudaErrors(cudaEventDestroy(t_end));
   checkCudaErrors(cudaEventDestroy(t0_mem));
@@ -916,6 +923,9 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
   printf(" Temporary storage = %.4f GB \n", (m2-m3)/1e9);
   printf("----------------------------- End of leaf-knn -----------------------------\n\n");
   }
+
+  cudaMemGetInfo(&free, &total);
+  if (verbose) printf("END: Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
 }
 
 

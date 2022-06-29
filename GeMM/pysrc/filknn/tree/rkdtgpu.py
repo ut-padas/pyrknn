@@ -1,5 +1,5 @@
 import numpy as np
-
+import gc
 from ..utils import utilsgpu as ut
 from time import time
 import cupyx.scipy.sparse as cpsp
@@ -104,8 +104,18 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
     #perm = cp.arange(n, dtype = cp.int32)
     
     mempool = cp.get_default_memory_pool()
+
+    memory()
     for t in range(maxit):
+        #print("Avail") 
+        #gc.collect()
+        #mempool = cp.get_default_memory_pool()
+        #mempinned = cp.get_default_pinned_memory_pool()
         
+        #print("before tree: %.4f free from %.4f "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
+        #print("before tree pinned: %.4f free"%(mempinned.n_free_blocks()/1e9))
+        #memory()
+
         tic = time.time()
         #gids = np.arange(0, n,dtype=np.int32)
         gids = cp.arange(0,n,dtype=cp.int32)
@@ -126,26 +136,38 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
         toc = time.time() -tic
         del P
         del perm
-        print("Tree construction takes %.4f sec"%toc)
+
+        #print("Tree construction takes %.4f sec"%toc)
         mempool = cp.get_default_memory_pool()
         mempool.free_all_blocks() 
         #print("befcuda %.4f free from %.4f "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
+        #print("befkernel tree pinned: %.4f free"%(mempinned.n_free_blocks()/1e9))
+        #memory()
+        #gc.collect()
+        #memory()
         if dense:
             dim = X.shape[1]
             py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim, deviceId) 
         if not dense:
             #print("\t Sparse knn : sfiknn version")
             py_sfiknn(gids, X, leaves, K, knndis, knnidx, deviceId) 
+        #memory()
         begin_err = time.time()
         if monitor is not None:
             if monitor(t,knnidx,knndis):
                 break
         end_err = time.time()
+        del gids
+        #print("aftkernel %.4f free from %.4f "%(mempool.used_bytes()/1e9, mempool.total_bytes()/1e9))
+        #print("aftkernel tree pinned: %.4f free"%(mempinned.n_free_blocks()/1e9))
+        #memory()
         err_time = end_err - begin_err
         tot_err += err_time
         cur_time = time.time() - tot_err - begin
         print("it = %d, RKDT : %.4f sec"%(t, cur_time))
+        memory()
     end = time.time()
+    gc.collect()
     tot_rkdt = end - begin - tot_err
     print("RKDT takes %.4f sec "%tot_rkdt)
     print("Error takes %.4f sec "%tot_err)

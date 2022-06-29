@@ -823,7 +823,7 @@ void dfi_leafknn(float *d_data, int *d_GId, int M, int leaves, int k, float *d_k
     
     if (rem_len > 0){
       //printf("rem len = %d , num_gemms = %d ,\n", rem_len, num_gemms);
-      ComputeTriDists_last <<< GridDistTri_last, BlockDistTri_last >>>(d_data, d_GId, d_Norms, k, d_temp_knn, ppl, rem_len, num_gemms, bl, sizebleaves, partsize, dim);
+      computeTriDists_last <<< GridDistTri_last, BlockDistTri_last >>>(d_data, d_GId, d_Norms, k, d_temp_knn, ppl, rem_len, num_gemms, bl, sizebleaves, partsize, dim);
       checkCudaErrors(cudaDeviceSynchronize());
 
     }
