@@ -351,13 +351,24 @@ cpdef dense_build(P):
 
 #-- Distributed Tree Build 
 
-cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
+cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
+
+    t = time.perf_counter()
+
+    t_reduce = 0
+    t_alloc = 0
+    t_prefix = 0
+    t_sum = 0
+    t_part = 0
 
     rank = comm.Get_rank()
     cdef int nlocal = len(X)
     nlocal_a = np.array(nlocal, dtype=np.float32)
     N_a = np.array(0.0, dtype=np.float32)
+
+    t_stamp = time.perf_counter()
     comm.Allreduce(nlocal_a, N_a, op=MPI.SUM)
+    t_reduce += (time.perf_counter() - t_stamp) 
    
     cdef float N = N_a
 
@@ -371,26 +382,34 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     
     #TODO: Combine this with previous MPI Call
     #Compute Mean and use as approximate Split
+    t_stamp = time.perf_counter()
     if nlocal >0:
         local_mean_a = np.array(np.sum(X), dtype=np.float32)
     else:
         local_mean_a = np.array(0.0, dtype=np.float32)
+    t_sum += (time.perf_counter() - t_stamp)
 
+    t_stamp == time.perf_counter()
     global_mean_a = np.array(0.0, dtype=np.float32)
     comm.Allreduce(local_mean_a, global_mean_a, op=MPI.SUM)
+    t_reduce += (time.perf_counter() - t_stamp)
+
     #print(global_mean_a)
     cdef float mean = global_mean_a/N
     #print(rank, "Mean", mean)
 
     #TODO: Replace with parallel scan and copy
-    cdef float[:] temp_X = np.zeros(nlocal, dtype=np.float32)
-    cdef int[:] temp_ID = np.zeros(nlocal, dtype=np.int32)
-    cdef int[:] perm = np.zeros(nlocal, dtype=np.int32)
+    t_stamp = time.perf_counter()
+    cdef float[:] temp_X = np.empty(nlocal, dtype=np.float32)
+    cdef int[:] temp_ID = np.empty(nlocal, dtype=np.int32)
+    cdef int[:] perm = np.empty(nlocal, dtype=np.int32)
+    t_alloc += (time.perf_counter() - t_stamp)
 
     cdef int nleft = 0;
     cdef int nright = 0;
     cdef float current_value
 
+    t_stamp = time.perf_counter()
     cdef int i = 0
     for i in range(nlocal):
         current_value = X[i]
@@ -401,6 +420,10 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
         else:
             perm[i] = nlocal - 1 - nright
             nright = nright + 1
+
+    t_prefix += (time.perf_counter() -  t_stamp)
+
+    t_stamp = time.perf_counter()
     i = 0
     for i in prange(nlocal, nogil=True):
         temp_X[perm[i]] = X[i]
@@ -411,25 +434,41 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
         X[i] = temp_X[i]
         ID[i] = temp_ID[i] 
 
+    t_part += (time.perf_counter() - t_stamp)
+
+    t_stamp = time.perf_counter()
     cdef int nL = prev[0] + nleft;
     cdef int nR = prev[1] + nright;
 
     cdef int[:] local_split_info = np.array([nL, nR], dtype=np.int32)
     cdef int[:] global_split_info = np.array([0, 0], dtype=np.int32)
     comm.Allreduce(local_split_info, global_split_info, op=MPI.SUM)
+    t_reduce += (time.perf_counter() - t_stamp)
 
+    t_stamp = time.perf_counter()
     if nlocal > 0:
         minX = np.min(X)
         maxX = np.max(X)
     else:
         minX = 3.4e38
         maxX = -3.4e38
+    t_sum += (time.perf_counter() - t_stamp)
 
+    t_stamp = time.perf_counter()
     gmax = comm.allreduce(maxX, op=MPI.MAX)
     gmin = comm.allreduce(minX, op=MPI.MIN)
+    t_reduce += (time.perf_counter() - t_stamp)
 
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
+
+    if grank == 0:
+        print("-----")
+        print("t_sum", t_sum)
+        print("t_reduce", t_reduce)
+        print("t_part", t_part)
+        print("t_prefix", t_prefix)
+        print("t_alloc", t_alloc)
 
     if (math.isclose(gmax, gmin, rel_tol=1e-5, abs_tol=1e-20)):
         st0 = np.random.get_state()
@@ -438,11 +477,15 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
         X = X + np.array(np.random.randn(nlocal), dtype=np.float32)*gmax*(3e-4)
         np.random.set_state(st0)
 
+    if grank == 0:
+        print("total", time.perf_counter() - t)
+        print("sizes:", global_nleft, global_nright, N)
+
     if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
         return (mean, nL)
 
     elif (global_nleft > k):
-        return dist_select(k, X[:nleft], ID[:nleft], comm, prev=(prev[0], prev[1] + nright, globalN))
+        return dist_select(grank, k, X[:nleft], ID[:nleft], comm, prev=(prev[0], prev[1] + nright, globalN))
 
     elif (global_nright > k):
-        return dist_select(k, X[nleft:], ID[nleft:], comm, prev=(prev[0]+nleft, prev[1], globalN))
+        return dist_select(grank, k, X[nleft:], ID[nleft:], comm, prev=(prev[0]+nleft, prev[1], globalN))
