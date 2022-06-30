@@ -56,6 +56,12 @@ def search_task_dense(search_args):
 
     neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST))
 
+    del ID
+    del DIST
+
+    mempool = cp.get_default_memory_pool()
+    mempool.free_all_blocks()
+
     #neighbors = Primitives.gpu_dense_knn(gids, X, local_levels, ltrees, k, blocksize,device)
     return neighbors
 
@@ -74,6 +80,11 @@ def search_task_sparse(search_args):
     ID, DIST = neighbors
 
     neighbors = (cp.asnumpy(d_gids[ID]), cp.asnumpy(DIST))
+    del ID
+    del DIST
+
+    mempool = cp.get_default_memory_pool()
+    mempool.free_all_blocks()
 
     #neighbors = Primitives.gpu_sparse_knn(gids, X, local_levels, ltrees, k, blockleaf, blocksize,device)
     return neighbors

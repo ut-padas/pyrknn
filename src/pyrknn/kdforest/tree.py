@@ -16,6 +16,8 @@ set_num_threads(4)
 
 from mpi4py import MPI
 
+reindex = Primitives.reindex
+
 def rprint(tag, obj, comm=MPI.COMM_WORLD, rank=0):
     if comm.Get_rank() == rank:
         print(tag, obj, flush=True)
@@ -310,7 +312,7 @@ def gather_dense(comm, data, requests, size_prefix, rank, sizes, starts, rsizes,
     #requests = np.asarray(requests, dtype=np.int32)
     requests = global_2_local(requests, size_prefix, rank)
     #print(rank, "Updated requests", requests, flush=True)
-    requested_data = reorder_2(data, requests)
+    requested_data = reindex(data, requests)
     #requested_data = data[requests]
     timer.pop("Collect Points: Gather Requests")
 
@@ -370,14 +372,18 @@ def collect(comm, requested_global_ids, data, size_prefix, dtype=np.int64):
     #print(rank, "labels", labels, flush=True)
 
     timer.push("Collect Points: Organize Points - sort")
-    p = np.argsort(labels, kind='stable')
+    #p = np.argsort(labels, kind='stable')
+    p = Primitives.argsort(labels)
     timer.pop("Collect Points: Organize Points - sort")
 
     timer.push("Collect Points: Organize Points - reorder")
     #labels = reorder_4(labels, p)
     #requested_global_ids = reorder(requested_global_ids, p)
-    labels = labels[p]
-    requested_global_ids = requested_global_ids[p]
+    #labels = labels[p]
+    #requested_global_ids = requested_global_ids[p]
+    #print(labels.shape, p.shape)
+    labels = reindex(labels, p)
+    requested_global_ids = reindex(requested_global_ids, p)
     timer.pop("Collect Points: Organize Points - reorder")
 
     timer.pop("Collect Points: Organize Points")
@@ -465,18 +471,24 @@ def redistribute(comm, global_ids, result, size_prefix):
     # Sort the labels to get contiguous bands to send
     # TODO: Replace with a parallel sort
     timer.push("Redistribute: Sort")
-    p = np.argsort(labels)
+    p = Primitives.argsort(labels)
+    #p = np.argsort(labels)
     timer.pop("Redistribute: Sort")
 
     # Reorder everything to get contiguous bands to send
     timer.push("Redistribute: Reorder")
-    labels = reorder(labels, p)
+    #labels = reorder(labels, p)
+    labels = reindex(labels, p)
     #neighbor_ids = reorder(neighbor_ids, p)
     #neighbor_dist = reorder(neighbor_dist, p)
     #global_ids = reorder(global_ids, p)
-    neighbor_ids = neighbor_ids[p]
-    neighbor_dist = neighbor_dist[p]
-    global_ids = global_ids[p]
+    #neighbor_ids = neighbor_ids[p]
+    #neighbor_dist = neighbor_dist[p]
+
+    neighbor_ids = Primitives.reindex(neighbor_ids, p)
+    neighbor_dist = Primitives.reindex(neighbor_dist, p)
+    #global_ids = global_ids[p]
+    global_ids = reindex(global_ids, p)
     timer.pop("Redistribute: Reorder")
 
     #print(rank, "reorder", flush=True)
@@ -500,10 +512,10 @@ def redistribute(comm, global_ids, result, size_prefix):
     timer.push("Redistribute: Alltoall GIDs")
     #print(rank, "global_ids", global_ids.shape, result_gids.shape, sizes, rsizes, flush=True)
     if global_ids.dtype == np.int32:
-        comm.Alltoallv([global_ids, sizes, starts, MPI.INT], [
+        req_gids = comm.Ialltoallv([global_ids, sizes, starts, MPI.INT], [
                        result_gids, rsizes, rstarts, MPI.INT])
     else:
-        comm.Alltoallv([global_ids, sizes, starts, MPI.LONG], [
+        req_gids = comm.Ialltoallv([global_ids, sizes, starts, MPI.LONG], [
                        result_gids, rsizes, rstarts, MPI.LONG])
     timer.pop("Redistribute: Alltoall GIDs")
 
@@ -531,45 +543,45 @@ def redistribute(comm, global_ids, result, size_prefix):
     timer.push("Redistribute: Alltoall IDs")
     if (neighbor_ids.dtype == np.int32):
         #print(rank, "starting a2a id (int)", flush=True)
-        comm.Alltoallv([neighbor_ids, sizes, starts, MPI.INT], [
+        req_ids = comm.Ialltoallv([neighbor_ids, sizes, starts, MPI.INT], [
                        result_ids, rsizes, rstarts, MPI.INT])
     elif ( neighbor_ids.dtype == np.uint32 ):
         #print(rank, "starting a2a id (uint)", flush=True)
-        comm.Alltoallv([neighbor_ids, np.asarray(sizes, dtype=np.int32), np.asarray(starts, dtype=np.int32), MPI.UNSIGNED], [
+        req_ids = comm.Ialltoallv([neighbor_ids, np.asarray(sizes, dtype=np.int32), np.asarray(starts, dtype=np.int32), MPI.UNSIGNED], [
                        result_ids, np.asarray(rsizes, dtype=np.int32), np.asarray(rstarts, dtype=np.int32), MPI.UNSIGNED])
     else:
         #print(rank, "starting a2a id (long)", flush=True)
-        comm.Alltoallv([neighbor_ids, sizes, starts, MPI.LONG], [
+        req_ids = comm.Ialltoallv([neighbor_ids, sizes, starts, MPI.LONG], [
                        result_ids, rsizes, rstarts, MPI.LONG])
     timer.pop("Redistribute: Alltoall IDs")
+
+
+
 
     #print(rank, "a2a nIDs", flush=True)
 
     # Communicate neighbor distances
     timer.push("Redistribute: Alltoall Dist")
-    comm.Alltoallv([neighbor_dist, sizes, starts, MPI.FLOAT], [
+    req_dist = comm.Ialltoallv([neighbor_dist, sizes, starts, MPI.FLOAT], [
         result_dist, rsizes, rstarts, MPI.FLOAT])
     timer.pop("Redistribute: Alltoall Dist")
 
-
-    #print(rank, "a2a nDist", flush=True)
-
     # Output results need to be sorted by global id
 
-    # TODO: Replace with parallel sort
     timer.push("Redistribute: Sort Output")
-    lids = np.argsort(result_gids)
+    #lids = np.argsort(result_gids)
+    req_gids.Wait()
+    lids = Primitives.argsort(result_gids)
     timer.pop("Redistribute: Sort Output")
 
-    #print(rank, "sort", flush=True)
-
     timer.push("Redistribute: Reorder Output")
-    #result_gids = reorder(result_gids, lids)
-    #result_ids = reorder(result_ids, lids)
-    #result_dist = reorder(result_dist, lids)
-    result_gids = result_gids[lids]
-    result_ids = result_ids[lids, :]
-    result_dist = result_dist[lids, :]
+    #result_gids = result_gids[lids]
+    result_gids = reindex(result_gids, lids)
+    #print(result_gids.dtype, lids.dtype, result_ids.flags, flush=True)
+    req_ids.Wait()
+    result_ids = Primitives.reindex(result_ids, lids)
+    req_dist.Wait()
+    result_dist = Primitives.reindex(result_dist, lids)
     timer.pop("Redistribute: Reorder Output")
 
     #print(rank, "finished redistribute", flush=True)
@@ -926,7 +938,7 @@ class RKDT:
                 local_rank = comm.Get_rank()
                 global_size = np.array(0, dtype=self.gprec)
                 local_size = np.array(self.local_size, dtype=self.gprec)
-                comm.Allreduce(local_size, global_size, op=MPI.SUM)
+                req_size = comm.Iallreduce(local_size, global_size, op=MPI.SUM)
                 timer.pop("Dist Build: Get Global Size")
                 #print(global_rank, "Current Comm Size", mpi_size, flush=True)
 
@@ -934,29 +946,26 @@ class RKDT:
                 # Get permutation vector for median partition (lids)
                 #print(global_rank, "Dist select", flush=True)
                 timer.push("Dist Build: Distributed Select")
+                t = time.perf_counter()
                 lids = np.arange(self.local_size, dtype=self.lprec)
 
                 # Always grab the first element of projection.
                 # We shrink it each time in the loop to pass less data
 
                 current_proj = np.copy(proj[:, l])
+                if global_rank == 0:
+                    print(l, "Copy:", time.perf_counter() - t, flush=True)
 
-                median, local_split = Primitives.dist_select(
+                req_size.Wait()
+                t = time.perf_counter()
+                median, local_split = Primitives.dist_select(global_rank,
                     global_size/2, current_proj, lids, comm)
+
+                if global_rank == 0:
+                    print(l, "Select:", time.perf_counter() - t, flush=True)
                 timer.pop("Dist Build: Distributed Select")
                 #print(global_rank, "Finished Dist select", flush=True)
 
-                # Reorder left and right of projection to prepare for communication
-                timer.push("Dist Build: Reorder Projection")
-                #proj = reorder_2(proj, lids)
-                proj = proj[lids, :]
-                timer.pop("Dist Build: Reorder Projection")
-
-                # Reorder left and right of global ids to prepare for communication
-                timer.push("Dist Build: Reorder Global Ids")
-                #self.global_ids[:] = reorder(self.global_ids, lids)
-                self.global_ids = self.global_ids[lids]
-                timer.pop("Dist Build: Reorder Global Ids")
 
                 timer.push("Dist Build: Compute Targets")
 
@@ -1007,6 +1016,15 @@ class RKDT:
 
                 timer.pop("Dist Build: Compute Targets")
 
+
+                # Reorder left and right of global ids to prepare for communication
+                timer.push("Dist Build: Reorder Global Ids")
+                #self.global_ids[:] = reorder(self.global_ids, lids)
+                #self.global_ids = self.global_ids[lids]
+                #print(self.global_ids.dtype, lids.dtype, self.global_ids.shape, flush=True)
+                self.global_ids = reindex(self.global_ids, lids)
+                timer.pop("Dist Build: Reorder Global Ids")
+
                 # AlltoAllv Global ID vector
                 timer.push("Dist Build: Communicate IDs")
 
@@ -1016,24 +1034,31 @@ class RKDT:
                 
                 timer.push("Dist Build: Communicate IDs - alltoall")
                 # TODO: There is a better way to do this in mpi4py 3.10 which was just released, switch or keep for compatibility?
-                print(global_rank, recv_gids.shape, self.global_ids.shape, sizes, starts, flush=True)
+                #print(global_rank, recv_gids.shape, self.global_ids.shape, sizes, starts, flush=True)
                 if self.gprec == np.int32:
-                    comm.Alltoallv([self.global_ids, sizes, starts, MPI.INT], [
+                    req_ids = comm.Ialltoallv([self.global_ids, sizes, starts, MPI.INT], [
                                    recv_gids, rsizes, rstarts, MPI.INT])
                 else:
-                    comm.Alltoallv([self.global_ids, sizes, starts, MPI.LONG], [
+                    req_ids = comm.IAlltoallv([self.global_ids, sizes, starts, MPI.LONG], [
                                    recv_gids, rsizes, rstarts, MPI.LONG])
                 timer.pop("Dist Build: Communicate IDs - alltoall")
 
                 timer.pop("Dist Build: Communicate IDs")
                 #print(global_rank, "recv_ids", recv_gids, flush=True)
 
+                # Reorder left and right of projection to prepare for communication
+                timer.push("Dist Build: Reorder Projection")
+                #proj = reorder_2(proj, lids)
+                #proj = proj[lids, :]
+                proj = reindex(proj, lids)
+                timer.pop("Dist Build: Reorder Projection")
 
                 timer.push("Dist Build: Communicate Projections")
 
                 # AlltoAllv Projection Vector
                 timer.push("Dist Build: Communicate Projections - Allocate")
                 recv_proj = np.zeros_like(proj)
+
                 # Get remaining levels (this is the data stride)
                 rl = recv_proj.shape[1]
                 #print(global_rank, "rl", rl, flush=True)
@@ -1042,9 +1067,12 @@ class RKDT:
 
                 timer.push("Dist Build: Communicate Projections - alltoall")
                 #print(global_rank, recv_proj.shape, proj.shape, sizes*rl, starts*rl, flush=True)
-                comm.Alltoallv([proj, sizes*rl, starts*rl, MPI.FLOAT], [
+                req_proj = comm.Ialltoallv([proj, sizes*rl, starts*rl, MPI.FLOAT], [
                     recv_proj, rsizes*rl, rstarts*rl, MPI.FLOAT])
                 timer.pop("Dist Build: Communicate Projections - alltoall")
+
+                req_ids.Wait()
+                req_proj.Wait()
 
                 #print(global_rank, median, "recv_proj check", recv_proj[:, l], flush=True)
                 timer.pop("Dist Build: Communicate Projections")
@@ -1058,6 +1086,7 @@ class RKDT:
                 else:
                     color = 0
 
+                """
                 #Check recieved projection
                 if color:
                     cond = np.min(recv_proj[:, l]) >= median
@@ -1086,7 +1115,7 @@ class RKDT:
                     max_rcount = (np.min(rproj[rproj + thres < median]), np.max(rproj[rproj + thres < median]) )
                 else:
                     max_rcount = 0
-
+                """
                 #Note: Check to make sure randomization in dist_select is not creating error
                 #print(global_rank, l, "Validate Send Proj Left", lcond, lcount, max_lcount, median, lproj, flush=True)
                 #print(global_rank, l, "Validate Send Proj Right", rcond, rcount, max_rcount, median, rproj, flush=True)
@@ -1147,7 +1176,7 @@ class RKDT:
             result_ids = result[0]
             result_dist = result[1]
 
-            result_ids = reorder(self.global_ids, result_ids)
+            result_ids = Primitives.reindex(self.global_ids, result_ids)
 
             # Check datatype (Do I trust the numba dispatching?)
             assert(result_ids.dtype == self.gprec)
@@ -1184,7 +1213,8 @@ class RKDT:
         offsets = np.asarray(offsets, dtype=np.int32)
         #print(len(lids))
         #print(self.local_size)
-        self.host_data = self.host_data[lids]
+        #self.host_data = self.host_data[lids]
+        self.host_data = reindex(self.host_data, lids)
         self.offsets = offsets
         self.local_ids = lids 
         #self.global_ids = self.global_ids[lids]

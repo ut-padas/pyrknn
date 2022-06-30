@@ -18,6 +18,151 @@ from mpi4py import MPI
 import math
 import time
 
+#cdef fused real:
+#    cython.float
+#    cython.double
+#    cython.int
+#    cython.long
+
+#cdef fused index:
+#    cython.int
+#    cython.long
+#    cython.uint
+
+cdef fused real:
+    cython.char
+    cython.uchar
+    cython.short
+    cython.ushort
+    cython.int
+    cython.uint
+    cython.long
+    cython.ulong
+    cython.longlong
+    cython.ulonglong
+    cython.float
+    cython.double
+
+cdef fused index:
+    cython.char
+    cython.uchar
+    cython.short
+    cython.ushort
+    cython.int
+    cython.uint
+    cython.long
+    cython.ulong
+    cython.longlong
+    cython.ulonglong
+
+
+def argsort(index[:] idx, real[:] val):
+    cdef size_t c_length = len(idx)
+    arg_sort(&idx[0], &val[0], c_length)
+
+
+def reindex_1(real[:] val, index[:] idx, real[:] buf):
+    cdef size_t c_length = len(idx)
+    reindex_1D(&idx[0], &val[0], c_length, &buf[0])
+
+def reindex_2(real[:, :] val, index[:] idx, real[:, :] buf):
+    cdef size_t c_length = len(idx)
+    cdef size_t c_dim = val.shape[1]
+    reindex_2D(&idx[0], &val[0, 0], c_length, c_dim, &buf[0, 0])
+
+def map_1(real[:] val, index[:] idx, real[:] buf):
+    cdef size_t c_length = len(idx)
+    map_1D(&idx[0], &val[0], c_length, &buf[0])
+
+def map_2(real[:, :] val, index[:] idx, real[:, :] buf):
+    cdef size_t c_length = len(idx)
+    cdef size_t c_dim = val.shape[1]
+    map_2D(&idx[0], &val[0, 0], c_length, c_dim, &buf[0, 0])
+
+def reindex(val, index, copy_back=False, use_numpy=False):
+    source_shape = val.shape
+    target_length = len(index)
+    
+    print("In Reindex: ", target_length, val.ndim, flush=True)
+
+    if val.ndim < 2:
+        buf = np.empty(target_length, dtype=val.dtype)
+    elif val.ndim == 2:
+        target_dim = val.shape[1]
+        buf = np.empty((target_length, target_dim), dtype=val.dtype)
+    else:
+        raise Exception("Reindex function only implemented for ndim <= 2")
+
+    if use_numpy:
+        if copy_back:
+            assert(target_length == source_shape[0])
+            val[:] = val[index]
+            return val
+        else:
+            return val[index]
+    if copy_back == True:
+        assert(target_length == source_shape[0])
+        if val.ndim < 2:
+            print("1D Recopy", buf.shape, buf.dtype, flush=True)
+            reindex_1(val, index, buf)
+        elif val.ndim == 2:
+            print("2D Recopy", buf.shape, buf.dtype, flush=True)
+            reindex_2(val, index, buf)
+        return val
+    else:
+        if val.ndim < 2:
+            print("1D", buf.shape, buf.dtype, flush=True)
+            map_1(val, index, buf)
+        elif val.ndim == 2:
+            print("2D", buf.shape, buf.dtype, flush=True)
+            map_2(val, index, buf)
+        return buf
+
+def interval(starts, sizes, index, nleaves, leaf_ids):
+    cdef unsigned char[:] c_index = index;
+    cdef int[:] c_starts = starts;
+    cdef int[:] c_sizes = sizes;
+    cdef int c_nleaves = nleaves;
+    cdef unsigned char[:] c_leaf_ids = leaf_ids;
+    cdef int c_len = len(index)
+
+    with nogil:
+        find_interval(<int*>(&c_starts[0]), <int*>(&c_sizes[0]), <unsigned
+                char*>(&c_index[0]), <int> c_len, <int> c_nleaves, <unsigned char*>(&c_leaf_ids[0]))
+
+
+def bin_default(levels, real[:, :] projection, real[:] medians, index[:] output, real[:, :] buf):
+    cdef size_t n = projection.shape[0]
+    cdef int c_levels = levels
+
+    bin_queries(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
+    
+    
+def bin_pack(levels, real[:, :] projection, real[:] medians, index[:] output, real[:, :] buf):
+    cdef size_t n = projection.shape[0]
+    cdef int c_levels = levels
+
+    if (real is cython.float) and (index is cython.int):
+        pass
+        #print("USING SIMD", flush=True)
+        #bin_queries_simd(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
+    else:
+        bin_queries_pack(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
+
+def query_to_bin(projection, medians, output, levels=None, pack=False):
+
+    if levels is None:
+        levels = projection.shape[1]
+
+    levels = min(projection.shape[1], levels)
+
+    buf = np.empty((projection.shape[0], projection.shape[1]), dtype=projection.dtype)
+
+    if pack:
+        bin_pack(levels, projection, medians, output, buf)
+    else:
+        bin_default(levels, projection, medians, output, buf)
+
 
 #-- Dense KNN
 
@@ -360,16 +505,57 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
     t_prefix = 0
     t_sum = 0
     t_part = 0
+    mean_flag = True
+    rand_flag = False
 
-    rank = comm.Get_rank()
+    cdef int rank = comm.Get_rank()
+    cdef int mpi_size = comm.Get_size()
     cdef int nlocal = len(X)
     nlocal_a = np.array(nlocal, dtype=np.float32)
     N_a = np.array(0.0, dtype=np.float32)
-
+    
     t_stamp = time.perf_counter()
-    comm.Allreduce(nlocal_a, N_a, op=MPI.SUM)
+    req_N = comm.Iallreduce(nlocal_a, N_a, op=MPI.SUM)
     t_reduce += (time.perf_counter() - t_stamp) 
-   
+
+    #TODO: Replace with parallel scan and copy
+    t_stamp = time.perf_counter()
+    cdef float[:] temp_X = np.empty(nlocal, dtype=np.float32)
+    cdef int[:] temp_ID = np.empty(nlocal, dtype=np.int32)
+    cdef int[:] perm = np.empty(nlocal, dtype=np.int32)
+    t_alloc += (time.perf_counter() - t_stamp)
+
+    #Compute Mean and use as approximate Split
+
+    if mean_flag:
+        t_stamp = time.perf_counter()
+        if nlocal >0:
+            local_mean_a = np.array(np.sum(X), dtype=np.float32)
+        else:
+            local_mean_a = np.array(0.0, dtype=np.float32)
+        t_sum += (time.perf_counter() - t_stamp)
+
+        t_stamp == time.perf_counter()
+        global_mean_a = np.array(0.0, dtype=np.float32)
+        req_mean = comm.Iallreduce(local_mean_a, global_mean_a, op=MPI.SUM)
+        t_reduce += (time.perf_counter() - t_stamp)
+
+    if rand_flag:
+
+        r = np.random.randint(0, mpi_size)
+        idx = np.random.randint(0, nlocal)
+        print("Selected Rank: ", r)
+        if rank == r:
+            v = np.array(X[idx], dtype=np.float32)
+        else:
+            v = np.array(0.0, dtype=np.float32)
+
+        req_piv = comm.Ibcast(v, root=r)
+        
+
+
+
+    req_N.Wait()
     cdef float N = N_a
 
     if prev[2] == 0:
@@ -380,30 +566,19 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
     if(k > globalN):
         raise Exception("Distributed Select: k cannot be greater than the total number of points.")
     
-    #TODO: Combine this with previous MPI Call
-    #Compute Mean and use as approximate Split
-    t_stamp = time.perf_counter()
-    if nlocal >0:
-        local_mean_a = np.array(np.sum(X), dtype=np.float32)
-    else:
-        local_mean_a = np.array(0.0, dtype=np.float32)
-    t_sum += (time.perf_counter() - t_stamp)
-
-    t_stamp == time.perf_counter()
-    global_mean_a = np.array(0.0, dtype=np.float32)
-    comm.Allreduce(local_mean_a, global_mean_a, op=MPI.SUM)
-    t_reduce += (time.perf_counter() - t_stamp)
+    cdef float pivot = 0.0
 
     #print(global_mean_a)
-    cdef float mean = global_mean_a/N
-    #print(rank, "Mean", mean)
+    if mean_flag:
+        req_mean.Wait()
+        pivot = global_mean_a/N
 
-    #TODO: Replace with parallel scan and copy
-    t_stamp = time.perf_counter()
-    cdef float[:] temp_X = np.empty(nlocal, dtype=np.float32)
-    cdef int[:] temp_ID = np.empty(nlocal, dtype=np.int32)
-    cdef int[:] perm = np.empty(nlocal, dtype=np.int32)
-    t_alloc += (time.perf_counter() - t_stamp)
+    if rand_flag:
+        req_piv.Wait()
+        pivot = v
+        print("Output:", pivot)
+
+    #print(rank, "Mean", mean)
 
     cdef int nleft = 0;
     cdef int nright = 0;
@@ -411,15 +586,17 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
 
     t_stamp = time.perf_counter()
     cdef int i = 0
-    for i in range(nlocal):
-        current_value = X[i]
-        if( current_value <= mean):
-            #print(rank, current_value)
-            perm[i] = nleft
-            nleft = nleft + 1
-        else:
-            perm[i] = nlocal - 1 - nright
-            nright = nright + 1
+
+    with nogil:
+        for i in range(nlocal):
+            current_value = X[i]
+            if( current_value <= pivot):
+                #print(rank, current_value)
+                perm[i] = nleft
+                nleft = nleft + 1
+            else:
+                perm[i] = nlocal - 1 - nright
+                nright = nright + 1
 
     t_prefix += (time.perf_counter() -  t_stamp)
 
@@ -442,23 +619,28 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
 
     cdef int[:] local_split_info = np.array([nL, nR], dtype=np.int32)
     cdef int[:] global_split_info = np.array([0, 0], dtype=np.int32)
-    comm.Allreduce(local_split_info, global_split_info, op=MPI.SUM)
+    req_split = comm.Iallreduce(local_split_info, global_split_info, op=MPI.SUM)
     t_reduce += (time.perf_counter() - t_stamp)
 
-    t_stamp = time.perf_counter()
     if nlocal > 0:
         minX = np.min(X)
-        maxX = np.max(X)
     else:
         minX = 3.4e38
+
+    minX = np.array(minX, dtype=np.float32)
+    gmin = np.array(0.0, dtype=np.float32)
+    req_min = comm.Iallreduce(minX, gmin, op=MPI.MIN)
+
+    if nlocal > 0:
+        maxX = np.max(X)
+    else:
         maxX = -3.4e38
-    t_sum += (time.perf_counter() - t_stamp)
 
-    t_stamp = time.perf_counter()
-    gmax = comm.allreduce(maxX, op=MPI.MAX)
-    gmin = comm.allreduce(minX, op=MPI.MIN)
-    t_reduce += (time.perf_counter() - t_stamp)
+    maxX = np.array(maxX, dtype=np.float32)
+    gmax = np.array(0.0, dtype=np.float32)
+    req_max = comm.Iallreduce(maxX, gmax, op=MPI.MAX)
 
+    req_split.Wait()
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
 
@@ -470,6 +652,8 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
         print("t_prefix", t_prefix)
         print("t_alloc", t_alloc)
 
+    req_max.Wait()
+    req_min.Wait()
     if (math.isclose(gmax, gmin, rel_tol=1e-5, abs_tol=1e-20)):
         st0 = np.random.get_state()
         np.random.seed(None)
@@ -482,7 +666,7 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
         print("sizes:", global_nleft, global_nright, N)
 
     if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
-        return (mean, nL)
+        return (pivot, nL)
 
     elif (global_nleft > k):
         return dist_select(grank, k, X[:nleft], ID[:nleft], comm, prev=(prev[0], prev[1] + nright, globalN))
