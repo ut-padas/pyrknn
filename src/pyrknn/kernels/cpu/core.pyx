@@ -30,30 +30,30 @@ import time
 #    cython.uint
 
 cdef fused real:
-    cython.char
-    cython.uchar
-    cython.short
-    cython.ushort
+    #cython.char
+    #cython.uchar
+    #cython.short
+    #cython.ushort
     cython.int
-    cython.uint
+    #cython.uint
     cython.long
-    cython.ulong
-    cython.longlong
-    cython.ulonglong
+    #cython.ulong
+    #cython.longlong
+    #cython.ulonglong
     cython.float
     cython.double
 
 cdef fused index:
-    cython.char
-    cython.uchar
-    cython.short
-    cython.ushort
+    #cython.char
+    #cython.uchar
+    #cython.short
+    #cython.ushort
     cython.int
-    cython.uint
+    #cython.uint
     cython.long
-    cython.ulong
-    cython.longlong
-    cython.ulonglong
+    #cython.ulong
+    #cython.longlong
+    #cython.ulonglong
 
 
 def argsort(index[:] idx, real[:] val):
@@ -196,6 +196,11 @@ cpdef single_knn(gids, R, Q, k, cores):
     cdef float[:, :] cND = neighbor_dist;
     cdef int[:] cgids = gids; 
     cdef int[:] cqids = np.arange(0, cm, dtype=np.int32);
+
+    print("calling knn function")
+    with nogil:
+        direct_knn_base(&cR[0, 0], &cQ[0, 0], cn, cm, cd, ck, &cNL[0, 0], &cND[0, 0], 512);
+
     #with nogil:
     #    GSKNN[float](&cgids[0], &cqids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
 
@@ -540,6 +545,8 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
         req_mean = comm.Iallreduce(local_mean_a, global_mean_a, op=MPI.SUM)
         t_reduce += (time.perf_counter() - t_stamp)
 
+    cdef int r = 0;
+    cdef int idx = 0;
     if rand_flag:
 
         r = np.random.randint(0, mpi_size)

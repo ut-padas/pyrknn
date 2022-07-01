@@ -14,7 +14,7 @@ def submit(ranks, threads, dataset, iter, leafsize, k, ltrees, gpu_flag=False):
   OMP="OMP_NUM_THREADS="+str(threads)
   CMD=f"mpirun -n {ranks} python run_sift_1b.py -iter {iter} -dataset {dataset} -leafsize {leafsize} -cores {threads} -ltrees {ltrees} -overlap 1 -use_gpu {gpu_flag}"
 
-  filename = f"_{dataset}_ranks_{ranks}_gpu_{gpu_flag}_threads_{threads}_lt_{ltrees}_leafsize_{leafsize}_run_{args.run}_sift_memcheck"
+  filename = f"_{dataset}_ranks_{ranks}_gpu_{gpu_flag}_threads_{threads}_lt_{ltrees}_leafsize_{leafsize}_run_{args.run}_sift_bench"
   submit_file = "job"+filename+".slm"
   output_file = "out"+filename
   print(filename)
@@ -75,10 +75,11 @@ if __name__ == '__main__':
   #Defaults to gaussian 4M 15d
 
   #Run GAUSS GPU
-  local_iterations = [10]
+  local_iterations = [1]
   #local_iterations = [1, 3, 5, 10, 15, 20]
-  for ltrees in local_iterations:
-      submit(1, 10, "gauss", 200, 1024, 32, ltrees, True)
+  for r in [16]:
+    for ltrees in local_iterations:
+        submit(r, 10, "gauss", 1, 1024, 32, ltrees, True)
 
   """
   #Run HARD GPU

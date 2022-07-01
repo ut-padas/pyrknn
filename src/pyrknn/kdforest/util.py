@@ -6,6 +6,7 @@ import numba
 import os
 
 import scipy as sp
+from scipy import sparse as sparse
 
 from ..kernels.cpu import core as cpu
 

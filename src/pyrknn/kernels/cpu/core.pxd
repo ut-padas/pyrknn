@@ -13,6 +13,7 @@ cdef extern from "impl/exact/exact.hpp" nogil:
 cdef extern from "impl/primitives_shared.hpp" nogil:
     #cdef void GSKNN[T](int *rgids, int *qgids, T *R, T *Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except +
     #cdef void batchedGSKNN[T](int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves, int cores) except +
+    cdef void direct_knn_base(float* R, float* Q, int n, int m, int d, int k, int* nids, float* ndists, int blocksize) except +
     cdef void build_tree(float* X, unsigned int* order, unsigned int* firstPt, const unsigned int n, const size_t L) except +
     cdef void merge_neighbor_cpu[T](T* D1,unsigned int* I1, T* D2, unsigned int* I2, unsigned int n, int k, int cores) except +
     cdef void find_interval(int* starts, int* sizes, unsigned char* index, int len, int nleaves, unsigned char* leaf_ids) except +
