@@ -3,6 +3,10 @@ import os
 import skbuild
 from setuptools import find_namespace_packages
 
+#Set Cython Compile Time Variables
+from Cython.Compiler.Main import default_options
+default_options['compile_time_env'] = {'USE_GSKNN': 0}
+
 from string import Template
 
 def main():

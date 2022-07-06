@@ -449,8 +449,7 @@ void print(float* v, int n, int m=1){
     }
 }
 
-template<typename I>
-void direct_knn_base(I* gids, __restrict__ int* rid, float* ref, float* query, int n, int m, int dim, int k, __restrict__ int* knn_ids, __restrict__ float* knn_dist, int blocksize)
+void direct_knn_base(int* rid, float* ref, float* query, int n, int m, int dim, int k, int* knn_ids, float* knn_dist, int blocksize)
 {
     using knn_pair = pair<float, int>;
 
@@ -458,7 +457,7 @@ void direct_knn_base(I* gids, __restrict__ int* rid, float* ref, float* query, i
     k = (k < n) ? k : n;
     blocksize = (blocksize < m) ? blocksize : m;
     const int iters = static_cast<int>( ceil( static_cast<double>(m) / static_cast<double>(blocksize) ) );
-    std::cout << k << " " << blocksize << " " << iters <<std::endl;
+    //std::cout << k << " " << blocksize << " " << iters <<std::endl;
     
     //Allocate distance matrix
     float* dist = (float*) malloc(sizeof(float)*blocksize*n);
@@ -502,8 +501,8 @@ void direct_knn_base(I* gids, __restrict__ int* rid, float* ref, float* query, i
             //Read results back to output
             for(int j = k-1; j >=0; j--){
                 knn_pair result = maxheap.top();
-                knn_dist[query_idx*k + j] = gids[rid[result.first]];
-                knn_ids[query_idx*k + j] = result.second;
+                knn_dist[query_idx*k + j] = result.first;
+                knn_ids[query_idx*k + j] = rid[result.second];
                 maxheap.pop();
             }
         }
@@ -514,28 +513,43 @@ void direct_knn_base(I* gids, __restrict__ int* rid, float* ref, float* query, i
 }
 
 
-template<typename I>
-void batched_relabel(I* gids, int** qid_list, int** nlist, int** mlist, int k, int** knn_ids_list, float** knn_dist_list, int* output_ids, float* output_dist, int nleaves, const int cores){
 
-    #pragma omp parallel for 
+
+template<typename I>
+void batched_relabel_impl(I* gids, int** __restrict__ qid_list, int* __restrict__ mlist, int k, int** __restrict__ knn_ids_list, float** __restrict__ knn_dist_list, I*  output_ids, float* __restrict__ output_dist, int nleaves, int cores){
+
+    //neighbor_list[idx, :] = global_ids[NL[:, :]]
+    //neighbor_dist[idx, :] = ND[:, :]
+
+    #pragma omp parallel for schedule(static)
     for(int l = 0; l < nleaves; ++l){
 
-            int qids = qids_list[l];
-            int* knn_ids = knn_ids_list[i];
-            float* knn_dist = knn_dist_list[i];
+            int* __restrict__ qids = qid_list[l];
+            int* __restrict__ knn_ids = knn_ids_list[l];
+            float* __restrict__ knn_dist = knn_dist_list[l];
+            int m = mlist[l];
 
-            
+            for(int i = 0; i < m; ++i){
+                int idx = qids[i];
+                #pragma omp simd
+                for(int j = 0; j < k; ++j){
+                    output_ids[idx*k + j] = gids[knn_ids[i*k + j]];
+                    //output_ids[idx*k + j] = knn_ids[i*k + j];
+                    output_dist[idx*k + j] = knn_dist[i*k + j];
+                }
+            }
 
-
-            
-    
-
-
-    }
+    } //for each leaf
 }
 
 template<typename I>
-void batched_direct_knn_base(I* gids, __restrict__ int** rid_list, float** ref_list, float** query_list, int* nlist, int* mlist, int dim, int k, __restrict__ int** knn_ids_list, __restrict__ float** knn_dist_list, int blocksize, int nleaves, const int cores)
+void batched_relabel(I* gids, int** qid_list, int* mlist, int k, int** knn_ids_list, float** knn_dist_list, I* output_ids, float* output_dist, int nleaves, int cores){
+
+    batched_relabel_impl(gids, qid_list,  mlist, k, knn_ids_list, knn_dist_list, output_ids, output_dist, nleaves, cores);
+
+}
+
+void batched_direct_knn_base(int** rid_list, float** ref_list, float** query_list, int* nlist, int* mlist, int dim, int k, int** knn_ids_list, float** knn_dist_list, int blocksize, int nleaves, const int cores)
 {
 
     omp_set_num_threads(cores);
@@ -545,24 +559,21 @@ void batched_direct_knn_base(I* gids, __restrict__ int** rid_list, float** ref_l
         const int n = nlist[l];
         const int m = mlist[l];
 
-        const int* knn_ids = knn_ids_list[l];
-        const float* knn_dist = knn_dist_list[l];
-        const int* rid = rid_list[l];
-        const float* ref = ref_list[l];
-        const int* query = query_list[l];
+        int* knn_ids = knn_ids_list[l];
+        float* knn_dist = knn_dist_list[l];
+        int* rid = rid_list[l];
+        float* ref = ref_list[l];
+        float* query = query_list[l];
 
-        direct_knn_base(gids, rid, ref, query, n, m, dim, k, knn_ids, knn_dist, blocksize);
+        direct_knn_base(rid, ref, query, n, m, dim, k, knn_ids, knn_dist, blocksize);
     }
 }
 
 
 #ifndef ARCH_POWER9
 
-template <typename I>
 void GSKNN(
-           I* gids,
            int *rgids,
-           int*qgids,
            float *R, float* Q,
            int n, //refernce length
            int d, //shared dimension
@@ -576,6 +587,11 @@ void GSKNN(
 
     float* sqnormr = new float[n];
     float* sqnormq = new float[m];
+    int* qgids = new float[m];
+
+    #pragma omp simd
+    for (int z = 0; z < localn; ++z)
+        qgids[z] = z;
 
     sqnorm(R, n, d, sqnormr);
     sqnorm(Q, m, d, sqnormq);
@@ -592,7 +608,7 @@ void GSKNN(
             for (idx_type<T> i = 0; i < k; ++i)
             {
                 neighbor_dist[j * k + i] = heap->D_s[j * heap->ldk + i];
-                neighbor_list[j * k + i] = gids[rgids[heap->I[j * heap->ldk + i]]];
+                neighbor_list[j * k + i] = rgids[heap->I[j * heap->ldk + i]];
             }
         }
     }
@@ -603,10 +619,8 @@ void GSKNN(
 
 //TODO: Make this a clean batchedGSKNN call for the a2a case.
 
-template <typename I>
-void batchedGSKNN(I* gids,
+void batchedGSKNN(
                   int **rgids,
-                  int **qgids,
                   float **R, float **Q,
                   int *n,
                   int d,
@@ -644,7 +658,8 @@ void batchedGSKNN(I* gids,
         int *local_rgids = rgids[l];
 
         int *local_qgids = new int[localn];
-        for (idx_type<T> z = 0; z < localn; ++z)
+        #pragma omp simd
+        for (int z = 0; z < localn; ++z)
             local_qgids[z] = z;
 
         int nblocks = localm / blocksize;
@@ -681,7 +696,7 @@ void batchedGSKNN(I* gids,
                 for (int h = 0; h < k; ++h)
                 {
                     neighbor_dist[l][(j + offset) * k + h] = D[j * ldk + h];
-                    neighbor_list[l][(j + offset) * k + h] = gids[rgids[l][I[j * ldk + h]]];
+                    neighbor_list[l][(j + offset) * k + h] = rgids[l][I[j * ldk + h]];
                 }
             } //end copy
 

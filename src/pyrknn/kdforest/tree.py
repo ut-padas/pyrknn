@@ -1262,6 +1262,7 @@ class RKDT:
         
 
         timer.push("Reindex")
+
         for i in range(nleaves):
             start = self.offsets[i]
             if i < nleaves-1:

@@ -29,6 +29,11 @@ import time
 #    cython.long
 #    cython.uint
 
+cdef fused pointer:
+    cython.uint
+    cython.ulong
+    cython.ulonglong
+
 cdef fused real:
     #cython.char
     #cython.uchar
@@ -83,7 +88,7 @@ def reindex(val, index, copy_back=False, use_numpy=False):
     source_shape = val.shape
     target_length = len(index)
     
-    print("In Reindex: ", target_length, val.ndim, flush=True)
+    #print("In Reindex: ", target_length, val.ndim, flush=True)
 
     if val.ndim < 2:
         buf = np.empty(target_length, dtype=val.dtype)
@@ -103,18 +108,18 @@ def reindex(val, index, copy_back=False, use_numpy=False):
     if copy_back == True:
         assert(target_length == source_shape[0])
         if val.ndim < 2:
-            print("1D Recopy", buf.shape, buf.dtype, flush=True)
+            #print("1D Recopy", buf.shape, buf.dtype, flush=True)
             reindex_1(val, index, buf)
         elif val.ndim == 2:
-            print("2D Recopy", buf.shape, buf.dtype, flush=True)
+            #print("2D Recopy", buf.shape, buf.dtype, flush=True)
             reindex_2(val, index, buf)
         return val
     else:
         if val.ndim < 2:
-            print("1D", buf.shape, buf.dtype, flush=True)
+            #print("1D", buf.shape, buf.dtype, flush=True)
             map_1(val, index, buf)
         elif val.ndim == 2:
-            print("2D", buf.shape, buf.dtype, flush=True)
+            #print("2D", buf.shape, buf.dtype, flush=True)
             map_2(val, index, buf)
         return buf
 
@@ -197,32 +202,105 @@ cpdef single_knn(gids, R, Q, k, cores):
     cdef int[:] cgids = gids; 
     cdef int[:] cqids = np.arange(0, cm, dtype=np.int32);
 
-    print("calling knn function")
-    with nogil:
-        direct_knn_base(&cR[0, 0], &cQ[0, 0], cn, cm, cd, ck, &cNL[0, 0], &cND[0, 0], 512);
 
-    #with nogil:
-    #    GSKNN[float](&cgids[0], &cqids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
-
+    IF USE_GSKNN:
+        with nogil:
+            GSKNN(&cgids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
+    ELSE:
+        with nogil:
+            direct_knn_base(&cgids[0], &cR[0, 0], &cQ[0, 0], cn, cm, cd, ck, &cNL[0, 0], &cND[0, 0], 512);
 
     return neighbor_list, neighbor_dist 
 
-cpdef batched_knn(gidsList, RList, QList, k, cores):
+
+
+def relabel_impl(k, index[:] gids, size_t[:] qid_list, int[:] mlist, size_t[:] IList, size_t[:] DList, index[:, :] output_I, float[:, :] output_D, cores):
+    cdef int ck = k
+    cdef int ccores = cores
+    
+    cdef int nleaves = mlist.shape[0];
+
+    if index is int:
+        with nogil:
+            batched_relabel(<int*>(&gids[0]), <int**>(&qid_list[0]), &mlist[0], ck, <int**> &IList[0], <float**> &DList[0], <int*>(&output_I[0, 0]), <float*>(&output_D[0, 0]), nleaves, ccores)
+
+    if index is long:
+        with nogil:
+            batched_relabel(<long*>(&gids[0]), <int**>(&qid_list[0]), &mlist[0], ck, <int**>(&IList[0]), <float**>(&DList[0]), <long*>(&output_I[0, 0]), <float*>(&output_D[0, 0]), nleaves, ccores)
+
+def relabel(gids, qid_list, IList, DList, out_I, out_D, cores):
+
+    cdef int nleaves = len(DList);
+    cdef int ck = DList[0].shape[1];
+    cdef int ccores = cores
+
+    cdef int[:] cmlist = np.zeros(nleaves, dtype=np.int32);
+
+    cdef size_t[:] cIList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cDList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cqidList = np.zeros(nleaves, dtype=np.uintp);
+
+    cdef int[:, :] localI;
+    cdef float[:, :] localD;
+    cdef int[:] local_qid;
+
+    for i in range(nleaves):
+
+        localI = IList[i]
+        localD = DList[i]
+        local_qid = qid_list[i]
+
+        localm = localI.shape[0];
+
+        cmlist[i] = localm;
+
+        cIList[i] = <np.uintp_t>&localI[0, 0];
+        cDList[i] = <np.uintp_t>&localD[0, 0];
+
+        cqidList[i] = <np.uintp_t>&local_qid[0];
+    
+    
+    relabel_impl(ck, gids, cqidList, cmlist, cIList, cDList, out_I, out_D, cores);
+
+cpdef batched_knn(ridsList, RList, QList, k, cores, qidsList=None, neighbor_list=None, neighbor_dist=None, n=None, gids=None, repack=True):
+
+    if repack:
+        if gids is None:
+            assert(n is not None)
+            dtype = np.int32 if n < np.iinfo(np.int32).max else np.int64
+            gids = np.arange(n, dtype=dtype)
+        else:
+            n = len(gids)
+
+    cdef int qid_flag = 0
+    if qidsList is None:
+        qid_flag = 1
+
     cdef int nleaves = len(RList); #Assume input is proper #TODO: Add checks
     cdef int cd = RList[0].shape[1];
     cdef int ck = k;
     cdef int ccores = cores
-    cdef size_t[:] cRList = np.zeros(nleaves, dtype=np.uintp);
-    cdef size_t[:] cQList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cRList = np.empty(nleaves, dtype=np.uintp);
+    cdef size_t[:] cQList = np.empty(nleaves, dtype=np.uintp);
 
-    cdef int[:] cns = np.zeros(nleaves, dtype=np.int32);
-    cdef int[:] cms = np.zeros(nleaves, dtype=np.int32);
+    if neighbor_list is None:
+        assert(n is not None)
+        assert(gids is not None)
+        neighbor_list = np.empty([n, k], dtype=gids.dtype)
 
-    cdef size_t[:] cqgidsList = np.zeros(nleaves, dtype=np.uintp);
-    cdef size_t[:] crgidsList = np.zeros(nleaves, dtype=np.uintp);
+    if neighbor_dist is None:
+        assert(n is not None)
+        assert(gids is not None)
+        neighbor_dist = np.empty([n, k], dtype=np.float32)
 
-    cdef size_t[:] cNLList = np.zeros(nleaves, dtype=np.uintp);
-    cdef size_t[:] cNDList = np.zeros(nleaves, dtype=np.uintp);
+    cdef int[:] cnlist = np.zeros(nleaves, dtype=np.int32);
+    cdef int[:] cmlist = np.zeros(nleaves, dtype=np.int32);
+
+    cdef size_t[:] cqidsList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cridsList = np.zeros(nleaves, dtype=np.uintp);
+
+    cdef size_t[:] cIList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cDList = np.zeros(nleaves, dtype=np.uintp);
 
 
     #Define temporary variables
@@ -233,50 +311,66 @@ cpdef batched_knn(gidsList, RList, QList, k, cores):
     cdef int localn;
     cdef int localm;
    
-    cdef int[:] qgids;
-    cdef int[:] rgids;
+    cdef int[:] qids;
+    cdef int[:] rids;
 
-    cdef int[:,:] cNL;
-    cdef float[:,:] cND;
+    cdef int[:,:] cL;
+    cdef float[:,:] cD;
 
-    NLL = []
-    NDL = []
+    qidsL = []
+    IL = []
+    DL = []
+
+    cdef int cblocksize = 512;
+
     #Make nlist, mlist
     for i in range(nleaves):
-        localR = RList[i]; #argghhhh, these need the GIL. I can't do this in parallel
+        localR = RList[i];
         localQ = QList[i];
 
         localn = localR.shape[0];
         localm = localQ.shape[0];
        
-        rgids = gidsList[i]; #This needs the GIL
-        qgids = np.arange(0, localm,dtype=np.int32);
+        rids = ridsList[i]
 
-        cNL = np.zeros([localm, ck], dtype=np.int32);
-        cND = np.zeros([localm, ck], dtype=np.float32);
+        if qid_flag:
+            qids = np.arange(localm, dtype=np.int32)
+        else:
+            qids = qidsList[i]
 
-        NLL.append(np.asarray(cNL))
-        NDL.append(np.asarray(cND))
+        cI = np.zeros([localm, ck], dtype=np.int32);
+        cD = np.zeros([localm, ck], dtype=np.float32);
 
-        cns[i] = localn;
-        cms[i] = localm;
+        qidsL.append(np.asarray(qids))
+        IL.append(np.asarray(cI))
+        DL.append(np.asarray(cD))
+
+        cnlist[i] = localn;
+        cmlist[i] = localm;
 
         cRList[i] = <np.uintp_t>&localR[0, 0];
         cQList[i] = <np.uintp_t>&localQ[0, 0];
 
-        crgidsList[i] = <np.uintp_t>&rgids[0];
-        cqgidsList[i] = <np.uintp_t>&qgids[0];
+        cridsList[i] = <np.uintp_t>&rids[0];
+        cqidsList[i] = <np.uintp_t>&qids[0];
 
-        cNLList[i] = <np.uintp_t>&cNL[0, 0];
-        cNDList[i] = <np.uintp_t>&cND[0, 0];
+        cIList[i] = <np.uintp_t>&cI[0, 0];
+        cDList[i] = <np.uintp_t>&cD[0, 0];
 
-    #with nogil:
-    #    batchedGSKNN[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves, <int> ccores);
+    IF USE_GSKNN:
+        with nogil:
+            batchedGSKNN[float](<int**>(&cridsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cnlist[0]), cd, <int*>(&cmlist[0]), ck, <int**>(&cIList[0]), <float**>(&cDList[0]), nleaves, <int> ccores);
+    ELSE:
+        with nogil:
+            batched_direct_knn_base(<int**>(&cridsList[1]), <float**>(cRList[0]), <float**>(&cQList[0]), <int*>(&cnlist[0]), <int*>(&cmlist[0]), cd, ck, <int**>(&cIList[0]), <float**>(&cDList[0]), cblocksize, nleaves, ccores)
+
+    if repack:
+        relabel_impl(ck, gids, cqidsList, mlist, cIList, cDList, neighbor_ids, neighbor_dist, ccores)
+        return (neighbor_list, neighbor_dist)
+    else:
+        return (IL, DL)
+
     
-    #NLL = np.asarray(cNLList);
-    #NDL = np.asarray(cNDList);
-    out = None
-    return (NLL, NDL, out)
 
 #-- Sparse KNN
 
@@ -551,7 +645,7 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
 
         r = np.random.randint(0, mpi_size)
         idx = np.random.randint(0, nlocal)
-        print("Selected Rank: ", r)
+        #print("Selected Rank: ", r)
         if rank == r:
             v = np.array(X[idx], dtype=np.float32)
         else:
@@ -583,7 +677,7 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
     if rand_flag:
         req_piv.Wait()
         pivot = v
-        print("Output:", pivot)
+        #print("Output:", pivot)
 
     #print(rank, "Mean", mean)
 
@@ -651,13 +745,13 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
 
-    if grank == 0:
-        print("-----")
-        print("t_sum", t_sum)
-        print("t_reduce", t_reduce)
-        print("t_part", t_part)
-        print("t_prefix", t_prefix)
-        print("t_alloc", t_alloc)
+    #if grank == 0:
+        #print("-----")
+        #print("t_sum", t_sum)
+        #print("t_reduce", t_reduce)
+        #print("t_part", t_part)
+        #print("t_prefix", t_prefix)
+        #print("t_alloc", t_alloc)
 
     req_max.Wait()
     req_min.Wait()
@@ -668,9 +762,9 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
         X = X + np.array(np.random.randn(nlocal), dtype=np.float32)*gmax*(3e-4)
         np.random.set_state(st0)
 
-    if grank == 0:
-        print("total", time.perf_counter() - t)
-        print("sizes:", global_nleft, global_nright, N)
+    #if grank == 0:
+        #print("total", time.perf_counter() - t)
+        #print("sizes:", global_nleft, global_nright, N)
 
     if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
         return (pivot, nL)
