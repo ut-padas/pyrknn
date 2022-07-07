@@ -21,6 +21,14 @@ endif()
 
 file(GLOB SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB SPARSE_HDR ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+list(FILTER SPARSE_SRC EXCLUDE REGEX "[.]+backend[.]+\.cpp$")
+if (USE_MKL)
+    #list(APPEND SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_mkl.cpp) 
+    list(REMOVE_ITEM SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_eigen.cpp)
+else()
+    #list(APPEND SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_eigen.cpp)
+    list(REMOVE_ITEM SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_mkl.cpp)
+endif()
 
 add_library(sparse SHARED ${SPARSE_SRC})
 

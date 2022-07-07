@@ -183,7 +183,7 @@ cpdef single_knn(gids, R, Q, k, cores):
         cores (int): set the number of openmp threads used.  
 
      Returns:
-        neighbor_list (2d-array, int32): Nq x k list of neighbor ids
+        neighbor_ids (2d-array, int32): Nq x k list of neighbor ids
         neighbor_dist (2d-array, float32): Nq x k list of neighbor distances
     """
 
@@ -192,12 +192,12 @@ cpdef single_knn(gids, R, Q, k, cores):
     cdef int cd = Q.shape[1];
     cdef int ck = k;
 
-    neighbor_list = np.zeros([cm, k], dtype=np.int32)
+    neighbor_ids = np.zeros([cm, k], dtype=np.int32)
     neighbor_dist = np.zeros([cm, k], dtype=np.float32)
 
     cdef float[:, :] cR = R;
     cdef float[:, :] cQ = Q;
-    cdef int[:, :] cNL = neighbor_list;
+    cdef int[:, :] cNL = neighbor_ids;
     cdef float[:, :] cND = neighbor_dist;
     cdef int[:] cgids = gids; 
     cdef int[:] cqids = np.arange(0, cm, dtype=np.int32);
@@ -210,7 +210,7 @@ cpdef single_knn(gids, R, Q, k, cores):
         with nogil:
             direct_knn_base(&cgids[0], &cR[0, 0], &cQ[0, 0], cn, cm, cd, ck, &cNL[0, 0], &cND[0, 0], 512);
 
-    return neighbor_list, neighbor_dist 
+    return neighbor_ids, neighbor_dist 
 
 
 
@@ -262,7 +262,7 @@ def relabel(gids, qid_list, IList, DList, out_I, out_D, cores):
     
     relabel_impl(ck, gids, cqidList, cmlist, cIList, cDList, out_I, out_D, cores);
 
-cpdef batched_knn(ridsList, RList, QList, k, cores, qidsList=None, neighbor_list=None, neighbor_dist=None, n=None, gids=None, repack=True):
+cpdef batched_knn(ridsList, RList, QList, k, cores, qidsList=None, neighbor_ids=None, neighbor_dist=None, n=None, gids=None, repack=True):
 
     if repack:
         if gids is None:
@@ -283,10 +283,10 @@ cpdef batched_knn(ridsList, RList, QList, k, cores, qidsList=None, neighbor_list
     cdef size_t[:] cRList = np.empty(nleaves, dtype=np.uintp);
     cdef size_t[:] cQList = np.empty(nleaves, dtype=np.uintp);
 
-    if neighbor_list is None:
+    if neighbor_ids is None:
         assert(n is not None)
         assert(gids is not None)
-        neighbor_list = np.empty([n, k], dtype=gids.dtype)
+        neighbor_ids = np.empty([n, k], dtype=gids.dtype)
 
     if neighbor_dist is None:
         assert(n is not None)
@@ -314,7 +314,7 @@ cpdef batched_knn(ridsList, RList, QList, k, cores, qidsList=None, neighbor_list
     cdef int[:] qids;
     cdef int[:] rids;
 
-    cdef int[:,:] cL;
+    cdef int[:,:] cI;
     cdef float[:,:] cD;
 
     qidsL = []
@@ -365,8 +365,8 @@ cpdef batched_knn(ridsList, RList, QList, k, cores, qidsList=None, neighbor_list
             batched_direct_knn_base(<int**>(&cridsList[1]), <float**>(cRList[0]), <float**>(&cQList[0]), <int*>(&cnlist[0]), <int*>(&cmlist[0]), cd, ck, <int**>(&cIList[0]), <float**>(&cDList[0]), cblocksize, nleaves, ccores)
 
     if repack:
-        relabel_impl(ck, gids, cqidsList, mlist, cIList, cDList, neighbor_ids, neighbor_dist, ccores)
-        return (neighbor_list, neighbor_dist)
+        relabel_impl(ck, gids, cqidsList, cmlist, cIList, cDList, neighbor_ids, neighbor_dist, ccores)
+        return (neighbor_ids, neighbor_dist)
     else:
         return (IL, DL)
 
@@ -387,7 +387,7 @@ cpdef sparse_exact(gids, R, Q, k, cores):
         cores (int): set the number of openmp threads used.  
 
     Returns:
-        neighbor_list (2d-array, int32): Nq x k list of neighbor ids
+        neighbor_ids (2d-array, int32): Nq x k list of neighbor ids
         neighbor_dist (2d-array, float32): Nq x k list of neighbor distances
     """
 
@@ -446,7 +446,7 @@ cpdef sparse_knn_3(gids, pptr, pind, pval, pnnz, levels, ntrees, k, blocksize, c
         d (int): dimension of CSR 
 
     Returns:
-        neighbor_list (2d-array, int32): Nq x k list of neighbor ids
+        neighbor_ids (2d-array, int32): Nq x k list of neighbor ids
         neighbor_dist (2d-array, float32): Nq x k list of neighbor distances
     """
 
@@ -495,7 +495,7 @@ cpdef sparse_knn(gids, X, levels, ntrees, k, blocksize, cores):
         d (int): dimension of CSR 
 
     Returns:
-        neighbor_list (2d-array, int32): Nq x k list of neighbor ids
+        neighbor_ids (2d-array, int32): Nq x k list of neighbor ids
         neighbor_dist (2d-array, float32): Nq x k list of neighbor distances
     """
 

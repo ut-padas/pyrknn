@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9.1)
+cmake_minimum_required(VERSION 3.13.2)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -89,13 +89,15 @@ if(OpenMP_FOUND)
 endif()
 
 #-- Install GSKNN
+
 #find_package(GSKNN)
+if(USE_GSKNN)
+    set(CYTHON_FLAGS "-E USE_GSKNN=True") 
+    add_subdirectory(extern/gsknn)
+else()
+    set(CYTHON_FLAGS "-E USE_GSKNN=False")
+endif()
 
-#set(ARCH_POWER9 "ON")
-
-#if(not ARCH_POWER9)
-#    add_subdirectory(extern/gsknn)
-#endif()
 
 #-- Install CPU Dense & Sparse
 add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)

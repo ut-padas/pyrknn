@@ -17,7 +17,7 @@ python_extension_module(core)
 install(TARGETS core LIBRARY DESTINATION ${PYTHON_RELATIVE_SITE_PACKAGES_DIR}/pyrknn/kernels/cpu/)
 #install(TARGETS core LIBRARY DESTINATION pyrknn)
 
-if(defined USE_GSKNN)
+if(USE_GSKNN)
     target_link_libraries(core gsknn)
 endif()
 
