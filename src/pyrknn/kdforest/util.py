@@ -190,12 +190,11 @@ def direct_knn(ids, R, Q, k, loc="HOST", cores=8):
         #print("Running Sparse Exact")
         return cpu.sparse_exact(ids, R, Q, k, cores)
     
-def batched_knn(gidsList, RList, QList, k):
+def batched_knn(ridsList, RList, QList, k, qidsList=None, neighbor_ids=None, neighbor_dist=None, n=None, gids=None, repack=True):
    if env == "CPU":
-        return cpu.batched_knn(gidsList, RList, QList, k, cores)
+        return cpu.batched_knn(ridsList, RList, QList, k, cores, qidsList=qidsList, neighbor_ids=neighbor_ids, neighbor_dist=neighbor_dist, gids=gids, repack=repack, n=n)
    if env == "GPU":
-        raise Exception("Error: GPU Batched KNN no longer supported through this interface. Use combined kernel `dense_knn` instead.")
-        #return gpu.batched_knn(gidsList, RList, QList, k)
+        #TODO: ADD FILKNN here
 
 def dense_build(P):
     return cpu.dense_build(P)
