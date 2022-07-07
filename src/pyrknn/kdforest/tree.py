@@ -1238,11 +1238,12 @@ class RKDT:
         nleaves = len(self.offsets)
 
         #Allocate space to store results
-        neighbor_list = np.zeros([N, k], dtype=np.int32)
+        neighbor_ids = np.zeros([N, k], dtype=np.int32)
         neighbor_dist = np.zeros([N, k], dtype=np.float32)
 
-        gidsList = []
+        ridsList = []
         RList = []
+
         timer.push("Stack")
         for i in range(nleaves):
             start = self.offsets[i]
@@ -1251,30 +1252,14 @@ class RKDT:
             else:
                 end = N 
 
-            gidsList.append(self.local_ids[start:end])
+            ridsList.append(self.local_ids[start:end])
             RList.append(self.host_data[start:end])
+
         timer.pop("Stack")
 
         timer.push("Compute")
-        NLL, NDL, out = Primitives.batched_knn(gidsList, RList, RList, k)
+        = Primitives.batched_knn(ridsList, RList, RList, k, qidsList=ridsList, neighbor_ids=neighbor_ids, neighbor_dist=neighbor_dist, n=len(self.local_ids), gids=self.global_ids, repack=True)
         timer.pop("Compute")
-
-        
-
-        timer.push("Reindex")
-
-        for i in range(nleaves):
-            start = self.offsets[i]
-            if i < nleaves-1:
-                end = self.offsets[i+1]
-            else:
-                end = N 
-            idx = self.local_ids[start:end]
-            NL = NLL[i]
-            ND = NDL[i]
-            neighbor_list[idx, :] = self.global_ids[NL[:, :]]
-            neighbor_dist[idx, :] = ND[:, :]
-        timer.pop("Reindex")
 
         timer.pop("Search")
 
