@@ -91,6 +91,11 @@ endif()
 #-- Install GSKNN
 
 #find_package(GSKNN)
+
+message(STATUS "USE_MKL - ${USE_MKL}")
+message(STATUS "USE_GSKNN - ${USE_GSKNN}")
+message(STATUS "BUILD_SPARSE - ${BUILD_SPARSE}")
+
 if(USE_GSKNN)
     set(CYTHON_FLAGS "-E USE_GSKNN=True") 
     add_subdirectory(extern/gsknn)
@@ -98,6 +103,11 @@ else()
     set(CYTHON_FLAGS "-E USE_GSKNN=False")
 endif()
 
+if(BUILD_SPARSE)
+    set(CYTHON_FLAGS "${CYTHON_FLAGS} -E BUILD_SPARSE=True")
+else()
+    set(CYTHON_FLAGS "${CYTHON_FLAGS} -E BUILD_SPARSE=False")
+endif()
 
 #-- Install CPU Dense & Sparse
 add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)

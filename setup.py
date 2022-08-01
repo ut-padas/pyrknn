@@ -25,7 +25,12 @@ def main():
     use_cuda = False
     use_gsknn = False
     use_mkl = False
+    build_sparse = False
     numba_threads = 8
+
+
+    if env_build_sparse := os.getenv("PYRKNN_BUILD_SPARSE"):
+        build_sparse = env_build_sparse
 
     if env_use_mkl := os.getenv("PYRKNN_USE_MKL"):
         use_mkl = env_use_mkl
@@ -74,6 +79,11 @@ def main():
         cmake_args.append("-DUSE_MKL=1")
     else:
         cmake_args.append("-DUSE_MKL=0")
+
+    if(build_sparse):
+        cmake_args.append("-DBUILD_SPARSE=1")
+    else:
+        cmake_args.append("-DBUILD_SPARSE=0")
 
     #Fix for MKL in Conda install
     if mkl_prefix := os.getenv("CONDA_PREFIX"):

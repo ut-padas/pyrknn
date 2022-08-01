@@ -243,8 +243,5 @@ void inner_product(const Points &Q, const Points &R, float *D) {
 }
 
 
-void par::copy(unsigned n, float *src, float *dst) {
-  cblas_scopy(n, src, 1, dst, 1);
-}
 
 

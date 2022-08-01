@@ -49,7 +49,8 @@ void gather(Points &P, const ivec &perm) {
 }
 
 
-void scatter(Points &P, const ivec &perm) {
+void scatter(Points &P, const ivec &perm, dvec &t) {
+  Timer timer; timer.start();
   auto A = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>
               (P.n, P.d, P.nnz, P.rowPtr, P.colIdx, P.val);
   Eigen::PermutationMatrix<Eigen::Dynamic> B(P.n);
@@ -62,24 +63,38 @@ void scatter(Points &P, const ivec &perm) {
   std::copy(C.outerIndexPtr(), C.outerIndexPtr()+P.n+1, P.rowPtr);
   std::copy(C.innerIndexPtr(), C.innerIndexPtr()+P.nnz, P.colIdx);
   std::copy(C.valuePtr(), C.valuePtr()+P.nnz, P.val);
+  timer.stop(); t[8] += timer.elapsed_time();
 }
 
+void compute_row_norm(const Points &P, fvec &norm, double &t){
+
+
+}
 
 // distance is symmetric
-void compute_distance(const Points &P, fMatrix &Dt, double &t) {
+void compute_distance(const Points &P, const fvec &norm, fMatrix &Dt, dvec &t) {
+  double ti = 0.0;
   Timer timer;
+  timer.start();
   auto A = Eigen::MappedSparseMatrix<float, Eigen::RowMajor>
               (P.n, P.d, P.nnz, P.rowPtr, P.colIdx, P.val);
   EVec nrm = rowNorm(A);
+  timer.stop();
+  ti += timer.elapsed_time();
 
   timer.start();
   EMat D = -2*A*A.transpose();
-  timer.stop(); t += timer.elapsed_time();
+  timer.stop(); ti += timer.elapsed_time();
   
+  timer.start();
   D.colwise() += nrm;
   D.rowwise() += nrm.transpose();
  
   std::copy(D.data(), D.data()+P.n*P.n, Dt.data());
+  timer.stop();
+  ti+= timer.elapsed_time();
+
+  t[1] += ti;
   //std::cout<<"Norm:\n"<<nrm<<std::endl;
 }
 
@@ -111,5 +126,4 @@ void GEMM_SDD(unsigned m, unsigned n, unsigned k, int *rowPtr, int *colIdx, floa
   std::copy(C.data(), C.data()+m*n, X);
   //std::cout<<"# threads used by Eigen: "<<Eigen::nbThreads()<<std::endl;
 }
-
 

@@ -194,6 +194,7 @@ def batched_knn(ridsList, RList, QList, k, qidsList=None, neighbor_ids=None, nei
    if env == "CPU":
         return cpu.batched_knn(ridsList, RList, QList, k, cores, qidsList=qidsList, neighbor_ids=neighbor_ids, neighbor_dist=neighbor_dist, gids=gids, repack=repack, n=n)
    if env == "GPU":
+        raise Exception()
         #TODO: ADD FILKNN here
 
 def dense_build(P):

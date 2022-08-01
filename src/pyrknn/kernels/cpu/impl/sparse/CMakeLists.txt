@@ -30,6 +30,7 @@ else()
     list(REMOVE_ITEM SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_mkl.cpp)
 endif()
 
+message("SPARSE_SRC: ${SPARSE_SRC}")
 add_library(sparse SHARED ${SPARSE_SRC})
 
 target_include_directories(sparse PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

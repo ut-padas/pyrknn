@@ -1258,7 +1258,7 @@ class RKDT:
         timer.pop("Stack")
 
         timer.push("Compute")
-        = Primitives.batched_knn(ridsList, RList, RList, k, qidsList=ridsList, neighbor_ids=neighbor_ids, neighbor_dist=neighbor_dist, n=len(self.local_ids), gids=self.global_ids, repack=True)
+        neighbor_list, neighbor_dist = Primitives.batched_knn(ridsList, RList, RList, k, qidsList=ridsList, neighbor_ids=neighbor_ids, neighbor_dist=neighbor_dist, n=len(self.local_ids), gids=self.global_ids, repack=True)
         timer.pop("Compute")
 
         timer.pop("Search")

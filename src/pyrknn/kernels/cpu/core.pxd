@@ -6,9 +6,9 @@ from libcpp.vector cimport vector
 cdef extern from "impl/exact/exact.hpp" nogil:
     cdef void exact_knn(int, int, int, int*, int*, float*, int, int, int, int*, int*, float*, int*, int, int*, float*) except + 
 
-#cdef extern from "impl/sparse/spknn.hpp" nogil:
-#    cdef void spknn(int*, int*, int*, float*, int, int, int, int*, float*, int, int, int, int, int) except +
-#    cdef void spknn(unsigned int*, int*, int*, float*, unsigned int, unsigned int, unsigned int, unsigned int*, float*, int, int, int, int, int) except +
+cdef extern from "impl/sparse/spknn.hpp" nogil:
+    cdef void spknn(int*, int*, int*, float*, int, int, int, int*, float*, int, int, int, int, int) except +
+    cdef void spknn(unsigned int*, int*, int*, float*, unsigned int, unsigned int, unsigned int, unsigned int*, float*, int, int, int, int, int) except +
 
 cdef extern from "impl/primitives_shared.hpp" nogil:
     IF USE_GSKNN:
