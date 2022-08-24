@@ -60,9 +60,10 @@ find_package(Cython REQUIRED)
 set(Python3_ROOT_DIR "${CONDA_PREFIX}")
 set(Python3_ROOT "${CONDA_PREFIX}")
 set(Python3_FIND_STRATEGY "LOCATION")
-find_package(Python3 REQUIRED COMPONENTS Interpreter NumPy)
+message("PYTHON3_ROOT ${Python3_ROOT_DIR}")
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 #include_directories(${NumPy_INCLUDE_DIRS})
-include_directories(${_Python3_NumPy_INCLUDE_DIR})
+include_directories(${NUMPY_INCLUDE})
 
 #-- Look for MKL
 #set(BLA_VENDOR intel10_64lp)
