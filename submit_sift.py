@@ -8,13 +8,13 @@ parser.add_argument('-run', type=int, default=0)
 args = parser.parse_args()
 
 
-def submit(ranks, threads, dataset, iter, leafsize, k, ltrees, gpu_flag=False):
+def submit(ranks, threads, dataset, iter, leafsize, k, ltrees, gpu_flag=False, size=2**23):
   
   print(ranks)
   OMP="OMP_NUM_THREADS="+str(threads)
-  CMD=f"mpirun -n {ranks} python run_sift_1b.py -iter {iter} -dataset {dataset} -leafsize {leafsize} -cores {threads} -ltrees {ltrees} -overlap 1 -use_gpu {gpu_flag}"
+  CMD=f"ibrun -n {ranks} python run_sift_1b.py -iter {iter} -dataset {dataset} -leafsize {leafsize} -cores {threads} -ltrees {ltrees} -overlap 1 -use_gpu {gpu_flag} -n {size}"
 
-  filename = f"_{dataset}_ranks_{ranks}_gpu_{gpu_flag}_threads_{threads}_lt_{ltrees}_leafsize_{leafsize}_run_{args.run}_sift_bench"
+  filename = f"_{dataset}_ranks_{ranks}_gpu_{gpu_flag}_threads_{threads}_lt_{ltrees}_leafsize_{leafsize}_run_{args.run}_sift_strong"
   submit_file = "job"+filename+".slm"
   output_file = "out"+filename
   print(filename)
@@ -43,12 +43,12 @@ def submit(ranks, threads, dataset, iter, leafsize, k, ltrees, gpu_flag=False):
     f.writelines("#SBATCH -A ASC21002 \n")
     f.writelines(f"#SBATCH -n {tasks}\n")
     f.writelines(f"#SBATCH --tasks-per-node {tpn} \n")
-    f.writelines("#SBATCH -t 02:00:00\n")
+    f.writelines("#SBATCH -t 00:40:00\n")
     f.writelines("#SBATCH --mail-user=will.ruys@gmail.com\n")
     f.writelines("#SBATCH --mail-type=end\n")
     f.writelines("hostname \n")
-    f.writelines("source ~/miniconda3/etc/profile.d/conda.sh \n")
-    f.writelines("conda activate ali \n")
+    f.writelines("source /scratch/06081/wlruys/miniconda3/etc/profile.d/conda.sh \n")
+    f.writelines("conda activate /scratch/06081/wlruys/env/knn_mpi \n")
     f.writelines("export LD_LIBRARY_PATH=$(pwd):$LD_LIBRARY_PATH \n")
     f.writelines(f"source {env_file} \n")
     #f.writelines("module load intel/19.0.5  impi/19.0.5 \n")
@@ -67,7 +67,8 @@ if __name__ == '__main__':
 
   cpu_rank_list = [1, 2] #4, 8, 16, 32]
   gpu_rank_list = [64]
-  local_iterations = [1] #[2, 5, 10]
+  #local_iterations = [1, 3, 5] #[2, 5, 10]
+  local_iterations = [1, 3, 5]
 
   #NOTE: Submit arguments
   #ranks, threads, dataset, iter, blocksize, levels, k, leafsize, ltrees
@@ -75,11 +76,20 @@ if __name__ == '__main__':
   #Defaults to gaussian 4M 15d
 
   #Run GAUSS GPU
-  local_iterations = [1]
-  #local_iterations = [1, 3, 5, 10, 15, 20]
-  for r in [16]:
+  global_iterations = 400
+  #local_iterations = [5]
+
+  #local_iterations = [2, 4]
+  #for r in [4, 8, 16, 32, 64]:
+  #  for ltrees in local_iterations:
+  #      submit(r, 10, "gauss", global_iterations, 1024, 32, ltrees, True)
+
+  ranks = [32, 64]
+  size = [2**22, 2**21]
+  
+  for idx in range(len(ranks)):
     for ltrees in local_iterations:
-        submit(r, 10, "gauss", 1, 1024, 32, ltrees, True)
+        submit(ranks[idx], 10, "gauss", global_iterations, 1024, 32, ltrees, True, size=size[idx])
 
   """
   #Run HARD GPU
