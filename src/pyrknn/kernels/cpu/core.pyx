@@ -10,6 +10,7 @@ from cython.operator cimport dereference as deref
 from cython.parallel import prange, parallel
 from cython.view cimport array as cvarray
 import cython
+cimport cython 
 
 cimport mpi4py.MPI as MPI
 cimport mpi4py.libmpi as libmpi
@@ -17,6 +18,7 @@ from mpi4py import MPI
 #import time as MPI
 import math
 import time
+
 
 #cdef fused real:
 #    cython.float
@@ -87,8 +89,6 @@ def map_2(real[:, :] val, index[:] idx, real[:, :] buf):
 def reindex(val, index, copy_back=False, use_numpy=False):
     source_shape = val.shape
     target_length = len(index)
-    
-    #print("In Reindex: ", target_length, val.ndim, flush=True)
 
     if val.ndim < 2:
         buf = np.empty(target_length, dtype=val.dtype)
@@ -105,6 +105,7 @@ def reindex(val, index, copy_back=False, use_numpy=False):
             return val
         else:
             return val[index]
+
     if copy_back == True:
         assert(target_length == source_shape[0])
         if val.ndim < 2:
@@ -119,7 +120,6 @@ def reindex(val, index, copy_back=False, use_numpy=False):
             #print("1D", buf.shape, buf.dtype, flush=True)
             map_1(val, index, buf)
         elif val.ndim == 2:
-            #print("2D", buf.shape, buf.dtype, flush=True)
             map_2(val, index, buf)
         return buf
 
@@ -167,7 +167,6 @@ def query_to_bin(projection, medians, output, levels=None, pack=False):
         bin_pack(levels, projection, medians, output, buf)
     else:
         bin_default(levels, projection, medians, output, buf)
-
 
 #-- Dense KNN
 
@@ -656,9 +655,6 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
 
         req_piv = comm.Ibcast(v, root=r)
         
-
-
-
     req_N.Wait()
     cdef float N = N_a
 

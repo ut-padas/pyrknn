@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.13.2)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 #--Setup Project
 project(pyrknn LANGUAGES C CXX)
+
+set( CMAKE_CXX_FLAGS "-march=core-avx2")
 
 #-- Define Macros
 
@@ -57,9 +59,10 @@ find_package(Cython REQUIRED)
 #find_package(NumPy REQUIRED)
 
 
-set(Python3_ROOT_DIR "${CONDA_PREFIX}")
-set(Python3_ROOT "${CONDA_PREFIX}")
+set(Python3_ROOT_DIR "$ENV{CONDA_PREFIX}")
+set(Python3_ROOT "$ENV{CONDA_PREFIX}")
 set(Python3_FIND_STRATEGY "LOCATION")
+
 message("PYTHON3_ROOT ${Python3_ROOT_DIR}")
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 #include_directories(${NumPy_INCLUDE_DIRS})

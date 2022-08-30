@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J nms_avazu
-#SBATCH -e nms_avazu.err 
-#SBATCH -o nms_avazu.txt 
+#SBATCH -J nms_kdd12
+#SBATCH -e nms_kdd12.err 
+#SBATCH -o nms_kdd12.txt 
 #SBATCH -p small 
 #SBATCH -N 1
 #SBATCH -A ASC21002
@@ -14,11 +14,11 @@
 source /work/06081/wlruys/miniconda3/etc/profile.d/conda.sh
 source ../../set_env_cpu.sh
 
-for t in `seq 0 1 5`
+for t in 20 30 40
 do
-    for j in 50 100 500 
+    for j in 50 100 
     do
-        python nms_avazu.py -efC $j | tee nms_avazu_$j.out
+        python nms_kdd12.py -efC $j -M $t | tee nms_kdd12_${t}_${j}.out
     done
 done 
 

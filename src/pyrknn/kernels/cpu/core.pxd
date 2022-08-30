@@ -1,6 +1,5 @@
 # distutils: language = c++
 
-
 from libcpp.vector cimport vector
 
 cdef extern from "impl/exact/exact.hpp" nogil:
