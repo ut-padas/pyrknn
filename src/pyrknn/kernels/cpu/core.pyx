@@ -359,7 +359,7 @@ cpdef batched_knn(ridsList, RList, QList, k, cores, qidsList=None, neighbor_ids=
 
     IF USE_GSKNN:
         with nogil:
-            batchedGSKNN[float](<int**>(&cridsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cnlist[0]), cd, <int*>(&cmlist[0]), ck, <int**>(&cIList[0]), <float**>(&cDList[0]), nleaves, <int> ccores);
+            batchedGSKNN(<int**>(&cridsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cnlist[0]), cd, <int*>(&cmlist[0]), ck, <int**>(&cIList[0]), <float**>(&cDList[0]), nleaves, cblocksize, <int> ccores);
     ELSE:
         with nogil:
             batched_direct_knn_base(<int**>(&cridsList[1]), <float**>(cRList[0]), <float**>(&cQList[0]), <int*>(&cnlist[0]), <int*>(&cmlist[0]), cd, ck, <int**>(&cIList[0]), <float**>(&cDList[0]), cblocksize, nleaves, ccores)

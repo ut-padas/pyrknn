@@ -11,8 +11,6 @@
 #include <omp.h>
 //#include<ompUtils.h>
 
-#include<cblas.h>
-
 #include <cassert>
 #include <queue>
 #include <cmath>
@@ -20,10 +18,16 @@
 #include <iostream>
 #include <numeric>
 
+#ifndef PYRKNN_USE_MKL
+    #include <cblas.h>
+#else
+    #include<mkl.h>
+#endif
 
-//TODO: Remove conditionally on POWER systems
-//#include <mkl.h>
-//#include <gsknn.h>
+#ifdef PYRKNN_USE_GSKNN
+    #include<gsknn.h>
+#endif
+
 
 #include <limits>
 
@@ -32,9 +36,6 @@
 #include <string>
 
 #include "util.hpp"
-//#include<gsknn_ref.h>
-//#include<gsknn_ref_stl.hpp>
-
 
 
 #define KNN_MAX_BLOCK_SIZE 1024
@@ -570,7 +571,7 @@ void batched_direct_knn_base(int** rid_list, float** ref_list, float** query_lis
 }
 
 
-#ifndef ARCH_POWER9
+#ifdef PYRKNN_USE_GSKNN
 
 void GSKNN(
            int *rgids,
@@ -582,19 +583,18 @@ void GSKNN(
            int* neighbor_list,
            float* neighbor_dist)
 {
-
     int maxt = omp_get_max_threads();
 
     float* sqnormr = new float[n];
     float* sqnormq = new float[m];
-    int* qgids = new float[m];
+    int* qgids = new int[m];
 
     #pragma omp simd
-    for (int z = 0; z < localn; ++z)
+    for (int z = 0; z < n; ++z)
         qgids[z] = z;
 
-    sqnorm(R, n, d, sqnormr);
-    sqnorm(Q, m, d, sqnormq);
+    sqnorm(R, n, d, sqnormr, false);
+    sqnorm(Q, m, d, sqnormq, false);
 
     heap_t *heap = heapCreate_s(m, k, 1.79E+30);
     sgsknn(n, m, d, k, R, sqnormr, rgids, Q, sqnormq, qgids, heap);
@@ -615,6 +615,7 @@ void GSKNN(
 
     delete[] sqnormr;
     delete[] sqnormq;
+    delete[] qgids;
 }
 
 //TODO: Make this a clean batchedGSKNN call for the a2a case.
@@ -668,7 +669,7 @@ void batchedGSKNN(
         float *sqnormr = new float[localn];
         float *sqnormq = new float[blocksize];
 
-        sqnorm(localR, localn, d, sqnormr);
+        sqnorm(localR, localn, d, sqnormr, false);
 
         //Loop over all blocks
         for (int i = 0; i < iters; ++i)
@@ -682,7 +683,7 @@ void batchedGSKNN(
             }
 
             const size_t offset = i * blocksize;
-            sqnorm(currquery, current_blocksize, d, sqnormq);
+            sqnorm(currquery, current_blocksize, d, sqnormq, false);
 
             heap_t *heap = heapCreate_s(current_blocksize, k, 1.79E+30);
             sgsknn(localn, current_blocksize, d, k, localR, sqnormr, local_qgids, currquery, sqnormq, local_qgids, heap);

@@ -12,8 +12,8 @@ cdef extern from "impl/sparse/spknn.hpp" nogil:
 
 cdef extern from "impl/primitives_shared.hpp" nogil:
     IF USE_GSKNN:
-        cdef void GSKNN(int *rgids, int *qgids, T *R, T *Q, int n, int d, int m, int k, int *neighbor_list, T *neighbor_dist) except +
-        cdef void batchedGSKNN(int **rgids,int **qgids, T **R, T **Q, int *n, int d, int *m, int k, int **neighbor_list, T **neighbor_dist, int nleaves, int cores) except +
+        cdef void GSKNN(int *rgids, float *R, float *Q, int n, int d, int m, int k, int *neighbor_list, float *neighbor_dist) except +
+        cdef void batchedGSKNN(int **rgids, float **R, float **Q, int *n, int d, int *m, int k, int **neighbor_list, float **neighbor_dist, int nleaves, int blocksize, int cores) except +
     cdef void batched_relabel[T](T* gids, int** qid_list, int* mlist, int k, int** knn_ids_list, float** knn_dist_list, T* output_ids, float* output_dist, int nleaves, int cores) except +
     cdef void direct_knn_base(int* rid, float* R, float* Q, int n, int m, int d, int k, int* nids, float* ndists, int blocksize) except +
     cdef void batched_direct_knn_base(int** rid_list, float** ref_list, float** query_list, int* nlist, int* mlist, int dim, int k, int** knn_ids_list, float** knn_dist_list, int blocksize, int nleaves, int cores) except + 

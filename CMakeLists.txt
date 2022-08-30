@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13.2)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 #--Setup Project
 project(pyrknn LANGUAGES C CXX)
@@ -97,11 +97,18 @@ message(STATUS "USE_MKL - ${USE_MKL}")
 message(STATUS "USE_GSKNN - ${USE_GSKNN}")
 message(STATUS "BUILD_SPARSE - ${BUILD_SPARSE}")
 
+if(USE_MKL)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPYRKNN_USE_MKL")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPYRKNN_USE_MKL")
+endif()
+
 if(USE_GSKNN)
-    set(CYTHON_FLAGS "-E USE_GSKNN=True") 
+    set(CYTHON_FLAGS "${CYTHON_FLAGS} -E USE_GSKNN=True") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPYRKNN_USE_GSKNN")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPYRKNN_USE_GSKNN")
     add_subdirectory(extern/gsknn)
 else()
-    set(CYTHON_FLAGS "-E USE_GSKNN=False")
+    set(CYTHON_FLAGS "${CYTHON_FLAGS} -E USE_GSKNN=False")
 endif()
 
 if(BUILD_SPARSE)

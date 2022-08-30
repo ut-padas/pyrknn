@@ -3,7 +3,13 @@
 
 #include <algorithm>
 #include <numeric> // std::iota
-#include <cblas.h>
+
+#ifndef PYRKNN_USE_MKL
+    #include <cblas.h>
+#else
+    #include<mkl.h>
+#endif
+
 #include "omp.h"
 
 int current_time_nanoseconds();
@@ -12,9 +18,6 @@ int current_time_nanoseconds();
 // helper functions to substitue their std counterparts
 namespace par {
 
-    void copy(unsigned n, float *src, float *dst) {
-      cblas_scopy(n, src, 1, dst, 1);
-    }
 
     template <typename T>
     void compute_range(T n, T &from , T &to) {

@@ -127,3 +127,8 @@ void GEMM_SDD(unsigned m, unsigned n, unsigned k, int *rowPtr, int *colIdx, floa
   //std::cout<<"# threads used by Eigen: "<<Eigen::nbThreads()<<std::endl;
 }
 
+namespace par{
+    void copy(unsigned n, float *src, float *dst) {
+      cblas_scopy(n, src, 1, dst, 1);
+    }
+}
