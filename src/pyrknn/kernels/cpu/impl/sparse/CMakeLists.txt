@@ -7,8 +7,8 @@ find_package(MPI REQUIRED)
 
 find_package(OpenMP)
 if(OpenMP_FOUND)
-    set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -std=c++17")
+    set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -std=c++17")
     set ( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
@@ -21,7 +21,22 @@ endif()
 
 file(GLOB SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB SPARSE_HDR ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+list(FILTER SPARSE_SRC EXCLUDE REGEX "[.]+backend[.]+\.cpp$")
+list(FILTER SPARSE_SRC EXCLUDE REGEX "driver.cpp")
 
+if (USE_MKL)
+    message("USING MKL")
+    #list(APPEND SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_mkl.cpp) 
+    list(REMOVE_ITEM SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_eigen.cpp)
+    list(REMOVE_ITEM SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/util_eigen.cpp)
+    list(REMOVE_ITEM SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/util_eigen.hpp)
+else()
+    message("USING EIGEN")
+    #list(APPEND SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_eigen.cpp)
+    list(REMOVE_ITEM SPARSE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/backend_mkl.cpp)
+endif()
+
+message("SPARSE_SRC: ${SPARSE_SRC}")
 add_library(sparse SHARED ${SPARSE_SRC})
 
 target_include_directories(sparse PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

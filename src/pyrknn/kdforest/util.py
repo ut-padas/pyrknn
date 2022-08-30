@@ -6,6 +6,7 @@ import numba
 import os
 
 import scipy as sp
+from scipy import sparse as sparse
 
 from ..kernels.cpu import core as cpu
 
@@ -189,12 +190,12 @@ def direct_knn(ids, R, Q, k, loc="HOST", cores=8):
         #print("Running Sparse Exact")
         return cpu.sparse_exact(ids, R, Q, k, cores)
     
-def batched_knn(gidsList, RList, QList, k):
+def batched_knn(ridsList, RList, QList, k, qidsList=None, neighbor_ids=None, neighbor_dist=None, n=None, gids=None, repack=True):
    if env == "CPU":
-        return cpu.batched_knn(gidsList, RList, QList, k, cores)
+        return cpu.batched_knn(ridsList, RList, QList, k, cores, qidsList=qidsList, neighbor_ids=neighbor_ids, neighbor_dist=neighbor_dist, gids=gids, repack=repack, n=n)
    if env == "GPU":
-        raise Exception("Error: GPU Batched KNN no longer supported through this interface. Use combined kernel `dense_knn` instead.")
-        #return gpu.batched_knn(gidsList, RList, QList, k)
+        raise Exception()
+        #TODO: ADD FILKNN here
 
 def dense_build(P):
     return cpu.dense_build(P)
@@ -298,7 +299,6 @@ def check_accuracy(a, b):
 
     N = Na
     k = ka
-
     approx_id = b_list 
     approx_dist = b_dist 
 
@@ -308,7 +308,7 @@ def check_accuracy(a, b):
     err = 0.0
     for i in range(N):
 
-        miss_array_id = [1 if approx_id[i, j] in truth_id[i, :] else 0 for j in range(k)]
+        miss_array_id = [0 if approx_id[i, j] in truth_id[i, :] else 0 for j in range(k)]
         miss_array_dist = [1 if approx_dist[i, j] <= truth_dist[i, -1] else 0 for j in range(k)]
 
         err += np.sum(np.logical_or(miss_array_id, miss_array_dist))
@@ -321,8 +321,20 @@ def check_accuracy(a, b):
 
     return hit_rate, mean_rel_err, mean_sim
 
-def dist_select(k, data, ids, comm):
-    return cpu.dist_select(k, data, ids, comm)
+def reindex(val, index, copy_back=False, use_numpy=False):
+    return cpu.reindex(val, index, copy_back=False, use_numpy=False)
+
+def argsort(val, index=None, dtype=np.int32):
+    if index is None:
+        index = np.empty(len(val), dtype=dtype)
+    cpu.argsort(index, val)
+    return index
+
+def interval(starts, sizes, index, nleaves, leaf_ids):
+    return cpu.interval(starts, sizes, index, nleaves, leaf_ids) 
+
+def dist_select(rank, k, data, ids, comm):
+    return cpu.dist_select(rank, k, data, ids, comm)
 
 def cpu_sparse_knn(gids, X, levels, ntrees, k, blocksize, cores=8):
     return cpu.sparse_knn(gids, X, levels, ntrees, k, blocksize, cores)

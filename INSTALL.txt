@@ -1,10 +1,14 @@
 
-Currently reworking this to use CMake and Scikit-Build. Then it should be as easy as runing 'pip install'. 
+How to install on Longhorn:
 
-Update: test push from Frontera to see if ssh key is correct
-
-New Installation Instructions:
-git submodule update --init --recursive
+source set_env_longhorn.sh
+Go to GeMM/pysrc/
+Run ./build.sh
 pip install .
+
+Go to root directory
+Make sure OpenBLAS is on your include and library paths
+pip install .
+
 
 

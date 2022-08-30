@@ -1,0 +1,8 @@
+[build-system]
+requires = [
+    "Cython",
+    "setuptools",
+    "wheel",
+    "scikit-build",
+    "mpi4py",
+]

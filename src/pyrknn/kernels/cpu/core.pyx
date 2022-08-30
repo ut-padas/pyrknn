@@ -19,41 +19,48 @@ from mpi4py import MPI
 import math
 import time
 
-cdef fused real:
-    cython.float
-    #cython.double
-    #cython.int
-    #cython.long
-
-cdef fused index:
-    cython.int
-    #cython.long
 
 #cdef fused real:
-#    cython.char
-#    cython.uchar
-#    cython.short
-#    cython.ushort
-#    cython.int
-#    cython.uint
-#    cython.long
-#    cython.ulong
-#    cython.longlong
-#    cython.ulonglong
 #    cython.float
 #    cython.double
+#    cython.int
+#    cython.long
 
 #cdef fused index:
-#    cython.char
-#    cython.uchar
-#    cython.short
-#    cython.ushort
 #    cython.int
-#    cython.uint
 #    cython.long
-#    cython.ulong
-#    cython.longlong
-#    cython.ulonglong
+#    cython.uint
+
+cdef fused pointer:
+    cython.uint
+    cython.ulong
+    cython.ulonglong
+
+cdef fused real:
+    #cython.char
+    #cython.uchar
+    #cython.short
+    #cython.ushort
+    cython.int
+    #cython.uint
+    cython.long
+    #cython.ulong
+    #cython.longlong
+    #cython.ulonglong
+    cython.float
+    cython.double
+
+cdef fused index:
+    #cython.char
+    #cython.uchar
+    #cython.short
+    #cython.ushort
+    cython.int
+    #cython.uint
+    cython.long
+    #cython.ulong
+    #cython.longlong
+    #cython.ulonglong
 
 
 def argsort(index[:] idx, real[:] val):
@@ -82,13 +89,11 @@ def map_2(real[:, :] val, index[:] idx, real[:, :] buf):
 def reindex(val, index, copy_back=False, use_numpy=False):
     source_shape = val.shape
     target_length = len(index)
-    target_dim = val.shape[1]
-    
-    print(target_length, target_dim, val.ndim, flush=True)
 
     if val.ndim < 2:
         buf = np.empty(target_length, dtype=val.dtype)
     elif val.ndim == 2:
+        target_dim = val.shape[1]
         buf = np.empty((target_length, target_dim), dtype=val.dtype)
     else:
         raise Exception("Reindex function only implemented for ndim <= 2")
@@ -104,12 +109,15 @@ def reindex(val, index, copy_back=False, use_numpy=False):
     if copy_back == True:
         assert(target_length == source_shape[0])
         if val.ndim < 2:
+            #print("1D Recopy", buf.shape, buf.dtype, flush=True)
             reindex_1(val, index, buf)
         elif val.ndim == 2:
+            #print("2D Recopy", buf.shape, buf.dtype, flush=True)
             reindex_2(val, index, buf)
         return val
     else:
         if val.ndim < 2:
+            #print("1D", buf.shape, buf.dtype, flush=True)
             map_1(val, index, buf)
         elif val.ndim == 2:
             map_2(val, index, buf)
@@ -140,8 +148,9 @@ def bin_pack(levels, real[:, :] projection, real[:] medians, index[:] output, re
     cdef int c_levels = levels
 
     if (real is cython.float) and (index is cython.int):
-        print("USING SIMD", flush=True)
-        bin_queries_simd(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
+        pass
+        #print("USING SIMD", flush=True)
+        #bin_queries_simd(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
     else:
         bin_queries_pack(n, c_levels, &projection[0, 0], &medians[0], &output[0], &buf[0, 0])
 
@@ -173,7 +182,7 @@ cpdef single_knn(gids, R, Q, k, cores):
         cores (int): set the number of openmp threads used.  
 
      Returns:
-        neighbor_list (2d-array, int32): Nq x k list of neighbor ids
+        neighbor_ids (2d-array, int32): Nq x k list of neighbor ids
         neighbor_dist (2d-array, float32): Nq x k list of neighbor distances
     """
 
@@ -182,37 +191,115 @@ cpdef single_knn(gids, R, Q, k, cores):
     cdef int cd = Q.shape[1];
     cdef int ck = k;
 
-    neighbor_list = np.zeros([cm, k], dtype=np.int32)
+    neighbor_ids = np.zeros([cm, k], dtype=np.int32)
     neighbor_dist = np.zeros([cm, k], dtype=np.float32)
 
     cdef float[:, :] cR = R;
     cdef float[:, :] cQ = Q;
-    cdef int[:, :] cNL = neighbor_list;
+    cdef int[:, :] cNL = neighbor_ids;
     cdef float[:, :] cND = neighbor_dist;
     cdef int[:] cgids = gids; 
     cdef int[:] cqids = np.arange(0, cm, dtype=np.int32);
-    with nogil:
-        GSKNN[float](&cgids[0], &cqids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
 
 
-    return neighbor_list, neighbor_dist 
+    IF USE_GSKNN:
+        with nogil:
+            GSKNN(&cgids[0], &cR[0, 0], &cQ[0, 0], cn, cd, cm, ck, &cNL[0, 0], &cND[0, 0]);
+    ELSE:
+        with nogil:
+            direct_knn_base(&cgids[0], &cR[0, 0], &cQ[0, 0], cn, cm, cd, ck, &cNL[0, 0], &cND[0, 0], 512);
 
-cpdef batched_knn(gidsList, RList, QList, k, cores):
+    return neighbor_ids, neighbor_dist 
+
+
+
+def relabel_impl(k, index[:] gids, size_t[:] qid_list, int[:] mlist, size_t[:] IList, size_t[:] DList, index[:, :] output_I, float[:, :] output_D, cores):
+    cdef int ck = k
+    cdef int ccores = cores
+    
+    cdef int nleaves = mlist.shape[0];
+
+    if index is int:
+        with nogil:
+            batched_relabel(<int*>(&gids[0]), <int**>(&qid_list[0]), &mlist[0], ck, <int**> &IList[0], <float**> &DList[0], <int*>(&output_I[0, 0]), <float*>(&output_D[0, 0]), nleaves, ccores)
+
+    if index is long:
+        with nogil:
+            batched_relabel(<long*>(&gids[0]), <int**>(&qid_list[0]), &mlist[0], ck, <int**>(&IList[0]), <float**>(&DList[0]), <long*>(&output_I[0, 0]), <float*>(&output_D[0, 0]), nleaves, ccores)
+
+def relabel(gids, qid_list, IList, DList, out_I, out_D, cores):
+
+    cdef int nleaves = len(DList);
+    cdef int ck = DList[0].shape[1];
+    cdef int ccores = cores
+
+    cdef int[:] cmlist = np.zeros(nleaves, dtype=np.int32);
+
+    cdef size_t[:] cIList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cDList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cqidList = np.zeros(nleaves, dtype=np.uintp);
+
+    cdef int[:, :] localI;
+    cdef float[:, :] localD;
+    cdef int[:] local_qid;
+
+    for i in range(nleaves):
+
+        localI = IList[i]
+        localD = DList[i]
+        local_qid = qid_list[i]
+
+        localm = localI.shape[0];
+
+        cmlist[i] = localm;
+
+        cIList[i] = <np.uintp_t>&localI[0, 0];
+        cDList[i] = <np.uintp_t>&localD[0, 0];
+
+        cqidList[i] = <np.uintp_t>&local_qid[0];
+    
+    
+    relabel_impl(ck, gids, cqidList, cmlist, cIList, cDList, out_I, out_D, cores);
+
+cpdef batched_knn(ridsList, RList, QList, k, cores, qidsList=None, neighbor_ids=None, neighbor_dist=None, n=None, gids=None, repack=True):
+
+    if repack:
+        if gids is None:
+            assert(n is not None)
+            dtype = np.int32 if n < np.iinfo(np.int32).max else np.int64
+            gids = np.arange(n, dtype=dtype)
+        else:
+            n = len(gids)
+
+    cdef int qid_flag = 0
+    if qidsList is None:
+        qid_flag = 1
+
     cdef int nleaves = len(RList); #Assume input is proper #TODO: Add checks
     cdef int cd = RList[0].shape[1];
     cdef int ck = k;
     cdef int ccores = cores
-    cdef size_t[:] cRList = np.zeros(nleaves, dtype=np.uintp);
-    cdef size_t[:] cQList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cRList = np.empty(nleaves, dtype=np.uintp);
+    cdef size_t[:] cQList = np.empty(nleaves, dtype=np.uintp);
 
-    cdef int[:] cns = np.zeros(nleaves, dtype=np.int32);
-    cdef int[:] cms = np.zeros(nleaves, dtype=np.int32);
+    if neighbor_ids is None:
+        assert(n is not None)
+        assert(gids is not None)
+        neighbor_ids = np.empty([n, k], dtype=gids.dtype)
 
-    cdef size_t[:] cqgidsList = np.zeros(nleaves, dtype=np.uintp);
-    cdef size_t[:] crgidsList = np.zeros(nleaves, dtype=np.uintp);
+    if neighbor_dist is None:
+        assert(n is not None)
+        assert(gids is not None)
+        neighbor_dist = np.empty([n, k], dtype=np.float32)
 
-    cdef size_t[:] cNLList = np.zeros(nleaves, dtype=np.uintp);
-    cdef size_t[:] cNDList = np.zeros(nleaves, dtype=np.uintp);
+    cdef int[:] cnlist = np.zeros(nleaves, dtype=np.int32);
+    cdef int[:] cmlist = np.zeros(nleaves, dtype=np.int32);
+
+    cdef size_t[:] cqidsList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cridsList = np.zeros(nleaves, dtype=np.uintp);
+
+    cdef size_t[:] cIList = np.zeros(nleaves, dtype=np.uintp);
+    cdef size_t[:] cDList = np.zeros(nleaves, dtype=np.uintp);
 
 
     #Define temporary variables
@@ -223,50 +310,66 @@ cpdef batched_knn(gidsList, RList, QList, k, cores):
     cdef int localn;
     cdef int localm;
    
-    cdef int[:] qgids;
-    cdef int[:] rgids;
+    cdef int[:] qids;
+    cdef int[:] rids;
 
-    cdef int[:,:] cNL;
-    cdef float[:,:] cND;
+    cdef int[:,:] cI;
+    cdef float[:,:] cD;
 
-    NLL = []
-    NDL = []
+    qidsL = []
+    IL = []
+    DL = []
+
+    cdef int cblocksize = 512;
+
     #Make nlist, mlist
     for i in range(nleaves):
-        localR = RList[i]; #argghhhh, these need the GIL. I can't do this in parallel
+        localR = RList[i];
         localQ = QList[i];
 
         localn = localR.shape[0];
         localm = localQ.shape[0];
        
-        rgids = gidsList[i]; #This needs the GIL
-        qgids = np.arange(0, localm,dtype=np.int32);
+        rids = ridsList[i]
 
-        cNL = np.zeros([localm, ck], dtype=np.int32);
-        cND = np.zeros([localm, ck], dtype=np.float32);
+        if qid_flag:
+            qids = np.arange(localm, dtype=np.int32)
+        else:
+            qids = qidsList[i]
 
-        NLL.append(np.asarray(cNL))
-        NDL.append(np.asarray(cND))
+        cI = np.zeros([localm, ck], dtype=np.int32);
+        cD = np.zeros([localm, ck], dtype=np.float32);
 
-        cns[i] = localn;
-        cms[i] = localm;
+        qidsL.append(np.asarray(qids))
+        IL.append(np.asarray(cI))
+        DL.append(np.asarray(cD))
+
+        cnlist[i] = localn;
+        cmlist[i] = localm;
 
         cRList[i] = <np.uintp_t>&localR[0, 0];
         cQList[i] = <np.uintp_t>&localQ[0, 0];
 
-        crgidsList[i] = <np.uintp_t>&rgids[0];
-        cqgidsList[i] = <np.uintp_t>&qgids[0];
+        cridsList[i] = <np.uintp_t>&rids[0];
+        cqidsList[i] = <np.uintp_t>&qids[0];
 
-        cNLList[i] = <np.uintp_t>&cNL[0, 0];
-        cNDList[i] = <np.uintp_t>&cND[0, 0];
+        cIList[i] = <np.uintp_t>&cI[0, 0];
+        cDList[i] = <np.uintp_t>&cD[0, 0];
 
-    with nogil:
-        batchedGSKNN[float](<int**>(&crgidsList[0]), <int**>(&cqgidsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cns[0]), cd, <int*>(&cms[0]), ck, <int**>(&cNLList[0]), <float**>(&cNDList[0]), nleaves, <int> ccores);
+    IF USE_GSKNN:
+        with nogil:
+            batchedGSKNN(<int**>(&cridsList[0]), <float**>(&cRList[0]), <float**>(&cQList[0]), <int *>(&cnlist[0]), cd, <int*>(&cmlist[0]), ck, <int**>(&cIList[0]), <float**>(&cDList[0]), nleaves, cblocksize, <int> ccores);
+    ELSE:
+        with nogil:
+            batched_direct_knn_base(<int**>(&cridsList[1]), <float**>(cRList[0]), <float**>(&cQList[0]), <int*>(&cnlist[0]), <int*>(&cmlist[0]), cd, ck, <int**>(&cIList[0]), <float**>(&cDList[0]), cblocksize, nleaves, ccores)
+
+    if repack:
+        relabel_impl(ck, gids, cqidsList, cmlist, cIList, cDList, neighbor_ids, neighbor_dist, ccores)
+        return (neighbor_ids, neighbor_dist)
+    else:
+        return (IL, DL)
+
     
-    #NLL = np.asarray(cNLList);
-    #NDL = np.asarray(cNDList);
-    out = None
-    return (NLL, NDL, out)
 
 #-- Sparse KNN
 
@@ -283,7 +386,7 @@ cpdef sparse_exact(gids, R, Q, k, cores):
         cores (int): set the number of openmp threads used.  
 
     Returns:
-        neighbor_list (2d-array, int32): Nq x k list of neighbor ids
+        neighbor_ids (2d-array, int32): Nq x k list of neighbor ids
         neighbor_dist (2d-array, float32): Nq x k list of neighbor distances
     """
 
@@ -342,7 +445,7 @@ cpdef sparse_knn_3(gids, pptr, pind, pval, pnnz, levels, ntrees, k, blocksize, c
         d (int): dimension of CSR 
 
     Returns:
-        neighbor_list (2d-array, int32): Nq x k list of neighbor ids
+        neighbor_ids (2d-array, int32): Nq x k list of neighbor ids
         neighbor_dist (2d-array, float32): Nq x k list of neighbor distances
     """
 
@@ -365,8 +468,10 @@ cpdef sparse_knn_3(gids, pptr, pind, pval, pnnz, levels, ntrees, k, blocksize, c
     cdef unsigned int[:, :] nID = np.zeros([n, k], dtype=np.uint32) + <unsigned int> 1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + <float> 1e38
 
-    with nogil:
-        spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
+
+    IF BUILD_SPARSE:
+        with nogil:
+            spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
 
     outID = np.asarray(nID)
     outDist = np.asarray(nDist)
@@ -391,7 +496,7 @@ cpdef sparse_knn(gids, X, levels, ntrees, k, blocksize, cores):
         d (int): dimension of CSR 
 
     Returns:
-        neighbor_list (2d-array, int32): Nq x k list of neighbor ids
+        neighbor_ids (2d-array, int32): Nq x k list of neighbor ids
         neighbor_dist (2d-array, float32): Nq x k list of neighbor distances
     """
 
@@ -416,8 +521,9 @@ cpdef sparse_knn(gids, X, levels, ntrees, k, blocksize, cores):
     cdef unsigned int[:, :] nID = np.zeros([n, k], dtype=np.uint32) + <unsigned int> 1
     cdef float[:, :] nDist = np.zeros([n, k], dtype=np.float32) + <float> 1e38
 
-    with nogil:
-        spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
+    IF BUILD_SPARSE:
+        with nogil:
+            spknn(<unsigned int*> &hID[0], <int*> &ptr[0], <int*> &idx[0], <float*> &data[0], <unsigned int> c_n, <unsigned int> c_d, <unsigned int> nnz, <unsigned int*> &nID[0, 0], <float*> &nDist[0, 0], <int> c_k, <int> c_levels, <int> c_ntrees, <int> c_blocksize, <int> c_cores)
 
     outID = np.asarray(nID)
     outDist = np.asarray(nDist)
@@ -491,14 +597,65 @@ cpdef dense_build(P):
 
 #-- Distributed Tree Build 
 
-cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
+cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
 
-    rank = comm.Get_rank()
+    t = time.perf_counter()
+
+    t_reduce = 0
+    t_alloc = 0
+    t_prefix = 0
+    t_sum = 0
+    t_part = 0
+    mean_flag = True
+    rand_flag = False
+
+    cdef int rank = comm.Get_rank()
+    cdef int mpi_size = comm.Get_size()
     cdef int nlocal = len(X)
     nlocal_a = np.array(nlocal, dtype=np.float32)
     N_a = np.array(0.0, dtype=np.float32)
-    comm.Allreduce(nlocal_a, N_a, op=MPI.SUM)
-   
+    
+    t_stamp = time.perf_counter()
+    req_N = comm.Iallreduce(nlocal_a, N_a, op=MPI.SUM)
+    t_reduce += (time.perf_counter() - t_stamp) 
+
+    #TODO: Replace with parallel scan and copy
+    t_stamp = time.perf_counter()
+    cdef float[:] temp_X = np.empty(nlocal, dtype=np.float32)
+    cdef int[:] temp_ID = np.empty(nlocal, dtype=np.int32)
+    cdef int[:] perm = np.empty(nlocal, dtype=np.int32)
+    t_alloc += (time.perf_counter() - t_stamp)
+
+    #Compute Mean and use as approximate Split
+
+    if mean_flag:
+        t_stamp = time.perf_counter()
+        if nlocal >0:
+            local_mean_a = np.array(np.sum(X), dtype=np.float32)
+        else:
+            local_mean_a = np.array(0.0, dtype=np.float32)
+        t_sum += (time.perf_counter() - t_stamp)
+
+        t_stamp == time.perf_counter()
+        global_mean_a = np.array(0.0, dtype=np.float32)
+        req_mean = comm.Iallreduce(local_mean_a, global_mean_a, op=MPI.SUM)
+        t_reduce += (time.perf_counter() - t_stamp)
+
+    cdef int r = 0;
+    cdef int idx = 0;
+    if rand_flag:
+
+        r = np.random.randint(0, mpi_size)
+        idx = np.random.randint(0, nlocal)
+        #print("Selected Rank: ", r)
+        if rank == r:
+            v = np.array(X[idx], dtype=np.float32)
+        else:
+            v = np.array(0.0, dtype=np.float32)
+
+        req_piv = comm.Ibcast(v, root=r)
+        
+    req_N.Wait()
     cdef float N = N_a
 
     if prev[2] == 0:
@@ -509,38 +666,41 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
     if(k > globalN):
         raise Exception("Distributed Select: k cannot be greater than the total number of points.")
     
-    #TODO: Combine this with previous MPI Call
-    #Compute Mean and use as approximate Split
-    if nlocal >0:
-        local_mean_a = np.array(np.sum(X), dtype=np.float32)
-    else:
-        local_mean_a = np.array(0.0, dtype=np.float32)
+    cdef float pivot = 0.0
 
-    global_mean_a = np.array(0.0, dtype=np.float32)
-    comm.Allreduce(local_mean_a, global_mean_a, op=MPI.SUM)
     #print(global_mean_a)
-    cdef float mean = global_mean_a/N
-    #print(rank, "Mean", mean)
+    if mean_flag:
+        req_mean.Wait()
+        pivot = global_mean_a/N
 
-    #TODO: Replace with parallel scan and copy
-    cdef float[:] temp_X = np.zeros(nlocal, dtype=np.float32)
-    cdef int[:] temp_ID = np.zeros(nlocal, dtype=np.int32)
-    cdef int[:] perm = np.zeros(nlocal, dtype=np.int32)
+    if rand_flag:
+        req_piv.Wait()
+        pivot = v
+        #print("Output:", pivot)
+
+    #print(rank, "Mean", mean)
 
     cdef int nleft = 0;
     cdef int nright = 0;
     cdef float current_value
 
+    t_stamp = time.perf_counter()
     cdef int i = 0
-    for i in range(nlocal):
-        current_value = X[i]
-        if( current_value <= mean):
-            #print(rank, current_value)
-            perm[i] = nleft
-            nleft = nleft + 1
-        else:
-            perm[i] = nlocal - 1 - nright
-            nright = nright + 1
+
+    with nogil:
+        for i in range(nlocal):
+            current_value = X[i]
+            if( current_value <= pivot):
+                #print(rank, current_value)
+                perm[i] = nleft
+                nleft = nleft + 1
+            else:
+                perm[i] = nlocal - 1 - nright
+                nright = nright + 1
+
+    t_prefix += (time.perf_counter() -  t_stamp)
+
+    t_stamp = time.perf_counter()
     i = 0
     for i in prange(nlocal, nogil=True):
         temp_X[perm[i]] = X[i]
@@ -551,26 +711,49 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
         X[i] = temp_X[i]
         ID[i] = temp_ID[i] 
 
+    t_part += (time.perf_counter() - t_stamp)
+
+    t_stamp = time.perf_counter()
     cdef int nL = prev[0] + nleft;
     cdef int nR = prev[1] + nright;
 
     cdef int[:] local_split_info = np.array([nL, nR], dtype=np.int32)
     cdef int[:] global_split_info = np.array([0, 0], dtype=np.int32)
-    comm.Allreduce(local_split_info, global_split_info, op=MPI.SUM)
+    req_split = comm.Iallreduce(local_split_info, global_split_info, op=MPI.SUM)
+    t_reduce += (time.perf_counter() - t_stamp)
 
     if nlocal > 0:
         minX = np.min(X)
-        maxX = np.max(X)
     else:
         minX = 3.4e38
+
+    minX = np.array(minX, dtype=np.float32)
+    gmin = np.array(0.0, dtype=np.float32)
+    req_min = comm.Iallreduce(minX, gmin, op=MPI.MIN)
+
+    if nlocal > 0:
+        maxX = np.max(X)
+    else:
         maxX = -3.4e38
 
-    gmax = comm.allreduce(maxX, op=MPI.MAX)
-    gmin = comm.allreduce(minX, op=MPI.MIN)
+    maxX = np.array(maxX, dtype=np.float32)
+    gmax = np.array(0.0, dtype=np.float32)
+    req_max = comm.Iallreduce(maxX, gmax, op=MPI.MAX)
 
+    req_split.Wait()
     cdef int global_nleft = global_split_info[0]
     cdef int global_nright = global_split_info[1]
 
+    #if grank == 0:
+        #print("-----")
+        #print("t_sum", t_sum)
+        #print("t_reduce", t_reduce)
+        #print("t_part", t_part)
+        #print("t_prefix", t_prefix)
+        #print("t_alloc", t_alloc)
+
+    req_max.Wait()
+    req_min.Wait()
     if (math.isclose(gmax, gmin, rel_tol=1e-5, abs_tol=1e-20)):
         st0 = np.random.get_state()
         np.random.seed(None)
@@ -578,11 +761,15 @@ cpdef dist_select(int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0)):
         X = X + np.array(np.random.randn(nlocal), dtype=np.float32)*gmax*(3e-4)
         np.random.set_state(st0)
 
+    #if grank == 0:
+        #print("total", time.perf_counter() - t)
+        #print("sizes:", global_nleft, global_nright, N)
+
     if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
-        return (mean, nL)
+        return (pivot, nL)
 
     elif (global_nleft > k):
-        return dist_select(k, X[:nleft], ID[:nleft], comm, prev=(prev[0], prev[1] + nright, globalN))
+        return dist_select(grank, k, X[:nleft], ID[:nleft], comm, prev=(prev[0], prev[1] + nright, globalN))
 
     elif (global_nright > k):
-        return dist_select(k, X[nleft:], ID[nleft:], comm, prev=(prev[0]+nleft, prev[1], globalN))
+        return dist_select(grank, k, X[nleft:], ID[nleft:], comm, prev=(prev[0]+nleft, prev[1], globalN))

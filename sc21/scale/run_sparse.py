@@ -1,6 +1,6 @@
-from pyrknn.kdforest.mpi.tree import *
-from pyrknn.kdforest.mpi.util import *
-from pyrknn.kdforest.mpi.forest import *
+from pyrknn.kdforest.tree import *
+from pyrknn.kdforest.util import *
+from pyrknn.kdforest.forest import *
 
 from mpi4py import MPI
 import numpy as np
@@ -38,7 +38,7 @@ mem = Memory("./mycache")
 @mem.cache()
 def get_url_data():
     t = time.time()
-    data = load_svmlight_file(os.environ["SCRATCH"]+"/datasets/url/url_combined", n_features=3231961)
+    data = load_svmlight_file("/scratch/06081/wlruys/pyrknn_2/sc21/scale/url_combined", n_features=3231961)
     t = time.time() - t
     print("It took ", t, " (s) to load the dataset")
     return data[0]
@@ -100,7 +100,7 @@ def run():
         print("Finished Reading Data: ", X.shape, flush=True)
         print("Reading data took: ", t," seconds", flush=True)
 
-    Nmax = 2**27
+    Nmax = 2**21
     X = X[:Nmax]
 
     N, d = X.shape

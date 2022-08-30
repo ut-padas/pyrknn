@@ -8,32 +8,42 @@
 #include <random>
 #include <algorithm>
 #include <parallel/algorithm>
-//#include <execution>
-
-//#include<x86intrin.h>
-#include<immintrin.h>
-
 #include <omp.h>
 //#include<ompUtils.h>
-//#include<blas.h>
+
 #include <cassert>
 #include <queue>
 #include <cmath>
 #include <utility>
 #include <iostream>
 #include <numeric>
-#include <mkl.h>
+
+#ifndef PYRKNN_USE_MKL
+    #include <cblas.h>
+#else
+    #include<mkl.h>
+#endif
+
+#ifdef PYRKNN_USE_GSKNN
+    #include<gsknn.h>
+#endif
+
+
 #include <limits>
-#include <gsknn.h>
+
+
 #include <random>
 #include <string>
 
 #include "util.hpp"
-//#include<gsknn_ref.h>
-//#include<gsknn_ref_stl.hpp>
+
 
 #define KNN_MAX_BLOCK_SIZE 1024
 #define KNN_MAX_MATRIX_SIZE 2e7L
+
+
+//TODO: Define conditonally on POWER systems
+#define ARCH_POWER9 1
 
 using namespace std;
 
@@ -195,6 +205,121 @@ void bin_queries_simd(size_t n, int levels, float* proj, float* medians, int* id
 }
 
 /* reorder kernels*/
+template<typename index_t, typename value_t>
+void map_1D(index_t* idx, value_t *val, size_t length, value_t* output){
+    //Permute
+    #pragma omp parallel for
+    for(int i = 0; i < length; ++i){
+        output[i] = val[idx[i]];
+    }
+}
+
+template<typename index_t, typename value_t>
+void map_2D(index_t* idx, value_t *val, size_t length, size_t dim, value_t* output){
+    //Permute
+    #pragma omp parallel for
+    for(auto i = 0; i < length; ++i){
+        #pragma omp simd
+        for(auto j = 0; j < dim; ++j){
+            output[dim*i + j] = val[dim*idx[i] + j];
+        }
+    }
+}
+
+template<typename index_t, typename value_t>
+void reindex_1D(index_t* idx, value_t* val, size_t length, value_t* buffer){
+    //Fill buffer
+    #pragma omp parallel for simd schedule(static)
+    for(auto i = 0; i < length; ++i){
+        buffer[i] = val[i];
+    }
+
+    //Permute
+    #pragma omp parallel for simd schedule(static)
+    for(auto i = 0; i < length; ++i){
+        val[i] = buffer[idx[i]];
+    }
+}
+
+template<typename index_t, typename value_t>
+void reindex_2D(index_t* idx, value_t* val, size_t length, size_t dim, value_t* buffer){
+    //Fill buffer
+    #pragma omp parallel for schedule(static)
+    for(auto i = 0; i < length; ++i){
+        #pragma omp simd
+        for(auto j = 0; j < dim; ++j){
+            buffer[dim*i + j] = val[dim*i + j];
+        }
+    }
+
+    //Permute
+    #pragma omp parallel for schedule(static)
+    for(auto i = 0; i < length; ++i){
+        #pragma omp simd
+        for(auto j = 0; j < dim; ++j){
+            buffer[dim*i + j] = buffer[dim*idx[i] + j];
+        }
+    }
+}
+
+template<typename index_t, typename value_t>
+void arg_sort(index_t* idx, value_t* val, size_t length){
+    
+    #pragma omp parallel for simd schedule(static)
+    for(auto i = 0; i < length; ++i){
+        idx[i] = i;
+    }
+
+    auto compare = [&val](size_t a, size_t b){return val[a] < val[b];};
+    //std::stable_sort(std::execution::par_unseq, idx, idx+length, compare);
+    __gnu_parallel::stable_sort(idx, idx+length, compare);
+}
+
+void find_interval(int* starts, int* sizes, unsigned char* index, int len, int nleaves, unsigned char* leaf_ids){
+
+    #pragma omp parallel for
+    for(auto i = 0; i < nleaves; ++i){
+        unsigned char leaf = leaf_ids[i];
+        const auto p = std::equal_range(index, index+len, leaf);
+
+        int start = std::distance(index, std::get<0>(p));
+        int end = std::distance(index, std::get<1>(p));
+        starts[i] = start;
+        sizes[i] = end - start;
+    }
+
+}
+
+template<typename index_t, typename value_t>
+void bin_queries(size_t n, int levels, value_t* proj, value_t* medians, index_t* idx, value_t* rbuffer){
+
+    for(auto l = 0; l < levels; ++l){
+        #pragma omp simd
+        for(auto i = 0; i < n; ++i){
+            const auto base = 2*idx[i] + 1;
+            idx[i] = base + (proj[l*n+i] < medians[idx[i]]);
+        }
+    }
+}
+
+
+template<typename index_t, typename value_t>
+void bin_queries_pack(size_t n, int levels, value_t* proj, value_t* medians, index_t* idx, value_t* rbuffer){
+    for(auto l = 0; l < levels; ++l){
+        //#pragma omp parallel for schedule(static) simd
+        for(auto i = 0; i < n; i+=4){
+            #pragma omp simd
+            for(auto k = 0; k < 4; ++k){
+                rbuffer[i+k] = medians[idx[i]];
+            }
+            #pragma omp simd
+            for(auto k = 0; k < 4; ++k){
+                const auto base = 2*idx[i] + 1;
+                idx[i+k] = base + (proj[l*n+i+k] < rbuffer[i+k]);
+            }
+        }
+    }
+}
 
 //reorder for pointer to array
 template <typename T>
@@ -360,216 +485,275 @@ unsigned int intlog2(uint64_t n)
 #undef S
 }
 
-//Kernels from Bo Xiao's Code
 
-template <typename T>
+
+
 class maxheap_comp
 {
 public:
-    bool operator()(const std::pair<T, idx_type<T>> &a, const std::pair<T, idx_type<T>> &b)
+    __inline__ bool operator()(const std::pair<float, int> &a, const std::pair<float, int> &b)
     {
-        double diff = fabs(a.first - b.first) / a.first;
-        if (std::isinf(diff) || std::isnan(diff))
-        { // 0/0 or x/0
-            return a.first < b.first;
-        }
-        if (diff < 1.0e-8)
-        {
-            return a.second < b.second;
-        }
-        return a.first < b.first;
+        const float x = a.first;
+        const float y = b.first;
+        return (x < y && !isinf(x)) || (!isnan(x) && (isnan(y) || isinf(y))); 
     }
 };
 
-template <typename T>
-T getBlockSize(const T n, const T m)
-{
-    T blocksize;
-
-    if (m > KNN_MAX_BLOCK_SIZE || n > 10000L)
-    {
-        blocksize = std::min((T)KNN_MAX_BLOCK_SIZE, m); //number of query points handled in a given iteration
-
-        if (n * blocksize > (T)KNN_MAX_MATRIX_SIZE)
-            blocksize = std::min((T)(KNN_MAX_MATRIX_SIZE / n), blocksize); //Shrink block size if n is huge.
-
-        blocksize = std::max(blocksize, omp_get_max_threads()); //Make sure each thread has some work.
-    }
-    else
-    {
-        blocksize = m;
-    }
-    return blocksize;
-}
-
-template <typename T>
-T getNumLocal(const T rank, const T size, const T num)
-{
-    if (rank < num % size)
-        return (idx_type<T>)std::ceil((double)num / (double)size);
-    else
-        return num / size;
-}
-
-template <typename T>
-void sqnorm(T *a, idx_type<T> n, idx_type<T> dim, T *b)
+void sqnorm(float *a, size_t n, int dim, float* b, bool threads)
 {
     int one = 1;
-    bool omptest = n * (long)dim > 10000L;
 
-#pragma omp parallel if (omptest)
-    {
-#pragma omp for schedule(static)
-        for (idx_type<T> i = 0; i < n; ++i)
+    if(threads){
+        bool omptest = n * static_cast<long>(dim) > 10000L;
+
+        #pragma omp parallel if (omptest)
         {
-            b[i] = sdot(&dim, &(a[dim * i]), &one, &(a[dim * i]), &one);
+            #pragma omp for schedule(static)
+            for (size_t i = 0; i < n; ++i)
+            {
+                b[i] = cblas_sdot(dim, &(a[dim * i]), one, &(a[dim * i]), one);
+            }
+        }
+    }
+    else{
+        for(size_t i = 0; i < n; ++i){
+            float total = 0.0;
+            #pragma omp simd reduction(+: total)
+            for(int j = 0; j < dim; ++j){
+                float elem = a[i*dim+j];
+                total += elem*elem;
+            }
+            b[i] = total;
         }
     }
 }
 
-template <typename T>
-void compute_distances(T *R, T *Q,
-                       idx_type<T> n, idx_type<T> m, idx_type<T> dim, T *dist,
-                       T *sqnormr, T *sqnormq, bool useSqnormrInput)
-{
-    T alpha = -2.0;
-    T beta = 0.0;
 
-    int iN = (int)n;
-    int iM = (int)m;
+void compute_distances(float *ref, float *query, int n, int m, int dim, float* dist, float* sqnorm_r, float* sqnorm_q, bool use_norms){
 
-    idx_type<T> maxt = omp_get_max_threads();
-    bool omptest = (m > 4 * maxt || (m >= maxt && n > 128)) && n < 100000;
+    const float alpha = -2.0;
+    const float beta = 0.0;
 
-#pragma omp parallel if (omptest)
-    {
-        idx_type<T> t = omp_get_thread_num();
-        idx_type<T> numt = omp_get_num_threads();
-        idx_type<T> npoints = getNumLocal(t, numt, m);
+    //Form vector outer-product
+    int offset = 0;
+    cblas_sgemm(CblasColMajor, CblasTrans, CblasNoTrans, n, m, dim, alpha, ref, dim, query, dim, beta, dist, n);
 
-        int offset = 0;
-        for (idx_type<T> i = 0; i < t; ++i)
-            offset += getNumLocal(i, numt, m);
-
-        sgemm("T", "N", &iN, &npoints, &dim, &alpha, R, &dim, Q + (dim * offset),
-              &dim, &beta, dist + (offset * n), &iN);
+    //Form (or reuse) vector norms
+    bool dealloc_sqnorm_r = false;
+    if(!sqnorm_r){
+        sqnorm_r = new float[n];
+        dealloc_sqnorm_r = true;
     }
 
-    bool dealloc_sqnormr = false;
-    bool dealloc_sqnormq = false;
-
-    if (!sqnormr && !useSqnormrInput)
-    {
-        sqnormr = new T[n];
-        dealloc_sqnormr = true;
+    if(!use_norms){
+        sqnorm(ref, n, dim, sqnorm_r, false);
     }
 
-    if (!sqnormq)
-    {
-        sqnormq = new T[m];
-        dealloc_sqnormq = true;
+    bool dealloc_sqnorm_q = false;
+    if(!sqnorm_q){
+        sqnorm_q = new float[n];
+        dealloc_sqnorm_q = true;
     }
+    //always update query norms
+    sqnorm(query, m, dim, sqnorm_q, false);
 
-    if (!useSqnormrInput)
-        sqnorm(R, n, dim, sqnormr);
-
-    sqnorm(Q, m, dim, sqnormq);
-
-    if (m > maxt || n > 10000)
-    {
-        idx_type<T> blocksize = (n > 10000) ? m / maxt / 2 : 128;
-#pragma omp parallel for
-        for (idx_type<T> i = 0; i < m; ++i)
-        {
-            idx_type<T> in = i * n;
-            idx_type<T> j;
-
-#pragma ivdep
-            for (j = 0; j < n; ++j)
-            {
-                idx_type<T> inpj = in + j;
-                dist[inpj] += sqnormq[i] + sqnormr[j];
-            }
-        }
-    }
-    else
-    {
-        for (idx_type<T> i = 0; i < m; ++i)
-        {
-            idx_type<T> in = i * n;
-            idx_type<T> j;
-
-#pragma ivdep
-            for (j = 0; j < n; ++j)
-            {
-                idx_type<T> inpj = in + j;
-                dist[inpj] += sqnormq[i] + sqnormr[j];
-            }
+    //Add norms to distance matrix
+    for(int i = 0; i < m; ++i){
+        int row_start = i*n;
+        #pragma omp simd
+        for(int j = 0; j < n; ++j){
+            dist[row_start+j] += sqnorm_q[i] + sqnorm_r[j];
         }
     }
 
-    if (dealloc_sqnormr)
-        delete[] sqnormr;
+    //Cleanup sqnorms
+    if(dealloc_sqnorm_r){
+        delete [] sqnorm_r;
+    } 
+    if(dealloc_sqnorm_q){
+        delete [] sqnorm_q;
+    }
 
-    if (dealloc_sqnormq)
-        delete[] sqnormq;
+    //Clean negative distances
+    /*
+    for(int i = 0; i < m; ++i){
 
-        //force distances to be greater than 0 to mitigate rounding errors
+        #pragma omp simd
+        for(int j=0; j < n; ++j){
+            float d = dist[i];
+            dist[i] = d > 0 ? d : 0.0; 
+        }
+    }
+    */
+}
 
-#pragma omp parallel for
-    for (idx_type<T> i = 0; i < m * n; ++i)
-    {
-        if (dist[i] < 0.0)
-            dist[i] = 0.0;
+
+
+
+void print(float* v, int n, int m=1){
+    for(int i = 0; i < m; ++i){
+        for(int j = 0; j < n; ++j){
+            std::cout << v[i*n + j] << " ";
+        }
+        std::cout << std::endl;
     }
 }
 
-template <typename T>
-void GSKNN(idx_type<T> *rgids,
-           idx_type<T> *qgids,
-           T *R, T *Q,
-           const idx_type<T> n, //refernce length
-           const idx_type<T> d, //shared dimension
-           const idx_type<T> m, //query length
-           const idx_type<T> k, //number of neighbors
-           idx_type<T> *neighbor_list,
-           T *neighbor_dist)
+void direct_knn_base(int* rid, float* ref, float* query, int n, int m, int dim, int k, int* knn_ids, float* knn_dist, int blocksize)
+{
+    using knn_pair = pair<float, int>;
+
+    //Check bounary
+    k = (k < n) ? k : n;
+    blocksize = (blocksize < m) ? blocksize : m;
+    const int iters = static_cast<int>( ceil( static_cast<double>(m) / static_cast<double>(blocksize) ) );
+    //std::cout << k << " " << blocksize << " " << iters <<std::endl;
+    
+    //Allocate distance matrix
+    float* dist = (float*) malloc(sizeof(float)*blocksize*n);
+
+    float* sqnorm_r = (float*) malloc(sizeof(float)*n);
+    float* sqnorm_q = (float*) malloc(sizeof(float)*blocksize);
+
+    priority_queue<knn_pair, vector<knn_pair>, maxheap_comp> maxheap;
+
+    //Compute all norms 
+    sqnorm(ref, n, dim, sqnorm_r, false);
+
+    int current_blocksize = blocksize;
+
+    //for each query block
+    for(int i = 0; i < iters; ++i){
+        float* current_query = query + i*blocksize*dim;
+        if( (i == iters-1) && (m%blocksize) ){
+            current_blocksize = m % blocksize;
+        }
+
+        //void compute_distances(float *ref, float *query, int n, int m, int dim, float* dist, float* sqnorm_r, float* sqnorm_q, bool use_norms){
+        compute_distances(ref, current_query, n, current_blocksize, dim, dist, sqnorm_r, sqnorm_q, true);
+
+        //for each query in block
+        for(int h = 0; h < current_blocksize; ++h){
+            while(!maxheap.empty()) maxheap.pop();
+            int query_idx = i*blocksize + h;
+            
+            //fill the heap
+            for(int j = 0; j < k; ++j){
+                maxheap.push(make_pair(dist[h*n+j], j));
+            }
+
+            //iterative over the rest (maintain top-K)
+            for(int j = k; j < n; ++j){
+                maxheap.push(make_pair(dist[h*n+j], j));
+                maxheap.pop();
+            }
+
+            //Read results back to output
+            for(int j = k-1; j >=0; j--){
+                knn_pair result = maxheap.top();
+                knn_dist[query_idx*k + j] = result.first;
+                knn_ids[query_idx*k + j] = rid[result.second];
+                maxheap.pop();
+            }
+        }
+    }
+    free(sqnorm_q);
+    free(sqnorm_r);
+    free(dist);
+}
+
+
+
+
+template<typename I>
+void batched_relabel_impl(I* gids, int** __restrict__ qid_list, int* __restrict__ mlist, int k, int** __restrict__ knn_ids_list, float** __restrict__ knn_dist_list, I*  output_ids, float* __restrict__ output_dist, int nleaves, int cores){
+
+    //neighbor_list[idx, :] = global_ids[NL[:, :]]
+    //neighbor_dist[idx, :] = ND[:, :]
+
+    #pragma omp parallel for schedule(static)
+    for(int l = 0; l < nleaves; ++l){
+
+            int* __restrict__ qids = qid_list[l];
+            int* __restrict__ knn_ids = knn_ids_list[l];
+            float* __restrict__ knn_dist = knn_dist_list[l];
+            int m = mlist[l];
+
+            for(int i = 0; i < m; ++i){
+                int idx = qids[i];
+                #pragma omp simd
+                for(int j = 0; j < k; ++j){
+                    output_ids[idx*k + j] = gids[knn_ids[i*k + j]];
+                    //output_ids[idx*k + j] = knn_ids[i*k + j];
+                    output_dist[idx*k + j] = knn_dist[i*k + j];
+                }
+            }
+
+    } //for each leaf
+}
+
+template<typename I>
+void batched_relabel(I* gids, int** qid_list, int* mlist, int k, int** knn_ids_list, float** knn_dist_list, I* output_ids, float* output_dist, int nleaves, int cores){
+
+    batched_relabel_impl(gids, qid_list,  mlist, k, knn_ids_list, knn_dist_list, output_ids, output_dist, nleaves, cores);
+
+}
+
+void batched_direct_knn_base(int** rid_list, float** ref_list, float** query_list, int* nlist, int* mlist, int dim, int k, int** knn_ids_list, float** knn_dist_list, int blocksize, int nleaves, const int cores)
 {
 
-    bool dealloc_sqnormr = false;
-    bool dealloc_sqnormq = false;
+    omp_set_num_threads(cores);
+    #pragma omp parallel for 
+    for(int l = 0; l < nleaves; ++l){
 
-    T *dist;
-    T *sqnormr;
-    T *sqnormq;
+        const int n = nlist[l];
+        const int m = mlist[l];
 
-    idx_type<T> maxt = (idx_type<T>)omp_get_max_threads();
+        int* knn_ids = knn_ids_list[l];
+        float* knn_dist = knn_dist_list[l];
+        int* rid = rid_list[l];
+        float* ref = ref_list[l];
+        float* query = query_list[l];
 
-    if (!sqnormr)
-    {
-        sqnormr = new T[n];
-        dealloc_sqnormq = true;
+        direct_knn_base(rid, ref, query, n, m, dim, k, knn_ids, knn_dist, blocksize);
     }
+}
 
-    if (!sqnormq)
-    {
-        sqnormq = new T[m];
-        dealloc_sqnormq = true;
-    }
 
-    sqnorm(R, n, d, sqnormr);
-    sqnorm(Q, m, d, sqnormq);
+#ifdef PYRKNN_USE_GSKNN
+
+void GSKNN(
+           int *rgids,
+           float *R, float* Q,
+           int n, //refernce length
+           int d, //shared dimension
+           int m, //query length
+           int k, //number of neighbors
+           int* neighbor_list,
+           float* neighbor_dist)
+{
+    int maxt = omp_get_max_threads();
+
+    float* sqnormr = new float[n];
+    float* sqnormq = new float[m];
+    int* qgids = new int[m];
+
+    #pragma omp simd
+    for (int z = 0; z < n; ++z)
+        qgids[z] = z;
+
+    sqnorm(R, n, d, sqnormr, false);
+    sqnorm(Q, m, d, sqnormq, false);
+
     heap_t *heap = heapCreate_s(m, k, 1.79E+30);
-
     sgsknn(n, m, d, k, R, sqnormr, rgids, Q, sqnormq, qgids, heap);
 
-//printf("%f \n", (float) heap->ldk);
-#pragma omp parallel if (m > 128 * maxt)
+    #pragma omp parallel if (m > 128 * maxt)
     {
-#pragma omp for
+        #pragma omp for
         for (idx_type<T> j = 0; j < m; ++j)
         {
-#pragma unroll
+            #pragma omp simd
             for (idx_type<T> i = 0; i < k; ++i)
             {
                 neighbor_dist[j * k + i] = heap->D_s[j * heap->ldk + i];
@@ -578,295 +762,106 @@ void GSKNN(idx_type<T> *rgids,
         }
     }
 
-    if (dealloc_sqnormq)
-        delete[] sqnormr;
-    if (dealloc_sqnormq)
-        delete[] sqnormq;
-}
-
-template <typename T>
-void blockedGSKNN(idx_type<T> *rgids,
-                  idx_type<T> *qgids,
-                  T *R, T *Q,
-                  const idx_type<T> n,
-                  const idx_type<T> d,
-                  const idx_type<T> m,
-                  const idx_type<T> k,
-                  idx_type<T> *neighbor_list,
-                  T *neighbor_dist)
-{
-
-    register idx_type<T> num_neighbors = (k < n) ? k : n;
-
-    //Split Query into smaller pieces
-    idx_type<T> blocksize = getBlockSize(n, m);
-
-    bool dealloc_dist = false;
-    bool dealloc_sqnormr = false;
-    bool dealloc_sqnormq = false;
-
-    T *sqnormr;
-    T *sqnormq;
-
-    idx_type<T> maxt = (idx_type<T>)omp_get_max_threads();
-
-    assert(blocksize > 0);
-
-    idx_type<T> nblocks = m / blocksize;
-    idx_type<T> iters = (idx_type<T>)ceil((double)m / (double)blocksize);
-
-    if (!sqnormr)
-    {
-        sqnormr = new T[n];
-        dealloc_sqnormq = true;
-    }
-
-    if (!sqnormq)
-    {
-        sqnormq = new T[blocksize];
-        dealloc_sqnormq = true;
-    }
-
-    bool useSqnormrInput = false;
-
-    //Loop over all blocks
-    for (idx_type<T> i = 0; i < iters; ++i)
-    {
-        T *currquery = Q + i * blocksize * d;
-        if ((i == iters - 1) && (m % blocksize))
-        {
-
-            idx_type<T> lastblocksize = m % blocksize;
-
-            if (!useSqnormrInput)
-                sqnorm(R, n, d, sqnormr);
-            sqnorm(Q, lastblocksize, d, sqnormq);
-#pragma omp parallel
-            {
-                idx_type<T> t = omp_get_thread_num();
-                idx_type<T> numt = omp_get_num_threads();
-                idx_type<T> npoints = getNumLocal(t, numt, lastblocksize);
-
-                idx_type<T> offset = 0;
-                for (idx_type<T> i = 0; i < t; ++i)
-                    offset += getNumLocal(i, numt, m);
-
-                heap_t *heap = heapCreate_s(m, k, 1.79E+30); //local heap
-                sgsknn(n, npoints, d, k, R, sqnormr, rgids, Q + (d * offset), sqnormq + offset, qgids + offset, heap);
-
-///copy over results
-#pragma omp for
-                for (idx_type<T> j = 0; j < npoints; ++j)
-                {
-#pragma unroll
-                    for (idx_type<T> h = 0; h < k; ++h)
-                    {
-                        neighbor_dist[(j + offset) * k + h] = heap->D_s[j * heap->ldk + h];
-                        neighbor_list[(j + offset) * k + h] = rgids[heap->I[j * heap->ldk + h]];
-                    }
-                }
-            }
-        } //end if last block
-        else
-        {
-
-            if (!useSqnormrInput)
-                sqnorm(R, n, d, sqnormr);
-
-            sqnorm(Q, blocksize, d, sqnormq);
-#pragma omp parallel
-            {
-                idx_type<T> t = omp_get_thread_num();
-                idx_type<T> numt = omp_get_num_threads();
-                idx_type<T> npoints = getNumLocal(t, numt, blocksize);
-                //printf("Thread %d, npoints=%d \n", t, npoints);
-                idx_type<T> offset = 0;
-                for (idx_type<T> i = 0; i < t; ++i)
-                    offset += getNumLocal(i, numt, m);
-
-                heap_t *heap = heapCreate_s(m, k, 1.79E+30); //local heap
-                sgsknn(n, npoints, d, k, R, sqnormr, rgids, Q + (d * offset), sqnormq + offset, qgids + offset, heap);
-
-///copy over results
-#pragma omp for
-                for (idx_type<T> j = 0; j < npoints; ++j)
-                {
-#pragma unroll
-                    for (idx_type<T> h = 0; h < k; ++h)
-                    {
-                        neighbor_dist[(j + offset) * k + h] = heap->D_s[j * heap->ldk + h];
-                        neighbor_list[(j + offset) * k + h] = rgids[heap->I[j * heap->ldk + h]];
-                    }
-                }
-            }
-        } //end block
-        useSqnormrInput = true;
-    }
-
-    if (dealloc_sqnormq)
-        delete[] sqnormr;
-    if (dealloc_sqnormq)
-        delete[] sqnormq;
+    delete[] sqnormr;
+    delete[] sqnormq;
+    delete[] qgids;
 }
 
 //TODO: Make this a clean batchedGSKNN call for the a2a case.
 
-template <typename T>
-void batchedGSKNN(idx_type<T> **rgids,
-                  idx_type<T> **qgids,
-                  T **R, T **Q,
-                  const idx_type<T> *n,
-                  const idx_type<T> d,
-                  const idx_type<T> *m,
-                  const idx_type<T> k,
-                  idx_type<T> **neighbor_list,
-                  T **neighbor_dist,
-                  const idx_type<T> nleaves,
+void batchedGSKNN(
+                  int **rgids,
+                  float **R, float **Q,
+                  int *n,
+                  int d,
+                  int *m,
+                  int k,
+                  int **neighbor_list,
+                  float **neighbor_dist,
+                  int nleaves,
+                  const int blocksize,
                   const int cores)
 {
 
     omp_set_num_threads(cores);
     //printf("Started C++ Section \n");
-    idx_type<T> maxt = (idx_type<T>)omp_get_max_threads();
+    int maxt = (int) omp_get_max_threads();
     //printf("MAXT %d\n", maxt);
     //Allocate neighborlist & neighbor_dist
     //neighbor_list = new idx_type<T>*[nleaves];
     //neighbor_dist = new T*[nleaves];
 
-#pragma omp parallel for
-    for (idx_type<T> l = 0; l < nleaves; ++l)
+    #pragma omp parallel for
+    for (int l = 0; l < nleaves; ++l)
     {
 
         //    printf("NUMT %d\n", omp_get_num_threads());
         //    printf("Starting New Leaf %d \n", l);
-        const idx_type<T> localm = m[l];
-        const idx_type<T> localn = n[l];
-
-        idx_type<T> blocksize = getBlockSize(localn, localm);
+        const int localm = m[l];
+        const int localn = n[l];
 
         //neighbor_list[l] = new idx_type<T>[k*localm];
         //neighbor_dist[l] = new T[k*localm];
 
-        T *localR = (T *)R[l];
-        T *localQ = (T *)Q[l];
-        idx_type<T> *local_rgids = (idx_type<T> *)rgids[l];
-        //idx_type<T>* local_qgids= (idx_type<T>*) qgids[l];
-        idx_type<T> *local_qgids = new idx_type<T>[localn];
-        for (idx_type<T> z = 0; z < localn; ++z)
+        float *localR = R[l];
+        float *localQ = Q[l];
+        int *local_rgids = rgids[l];
+
+        int *local_qgids = new int[localn];
+        #pragma omp simd
+        for (int z = 0; z < localn; ++z)
             local_qgids[z] = z;
 
-        //Verify all of these exist and can be accessed
-        /*
-        for(idx_type<T> z=0; z < d*localn; ++z){
-            std::cout << "R " << localR[z] <<std::endl;
-        }
-        for(idx_type<T> z=0; z < d*localm; ++z){
-            std::cout << "Q " << localQ[z] <<std::endl;
-        }
-        for(idx_type<T> z=0; z < localm; ++z){
-            std::cout << "Qgids" << local_qgids[z] <<std::endl;
-        }
+        int nblocks = localm / blocksize;
+        int iters = static_cast<int>(ceil( static_cast<double>(localm) / static_cast<double>(blocksize)));
 
-        for(idx_type<T> z=0; z < localm; ++z){
-            local_qgids[z] = z;
-            std::cout << "Qgids" << local_qgids[z] <<std::endl;
-        }
+        float *sqnormr = new float[localn];
+        float *sqnormq = new float[blocksize];
 
-        for(idx_type<T> z=0; z < localn; ++z){
-            std::cout << "Rgids" << local_rgids[z] <<std::endl;
-        }
-        */
+        sqnorm(localR, localn, d, sqnormr, false);
 
-        //idx_type<T>* qgids = new idx_type<T>[localm];
-
-        idx_type<T> nblocks = localm / blocksize;
-        idx_type<T> iters = (idx_type<T>)ceil((double)localm / (double)blocksize);
-
-        bool dealloc_sqnormr = false;
-        bool dealloc_sqnormq = false;
-        bool dealloc_dist = false;
-
-        T *sqnormr = new T[localn];
-        T *sqnormq = new T[blocksize];
-
-        dealloc_sqnormr = true;
-        dealloc_sqnormq = true;
-
-        bool useSqnormrInput = false;
-
-        //printf("Leaf %d : Allocated Space. Blocksize = %d\n LOCALM = %d LOCALN = %d \n Starting Loop\n", l, blocksize, localm, localn);
         //Loop over all blocks
-        for (idx_type<T> i = 0; i < iters; ++i)
+        for (int i = 0; i < iters; ++i)
         {
-            //printf("Starting Block %d\n", i);
-            T *currquery = localQ + i * blocksize * d;
-            idx_type<T> current_blocksize = blocksize;
+            float *currquery = localQ + i * blocksize * d;
+            int current_blocksize = blocksize;
 
-            //Handle the edge case if blocksize does not divide localn evenly
             if ((i == iters - 1) && (localm % blocksize))
             {
                 current_blocksize = localm % blocksize;
-                //printf("On Last Block. blocksize=%d", current_blocksize);
-            } //end last block
-
-            const idx_type<T> offset = i * blocksize;
-            //     printf("Leaf %d; Block %d; offset %d \n",l, i, offset);
-            if (!useSqnormrInput)
-            {
-                //printf("Calculating R2 \n");
-                sqnorm((T *)localR, (idx_type<T>)localn, (idx_type<T>)d, (T *)sqnormr);
             }
-            //printf("Calculating Q2. current_blocksize = %d\n", current_blocksize);
-            sqnorm((T *)currquery, (idx_type<T>)current_blocksize, (idx_type<T>)d, (T *)sqnormq);
 
-            //printf("Finished Squared\n");
+            const size_t offset = i * blocksize;
+            sqnorm(currquery, current_blocksize, d, sqnormq, false);
+
             heap_t *heap = heapCreate_s(current_blocksize, k, 1.79E+30);
-            //printf("Leaf %d; block %d; Calling GSKNN\n", l, i);
-            //sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T>*) local_rgids, currquery, sqnormq, (idx_type<T>*) (qgids), heap);
-            sgsknn(localn, current_blocksize, d, k, localR, sqnormr, (idx_type<T> *)(local_qgids), currquery, sqnormq, (idx_type<T> *)(local_qgids), heap);
-            //printf("Leaf %d; block %d; FINISHED GSKNN\n", l, i);
+            sgsknn(localn, current_blocksize, d, k, localR, sqnormr, local_qgids, currquery, sqnormq, local_qgids, heap);
 
-            //copy over results
             auto D = heap->D_s;
             auto I = heap->I;
             auto ldk = heap->ldk;
-//printf("Leaf %d, Starting copy\n", l);
-#pragma omp parallel for //nested parallelism?
-            for (idx_type<T> j = 0; j < current_blocksize; ++j)
+            for (int j = 0; j < current_blocksize; ++j)
             {
-#pragma ivdep
-                for (idx_type<T> h = 0; h < k; ++h)
+                #pragma omp simd
+                for (int h = 0; h < k; ++h)
                 {
                     neighbor_dist[l][(j + offset) * k + h] = D[j * ldk + h];
                     neighbor_list[l][(j + offset) * k + h] = rgids[l][I[j * ldk + h]];
-                    //printf("Leaf %d; block %d; Seeing Index %d at (%d, %d, %d)\n", l, i, I[j*ldk+h], j, ldk, h);
                 }
             } //end copy
+
             heapFree_s(heap);
-            //printf("Leaf %d, Ending Copy\n", l);
-            useSqnormrInput = true;
         } //end loop over blocks
-        //printf("Leaf %d: Ending Loop \n", l);
 
         delete[] local_qgids;
-        if (dealloc_sqnormr)
-            delete[] sqnormr;
-        if (dealloc_sqnormq)
-            delete[] sqnormq;
-        //        printf("Finished dealloc\n");
+        delete[] sqnormr;
+        delete[] sqnormq;
+
     } //end loop over leaves
 
 } //end function
 
-/*
-//Distance Kernel
-template<typename T>
-float* Distances(float* Q, float* R){
-    ///cblas_sgemm(LAYOUT, TRANSA, TRANSB, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    T* D = &T(0);
-    return D;
-}
-*/
+#endif
 
 void sort_select(const float *value, const int *ID, int n, float *kval, int *kID, int k)
 {
@@ -943,327 +938,5 @@ void merge_neighbor_cpu(T *D1, unsigned int *I1, T *D2, unsigned int *I2, const 
         }
     }
 }
-
-template <typename T>
-std::vector<T> sampleWithoutReplacement(idx_type<T> l, std::vector<T> v)
-{
-    if (l >= v.size())
-    {
-        return v;
-    }
-
-    std::random_device rd;
-    std::mt19937 generator(rd());
-
-    std::shuffle(v.begin(), v.begin() + l, generator);
-    vector<T> ret(v.begin(), v.begin() + l);
-
-    return ret;
-}
-
-/** use default stl allocator */
-template <class T, class Allocator = std::allocator<T>>
-vector<T> Sum(idx_type<T> d, idx_type<T> n, vector<T, Allocator> &X, vector<idx_type<T>> &gids)
-{
-    bool do_general_stride = (gids.size() == n);
-
-    /** assertion */
-    if (!do_general_stride)
-        assert(X.size() == d * n);
-
-    /** declaration */
-    int n_split = omp_get_max_threads();
-    std::vector<T> sum(d, 0.0);
-    std::vector<T> temp(d * n_split, 0.0);
-
-/** compute partial sum on each thread */
-#pragma omp parallel for num_threads(n_split)
-    for (idx_type<T> j = 0; j < n_split; j++)
-        for (idx_type<T> i = j; i < n; i += n_split)
-            for (idx_type<T> p = 0; p < d; p++)
-                if (do_general_stride)
-                    temp[j * d + p] += X[gids[i] * d + p];
-                else
-                    temp[j * d + p] += X[i * d + p];
-
-    /** reduce all temporary buffers */
-    for (idx_type<T> j = 0; j < n_split; j++)
-        for (idx_type<T> p = 0; p < d; p++)
-            sum[p] += temp[j * d + p];
-
-    return sum;
-}; /** end Sum() */
-
-// Multi-core version can use std::reduce. std::reduce is only available in c++17;
-template <class T>
-T Accumulate(std::vector<T> &v, T &sum_glb)
-{
-    /* Initialize global sum to zero. */
-    // sum_glb = static_cast<T>(0);
-    return std::accumulate(v.begin(), v.end(), sum_glb);
-    // return std::reduce(std::execution::par, v.begin(), v.end());
-}
-
-template <class T>
-T Reduce(std::vector<T> &v, T &sum_glb)
-{
-#pragma omp parallel for reduction(+ \
-                                   : sum_glb)
-    for (idx_type<T> i = 0; i < v.size(); i++)
-    {
-        sum_glb += v[i];
-    }
-    return sum_glb;
-}
-
-/**
- *  @brief Parallel prefix scan
- */
-template <typename TA, typename TB>
-void Scan(std::vector<TA> &A, std::vector<TB> &B)
-{
-    assert(A.size() == B.size() - 1);
-
-    /** number of threads */
-    idx_type<TA> p = omp_get_max_threads();
-
-    /** problem size */
-    idx_type<TB> n = B.size();
-
-    /** step size */
-    idx_type<TB> nb = n / p;
-
-    /** private temporary buffer for each thread */
-    std::vector<TB> sum(p, (TB)0);
-
-    /** B[ 0 ] = (TB)0 */
-    B[0] = (TB)0;
-
-    /** small problem size: sequential */
-    if (n < 100 * p)
-    {
-        idx_type<TB> beg = 0;
-        idx_type<TB> end = n;
-        for (idx_type<TB> j = beg + 1; j < end; j++)
-            B[j] = B[j - 1] + A[j - 1];
-        return;
-    }
-
-/** parallel local scan */
-#pragma omp parallel for schedule(static)
-    for (idx_type<TB> i = 0; i < p; i++)
-    {
-        idx_type<TB> beg = i * nb;
-        idx_type<TB> end = beg + nb;
-        /** deal with the edge case */
-        if (i == p - 1)
-            end = n;
-        if (i != 0)
-            B[beg] = (TB)0;
-        for (idx_type<TB> j = beg + 1; j < end; j++)
-        {
-            B[j] = B[j - 1] + A[j - 1];
-        }
-    }
-
-    /** sequential scan on local sum */
-    for (idx_type<TB> i = 1; i < p; i++)
-    {
-        sum[i] = sum[i - 1] + B[i * nb - 1] + A[i * nb - 1];
-    }
-
-#pragma omp parallel for schedule(static)
-    for (idx_type<TB> i = 1; i < p; i++)
-    {
-        idx_type<TB> beg = i * nb;
-        idx_type<TB> end = beg + nb;
-        /** deal with the edge case */
-        if (i == p - 1)
-            end = n;
-        TB sum_ = sum[i];
-        for (idx_type<TB> j = beg; j < end; j++)
-        {
-            B[j] += sum_;
-        }
-    }
-
-}; /** end Scan() */
-
-template <typename TA, typename TB>
-std::vector<TB> Scan(std::vector<TA> &A)
-{
-    std::vector<TB> B = std::vector<TB>(A.size(), static_cast<TB>(0));
-    Scan(A, B);
-    return B;
-}
-
-/**
- *  @brief Select the kth element in x in the increasing order.
- *
- *  @para
- *
- *  @TODO  The mean function is parallel, but the splitter is not.
- *         I need something like a parallel scan.
- */
-template <typename T>
-T Select(idx_type<T> n, idx_type<T> k, std::vector<T> &x)
-{
-
-    /** assertion */
-    // size_t n = x.size()
-    assert(k <= n && n == x.size());
-
-    /** Early return */
-    if (n == 1)
-    {
-        return x[0];
-    }
-
-    T mean = std::accumulate(x.begin(), x.end(), static_cast<T>(0)) / x.size();
-
-    std::vector<T> lhs, rhs;
-    std::vector<idx_type<T>> lflag(n, 0);
-    std::vector<idx_type<T>> rflag(n, 0);
-    std::vector<idx_type<T>> pscan(n + 1, 0);
-
-/** mark flags */
-#pragma omp parallel for
-    for (idx_type<T> i = 0; i < n; i++)
-    {
-        if (x[i] > mean)
-            rflag[i] = 1;
-        else
-            lflag[i] = 1;
-    }
-
-    /**
-   *  prefix sum on flags of left hand side
-   *  input:  flags
-   *  output: zero-base index
-   **/
-    Scan(lflag, pscan);
-
-    /** resize left hand side */
-    lhs.resize(pscan[n]);
-
-#pragma omp parallel for
-    for (idx_type<idx_type<T>> i = 0; i < n; i++)
-    {
-        if (lflag[i])
-            lhs[pscan[i]] = x[i];
-    }
-
-    /**
-   *  prefix sum on flags of right hand side
-   *  input:  flags
-   *  output: zero-base index
-   **/
-    Scan(rflag, pscan);
-
-    /** resize right hand side */
-    rhs.resize(pscan[n]);
-
-#pragma omp parallel for
-    for (idx_type<T> i = 0; i < n; i++)
-    {
-        if (rflag[i])
-            rhs[pscan[i]] = x[i];
-    }
-
-    idx_type<T> nlhs = lhs.size();
-    idx_type<T> nrhs = rhs.size();
-
-    if (nlhs == k || nlhs == n || nrhs == n)
-    {
-        return mean;
-    }
-    else if (nlhs > k)
-    {
-        rhs.clear();
-        return Select(nlhs, k, lhs);
-    }
-    else
-    {
-        lhs.clear();
-        return Select(nrhs, k - nlhs, rhs);
-    }
-
-}; /** end Select() */
-
-template <typename T>
-T Select(idx_type<T> k, std::vector<T> &x)
-{
-    return Select(x.size(), k, x);
-}
-
-template <typename T>
-std::vector<std::vector<uint64_t>> MedianThreeWaySplit(std::vector<T> &v, T tol)
-{
-    uint64_t n = v.size();
-    T median = Select(n, 0.5 * n, v);
-
-    T left = median;
-    T right = median;
-    T perc = 0.0;
-
-    while (left == median || right == median)
-    {
-        if (perc == 0.5)
-        {
-            break;
-        }
-        perc += 0.1;
-        left = Select(n, (0.5 - perc) * n, v);
-        right = Select(n, (0.5 + perc) * n, v);
-    }
-
-    /** Split indices of v into 3-way: lhs, rhs, and mid. */
-    std::vector<std::vector<uint64_t>> three_ways(3);
-    std::vector<uint64_t> &lhs = three_ways[0];
-    std::vector<uint64_t> &rhs = three_ways[1];
-    std::vector<uint64_t> &mid = three_ways[2];
-    for (uint64_t i = 0U; i < v.size(); i++)
-    {
-        //if ( std::fabs( v[ i ] - median ) < tol ) mid.push_back( i );
-        if (v[i] >= left && v[i] <= right)
-        {
-            mid.push_back(i);
-        }
-        else if (v[i] < median)
-        {
-            lhs.push_back(i);
-        }
-        else
-        {
-            rhs.push_back(i);
-        }
-    }
-    return three_ways;
-}; /* end MedianTreeWaySplit() */
-
-/** @brief Split values into two halfs accroding to the median. */
-template <typename T>
-std::vector<std::vector<uint64_t>> MedianSplit(std::vector<T> &v)
-{
-    std::vector<std::vector<uint64_t>> three_ways = MedianThreeWaySplit(v, (T)1E-6);
-    std::vector<std::vector<uint64_t>> two_ways(2);
-    two_ways[0] = three_ways[0];
-    two_ways[1] = three_ways[1];
-    std::vector<uint64_t> &lhs = two_ways[0];
-    std::vector<uint64_t> &rhs = two_ways[1];
-    std::vector<uint64_t> &mid = three_ways[2];
-    for (std::vector<uint64_t>::iterator it = mid.begin(); it != mid.end(); ++it)
-    {
-        if (lhs.size() < rhs.size())
-        {
-            lhs.push_back(*it);
-        }
-        else
-        {
-            rhs.push_back(*it);
-        }
-    }
-    return two_ways;
-}; /* end MedianSplit() */
 
 #endif /* define PRIMITIVES_CPU_HPP */

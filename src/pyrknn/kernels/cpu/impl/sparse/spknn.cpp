@@ -3,7 +3,6 @@
 #include "NLA.hpp"
 #include "merge.hpp"
 #include "timer.hpp"
-#include "util_eigen.hpp"
 #include "util.hpp"
 
 #include <random>

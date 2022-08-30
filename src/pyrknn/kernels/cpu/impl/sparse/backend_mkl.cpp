@@ -209,6 +209,7 @@ void compute_distance(const Points &P, const fvec &norm, fMatrix &D, dvec &t) {
   // free resource 
   CHECKS( mkl_sparse_destroy(A) );
 }
+
 /*
 void compute_distance(const Points &Q, const Points &R, const fvec &norm, fMatrix &D, dvec &t){
    sparse_matrix_t A;
@@ -242,9 +243,9 @@ void inner_product(const Points &Q, const Points &R, float *D) {
   CHECKS( mkl_sparse_destroy(B) );
 }
 
-
-void par::copy(unsigned n, float *src, float *dst) {
-  cblas_scopy(n, src, 1, dst, 1);
+namespace par{
+    void copy(unsigned n, float *src, float *dst) {
+      cblas_scopy(n, src, 1, dst, 1);
+    }
 }
-
 

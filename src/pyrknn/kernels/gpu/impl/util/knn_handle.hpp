@@ -9,7 +9,7 @@ class knnHandle_t final: public Singleton<knnHandle_t>{
   friend class Singleton<knnHandle_t>; // access private constructor/destructor
 private:
   knnHandle_t() {
-    std::cout<<"Create knnHandle_t instance"<<std::endl;
+    //std::cout<<"Create knnHandle_t instance"<<std::endl;
     // sparse info
     CHECK_CUSPARSE( cusparseCreateCsrgemm2Info(&info) )
     // sparse handle
@@ -23,7 +23,7 @@ private:
   }
 public:
   ~knnHandle_t() {
-    std::cout<<"Destroy knnHandle_t instance"<<std::endl;
+    //std::cout<<"Destroy knnHandle_t instance"<<std::endl;
     CHECK_CUSPARSE( cusparseDestroyCsrgemm2Info(info) )
     CHECK_CUSPARSE( cusparseDestroy(sparse) )
     CHECK_CUSPARSE( cusparseDestroyMatDescr(mat) )
