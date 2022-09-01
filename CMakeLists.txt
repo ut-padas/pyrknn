@@ -74,6 +74,7 @@ if (BLAS_FOUND)
     link_libraries(${BLAS_LIBRARIES})
     #This is still missing something.... currently need to Preload with mkl Python modules.
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
+    message("LINKER FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
 endif()
 
 #-- Look for MPI
@@ -99,7 +100,8 @@ message(STATUS "BUILD_SPARSE - ${BUILD_SPARSE}")
 
 if(USE_MKL)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPYRKNN_USE_MKL")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPYRKNN_USE_MKL")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPYRKNN_USE_MKL -lmkl_rt")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lmkl_rt")
 endif()
 
 if(USE_GSKNN)

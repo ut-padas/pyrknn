@@ -97,15 +97,15 @@ def main():
     if mkl_prefix := os.getenv("CONDA_PREFIX"):
 
         mkl_preload = []
-        #mkl_preload.append(mkl_prefix+r"/lib/libmkl_core.so")
-        #mkl_preload.append(mkl_prefix+r"/lib/libmkl_sequential.so")
-        #mkl_preload.append(mkl_prefix+r"/lib/libmkl_intel_lp64.so")
-        #mkl_preload.append(mkl_prefix+r"/lib/libmkl_avx512.so")
+        mkl_preload.append(mkl_prefix+r"/lib/libmkl_core.so")
+        mkl_preload.append(mkl_prefix+r"/lib/libmkl_sequential.so")
+        mkl_preload.append(mkl_prefix+r"/lib/libmkl_intel_lp64.so")
+        mkl_preload.append(mkl_prefix+r"/lib/libmkl_avx512.so")
 
-        #if os.getenv("LD_PRELOAD"):
-        #    os.environ["LD_PRELOAD"] += os.pathsep + os.pathsep.join(mkl_preload)
-        #else:
-        #    os.environ["LD_PRELOAD"] = os.pathsep + os.pathsep.join(mkl_preload)
+        if os.getenv("LD_PRELOAD"):
+            os.environ["LD_PRELOAD"] += os.pathsep + os.pathsep.join(mkl_preload)
+        else:
+            os.environ["LD_PRELOAD"] = os.pathsep + os.pathsep.join(mkl_preload)
 
 
     os.environ["GSKNN_ARCH_MAJOR"] = "x86_64"

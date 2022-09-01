@@ -590,7 +590,7 @@ void GSKNN(
     int* qgids = new int[m];
 
     #pragma omp simd
-    for (int z = 0; z < n; ++z)
+    for (int z = 0; z < m; ++z)
         qgids[z] = z;
 
     sqnorm(R, n, d, sqnormr, false);

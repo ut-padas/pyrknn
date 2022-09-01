@@ -1,6 +1,5 @@
 from . import error as ErrorType
 from . import util as Primitives
-import filknn.tree.rkdtgpu as rt
 
 from .tree import *
 import os
@@ -43,14 +42,14 @@ def distributed_tree_task(tree_args):
 
 def search_task_dense(search_args):
     X, gids, k, local_levels, blocksize, device, rank, ltrees = search_args
-    
+
     cp.cuda.runtime.setDevice(device);
     #Perform GPU Dense Search
     ID = cp.zeros([X.shape[0], k], dtype=np.int32) - 1
     DIST = cp.zeros([X.shape[0], k], dtype=np.float32)+1e30
     d_gids = cp.asarray(gids, dtype=np.int32)
     d_X = cp.asarray(X, dtype=np.float32)
-    neighbors = rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=True, deviceId=device)
+    neighbors = Primitives.rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=True, deviceId=device)
 
     ID, DIST = neighbors
 
@@ -75,7 +74,7 @@ def search_task_sparse(search_args):
     d_gids = cp.asarray(gids, dtype=np.int32)
     d_X = cupyx.scipy.sparse.csr_matrix(X)
 
-    neighbors = rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=False, deviceId=device)
+    neighbors = Primitives.rt.rkdt_a2a_it(d_X, local_levels, ID, DIST, k, ltrees, monitor=None, overlap=0, dense=False, deviceId=device)
 
     ID, DIST = neighbors
 
@@ -334,7 +333,7 @@ class RKDForest:
     def overlap_search(self, k, ntrees=5, truth=None, cores=8, blocksize=64, blockleaf=128, ltrees=3, threshold=0.95, merge_flag=True, verbose=False):
         timer = Primitives.Profiler()
         record = Primitives.Recorder()
-
+        t_start = time.perf_counter()
         timer.push("Total Time")
         result = None
 
@@ -416,9 +415,10 @@ class RKDForest:
                 Primitives.accuracy.append( acc )
                 record.push("Recall", acc[0])
                 record.push("Distance", acc[1])
+                elapsed_time = time.perf_counter() - t_start
 
                 if verbose:
-                    print("Iteration:", it, "Recall:", acc, flush=True)
+                    print("Iteration:", it, "Recall:", acc, "Recall: ", elapsed_time, flush=True)
             timer.pop("Forest: Compare")
         timer.pop("Total Time")
 
@@ -428,6 +428,7 @@ class RKDForest:
         timer = Primitives.Profiler()
         record = Primitives.Recorder()
 
+        t_start = time.perf_counter()
         timer.push("Forest: Search")
         result = None
 
@@ -508,9 +509,10 @@ class RKDForest:
 
                 record.push("Recall", acc[0])
                 record.push("Distance", acc[1])
+                elapsed_time = time.perf_counter() - t_start
 
                 if verbose:
-                    print("Iteration:", it, "Recall:", acc, flush=True)
+                    print("Iteration:", it, "Recall:", acc, "Elapsed: ", elapsed_time, flush=True)
                 if acc[0] > threshold:
                     break_flag = True
 

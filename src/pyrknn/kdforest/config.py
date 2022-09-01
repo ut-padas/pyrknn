@@ -1,7 +1,7 @@
 import os
 
 
-PYRKNN_USE_CUDA = 1
+PYRKNN_USE_CUDA = False
 PYRKNN_NUMBA_THREADS = 8
 
 if os.getenv("KMP_AFFINITY") is None:

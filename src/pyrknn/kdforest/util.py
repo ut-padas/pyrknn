@@ -18,6 +18,8 @@ if use_cuda:
     from ..kernels.gpu import core_sparse as gpu_sparse
     from numba import cuda
     import cupy as cp
+
+    import filknn.tree.rkdtgpu as rt
 else:
     import numpy as cp
     from ..kernels.cpu import core as gpu
@@ -29,7 +31,7 @@ import time
 
 class Recorder:
     record_book = dict()
-    
+
     def push(self, string, value):
         if string in self.record_book:
             self.record_book[string].append(value)
@@ -97,7 +99,7 @@ class Profiler:
                 f.write("%s,%s\n"%(key,self.output_times[key]))
 
 
- 
+
 
 #Note: Data movement should be done on the python layer BEFORE this one
 #      All functions can assume all data is local to their device (should this be asserted and checked here? for debugging yes)
@@ -181,15 +183,16 @@ def direct_knn(ids, R, Q, k, loc="HOST", cores=8):
 
     #TODO: Currently we only support these direct searches on the CPU
     #TODO: Gather these and isolate these kernels from GPU code
- 
+
     assert(loc == "HOST")
- 
+
     if dense_flag:
+        print(ids.dtype, R.dtype, Q.dtype, k, cores)
         return cpu.single_knn(ids, R, Q, k, cores)
     elif sparse_flag:
         #print("Running Sparse Exact")
         return cpu.sparse_exact(ids, R, Q, k, cores)
-    
+
 def batched_knn(ridsList, RList, QList, k, qidsList=None, neighbor_ids=None, neighbor_dist=None, n=None, gids=None, repack=True):
    if env == "CPU":
         return cpu.batched_knn(ridsList, RList, QList, k, cores, qidsList=qidsList, neighbor_ids=neighbor_ids, neighbor_dist=neighbor_dist, gids=gids, repack=repack, n=n)
@@ -299,12 +302,12 @@ def check_accuracy(a, b):
 
     N = Na
     k = ka
-    approx_id = b_list 
-    approx_dist = b_dist 
+    approx_id = b_list
+    approx_dist = b_dist
 
     truth_id = a_list
-    truth_dist = a_dist 
-    
+    truth_dist = a_dist
+
     err = 0.0
     for i in range(N):
 
@@ -331,7 +334,7 @@ def argsort(val, index=None, dtype=np.int32):
     return index
 
 def interval(starts, sizes, index, nleaves, leaf_ids):
-    return cpu.interval(starts, sizes, index, nleaves, leaf_ids) 
+    return cpu.interval(starts, sizes, index, nleaves, leaf_ids)
 
 def dist_select(rank, k, data, ids, comm):
     return cpu.dist_select(rank, k, data, ids, comm)
