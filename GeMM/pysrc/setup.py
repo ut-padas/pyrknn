@@ -12,8 +12,8 @@ except:
     print("You don't seem to have Cython installed")
     sys.exit(1)
 
-os.environ["CC"] = "gcc"
-os.environ["CXX"] = "g++"
+#os.environ["CC"] = "gcc"
+#os.environ["CXX"] = "g++"
 #os.environ["CC"] = "icc"
 #os.environ["CXX"] = "icpc"
 
@@ -59,7 +59,7 @@ def makeExtension(extName):
         library_dirs = lib_dirs,
         runtime_library_dirs = lib_dirs,
         extra_objects=object_list,
-        extra_compile_args=["-std=c++11","-g", "-fPIC"],
+        extra_compile_args=["-std=c++14","-g", "-fPIC"],
         extra_link_args=["-Wl,--no-as-needed", "-Wl,--verbose", "-ldl", "-lpthread","-lcuda", "-lcudart", "-lcublas", "-g"]
     )
 

@@ -33,6 +33,7 @@ def py_sfiknn(gids, X, leaves, k, knndis, knnidx, deviceId):
   toc = time.time() - tic
 
   print("Data permutation %.4f"%toc)
+  print("X", X_c)
   mempool = cp.get_default_memory_pool()
   mempool.free_all_blocks()
   hID = gids.data.ptr
@@ -40,8 +41,8 @@ def py_sfiknn(gids, X, leaves, k, knndis, knnidx, deviceId):
   vals = X_c.data.data.ptr
   idx = X_c.indices.data.ptr
   rowptr = X_c.indptr.data.ptr
-  nID = knnidx.ravel().data.ptr
-  nDist = knndis.ravel().data.ptr
+  nID = knnidx.data.ptr
+  nDist = knndis.data.ptr
     
   wrapper_sparse(rowptr, idx, vals, hID, n, leaves, k, nDist, nID, deviceId)
  

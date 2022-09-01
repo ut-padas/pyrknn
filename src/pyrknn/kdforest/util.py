@@ -25,6 +25,8 @@ else:
 
 import time
 
+from mpi4py import MPI
+
 """File that contains key kernels to be replaced with high performance implementations"""
 
 class Recorder:
@@ -59,12 +61,26 @@ class Profiler:
     current_times = dict()
 
     def push(self, string):
-        #print(string)
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+
+        print(rank, "+::", string, flush=True)
         if string in self.current_times and self.current_times[string] != 0:
             print("Warning: Resetting currently running timer")
         self.current_times[string] = time.time()
 
+    def signal(self, string):
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+
+        print(rank, "=::", string, flush=True)
+
     def pop(self, string):
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+
+        print(rank, "-::", string, flush=True)
+
         if string not in self.current_times:
             raise Exception("Error: Trying to pop Time Region that does not exist")
         if string in self.current_times and self.current_times[string] == 0:
@@ -200,7 +216,7 @@ def batched_knn(ridsList, RList, QList, k, qidsList=None, neighbor_ids=None, nei
 def dense_build(P):
     return cpu.dense_build(P)
 
-def merge_neighbors(a, b, k, loc="HOST", cores=8):
+def merge_neighbors(a, b, k, loc="HOST", cores=8, batchsize=2**15):
     """Merge nearest neighbor results from different trees
 
     Arguments:
@@ -217,8 +233,13 @@ def merge_neighbors(a, b, k, loc="HOST", cores=8):
     if loc == "HOST":
         return cpu.merge_neighbors(a, b, k, cores)
     elif loc == "GPU":
-        out = gpu.merge_neighbors(a, b, k, device)
-
+        N, k = a[0].shape
+        n_batches = int(np.ceil(N / batchsize))
+        for i in range(n_batches):
+            a_temp = (a[0][(i)*batchsize:(i+1)*batchsize], a[1][(i)*batchsize:(i+1)*batchsize])
+            b_temp = (b[0][(i)*batchsize:(i+1)*batchsize], b[1][(i)*batchsize:(i+1)*batchsize])
+            a_temp_id, a_temp_dist  = gpu.merge_neighbors(a, b, k, device)
+        out = a
     return out
 
 def similarity_check(a, b):

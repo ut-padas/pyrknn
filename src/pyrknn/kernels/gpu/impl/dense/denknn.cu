@@ -24,9 +24,20 @@ int current_time_nanoseconds() {
 void merge_neighbors_python(float* nborD1, int *nborI1, const float* nborD2, const int *nborI2, int m, int n, int k, int device){
     cudaSetDevice(device);
 
+    size_t free, total;
+    //cudaMemGetInfo(&free, &total);
+    //printf("Merge 1:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
 
     dvec<int> dNborID(m*k*2, std::numeric_limits<int>::max());
+
+    //cudaMemGetInfo(&free, &total);
+    //printf("Merge 2:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+
     dvec<float> dNborDist(m*k*2, std::numeric_limits<float>::max());
+
+    //cudaMemGetInfo(&free, &total);
+    //printf("Merge 3:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+
 
     auto zero = thrust::make_counting_iterator<int>(0);
     auto iter = thrust::make_transform_iterator(zero, firstKCols(k, 2*k));
@@ -37,8 +48,16 @@ void merge_neighbors_python(float* nborD1, int *nborI1, const float* nborD2, con
     auto rightKColsDist = thrust::make_permutation_iterator(dNborDist.begin()+k, iter);
 
     {
+
+
+        //cudaMemGetInfo(&free, &total);
+        //printf("Merge 3:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+
         dvec<int> tmpNborID(m*k);
         dvec<float> tmpNborDist(m*k);
+
+        //cudaMemGetInfo(&free, &total);
+        //printf("Merge 4:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
 
         thrust::copy(nborI2, nborI2+m*k, tmpNborID.begin());
         thrust::copy(nborD2, nborD2+m*k, tmpNborDist.begin());
@@ -51,6 +70,10 @@ void merge_neighbors_python(float* nborD1, int *nborI1, const float* nborD2, con
         thrust::copy_n(nborD1, m*k, tmpNborDist.begin());
         thrust::copy_n(tmpNborID.begin(), m*k, leftKColsID);
         thrust::copy_n(tmpNborDist.begin(), m*k, leftKColsDist);
+
+        //cudaMemGetInfo(&free, &total);
+        //printf("Merge 5:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+
     }
 
     float t_msort = 0;
@@ -60,8 +83,20 @@ void merge_neighbors_python(float* nborD1, int *nborI1, const float* nborD2, con
     merge_neighbors(dNborDist, dNborID, m, 2*k, k, t_msort, t_mcopy, t_unique);
 
     {
+
+        //cudaMemGetInfo(&free, &total);
+        //printf("Merge 6:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+
         dvec<int> tmpNborID(m*k);
+
+        //cudaMemGetInfo(&free, &total);
+        //printf("Merge 7:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+
         dvec<float> tmpNborDist(m*k);
+
+        //cudaMemGetInfo(&free, &total);
+        //printf("Merge 8:  Check Available Memory : %.4f GB from %.4f \n", free/1e9, total/1e9);
+
         thrust::copy_n(leftKColsID, m*k, tmpNborID.begin());
         thrust::copy_n(leftKColsDist, m*k, tmpNborDist.begin());
         thrust::copy_n(tmpNborID.begin(), m*k, nborI1);

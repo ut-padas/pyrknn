@@ -105,7 +105,7 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
     
     mempool = cp.get_default_memory_pool()
 
-    memory()
+    #memory()
     for t in range(maxit):
         #print("Avail") 
         #gc.collect()
@@ -131,7 +131,7 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
             
             gids[:]=gids[perm]
 
-            if 0: print(gids)
+            #if 0: print(gids)
         leaves = 1 << levels
         toc = time.time() -tic
         del P
@@ -149,8 +149,9 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
             dim = X.shape[1]
             py_dfiknn(gids, X, leaves, K, knnidx, knndis, dim, deviceId) 
         if not dense:
-            #print("\t Sparse knn : sfiknn version")
-            py_sfiknn(gids, X, leaves, K, knndis, knnidx, deviceId) 
+            print("\t Sparse knn : sfiknn version")
+            py_sfiknn(gids, X, leaves, K, knndis, knnidx, deviceId)
+        print(knndis)
         #memory()
         begin_err = time.time()
         if monitor is not None:
@@ -164,13 +165,13 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
         err_time = end_err - begin_err
         tot_err += err_time
         cur_time = time.time() - tot_err - begin
-        print("it = %d, RKDT : %.4f sec"%(t, cur_time))
-        memory()
+        #print("it = %d, RKDT : %.4f sec"%(t, cur_time))
+        #memory()
     end = time.time()
     gc.collect()
     tot_rkdt = end - begin - tot_err
-    print("RKDT takes %.4f sec "%tot_rkdt)
-    print("Error takes %.4f sec "%tot_err)
+    #print("RKDT takes %.4f sec "%tot_rkdt)
+    #print("Error takes %.4f sec "%tot_err)
 
     return knnidx, knndis
 

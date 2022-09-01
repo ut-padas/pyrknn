@@ -1,6 +1,7 @@
 from . import error as ErrorType
 from . import util as Primitives
 import filknn.tree.rkdtgpu as rt
+from filknn.dense.dense import memory
 
 from .tree import *
 import os
@@ -32,17 +33,47 @@ def copy(data, sparse_flag):
 def distributed_tree_task(tree_args):
     t = time.time()
     X, levels, leafsize, rank = tree_args
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    if rank == 0:
+        print("Start Distributed Tree.", flush=True)
+        print("MEMCHECK:", psutil.virtual_memory(), flush=True)
 
     #Build Distributed Tree (Assign IDs)
     tree = RKDT(data=X, levels=levels, leafsize=leafsize)
+
+    if rank == 0:
+        print("Started Distributed Build.", flush=True)
+        print("MEMCHECK:", psutil.virtual_memory(), flush=True)
+
     tree.distributed_build()
 
+    if rank == 0:
+        print("Finish  Distributed Tree.", flush=True)
+
+    if rank == 0:
+        print("Start Collect Coordinates.", flush=True)
     #Redistribute Coordinate Data
     tree.collect_data()
+
+    if rank == 0:
+        print("Finish Collect Coordinates.", flush=True)
+
     return tree
 
 def search_task_dense(search_args):
     X, gids, k, local_levels, blocksize, device, rank, ltrees = search_args
+
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    #print("Start of Search")
+    #memory()
+    #print("-----")
+
+    if rank == 0:
+        print("Start search.", flush=True)
     
     cp.cuda.runtime.setDevice(device);
     #Perform GPU Dense Search
@@ -62,6 +93,12 @@ def search_task_dense(search_args):
     mempool = cp.get_default_memory_pool()
     mempool.free_all_blocks()
 
+    #print("End of Search")
+    #memory()
+    #print("-----")
+
+    if rank == 0:
+        print("Finish search.", flush=True)
     #neighbors = Primitives.gpu_dense_knn(gids, X, local_levels, ltrees, k, blocksize,device)
     return neighbors
 
@@ -277,6 +314,10 @@ class RKDForest:
             gids, neighbors = current_tree.redistribute_results(neighbors)
             timer.pop("Forest: Redistribute")
 
+            if rank == 0:
+                print("MEMCHECK:", psutil.virtual_memory())
+                memory()
+
             #Merge
             timer.push("Forest: Merge")
             if result is None:
@@ -331,7 +372,10 @@ class RKDForest:
 
 
     #These 'overlap_search' and 'all_search' functions will be deprecated in an upcoming release
-    def overlap_search(self, k, ntrees=5, truth=None, cores=8, blocksize=64, blockleaf=128, ltrees=3, threshold=0.95, merge_flag=True, verbose=False):
+    def overlap_search(self, k, ntrees=5, truth=None, cores=8, blocksize=64, blockleaf=128, ltrees=3, threshold=0.95, merge_flag=True, verbose=True):
+
+        start_time = time.perf_counter()
+
         timer = Primitives.Profiler()
         record = Primitives.Recorder()
 
@@ -360,13 +404,29 @@ class RKDForest:
                 timer.push("Build Dist Tree")
                 X = copy(self.host_data, self.sparse_flag)
                 tree = RKDT(data=X, levels=self.levels, leafsize=self.leafsize)
+
+                if rank == 0:
+                    print("Start Distributed Tree.", flush=True)
+
                 tree.distributed_build()
                 timer.pop("Build Dist Tree")
+
+                if rank == 0:
+                    print("End Distributed Tree.", flush=True)
+
+                if rank == 0:
+                    print("Start Coordinate Collection.", flush=True)
 
                 timer.push("Distribute Coordinates")
                 tree.collect_data()
                 timer.pop("Distribute Coordinates")
+
+                if rank == 0:
+                    print("Finished Coordinate Collection.", flush=True)
                 current_tree = tree
+
+            if rank == 0:
+                print("Starting Split Tasks.", flush=True)
 
             timer.push("Evaluate")
 
@@ -381,19 +441,41 @@ class RKDForest:
                     search_args = (current_tree.host_data, current_tree.global_ids, k, current_tree.local_levels, blocksize, self.device, rank, ltrees)
                     search_future = executor.submit(search_task_dense, search_args)
 
-                next_tree = tree_future.result()
+                timer.signal("WAIT SEARCH")
                 neighbors = search_future.result()
+                timer.signal("WAIT TREE")
+                next_tree = tree_future.result()
 
             timer.pop("Evaluate")
 
+            #print("Before redistribute")
+            #memory()
+            #print("-----")
             #Sort to check
             #neighbors = Primitives.merge_neighbors(neighbors, neighbors, k)
             #print(rank, "Neighbors before merge: : ", neighbors, flush=True)
+
+            if rank == 0:
+                print("Starting Redistribute.", flush=True)
 
             #Redistribute
             timer.push("Forest: Redistribute")
             gids, neighbors = current_tree.redistribute_results(neighbors)
             timer.pop("Forest: Redistribute")
+
+            if rank == 0:
+                print("Finished Redistribute.", flush=True)
+
+            #print("Before merge")
+            #memory()
+            #print("-----", neighbors[0].shape)
+
+            mempool = cp.get_default_memory_pool()
+            mempool.free_all_blocks()
+
+            if rank == 0:
+                print("Starting Merge.", flush=True)
+
 
             #Merge
             timer.push("Forest: Merge")
@@ -403,23 +485,50 @@ class RKDForest:
                 result = Primitives.merge_neighbors(result, neighbors, k, merge_location, cores)
             timer.pop("Forest: Merge")
 
+            if rank == 0:
+                print("Finished Merge.", flush=True)
+
+            #print("After merge")
+            #memory()
+            #print("-----")
+
+            mempool = cp.get_default_memory_pool()
+            mempool.free_all_blocks()
 
             current_tree = next_tree
 
+            break_flag = False
             timer.push("Forest: Compare")
             if ( truth is not None ) and ( rank == 0 ) :
                 rlist, rdist = result
                 test = (rlist[:nq, ...], rdist[:nq, ...])
                 #print("Test", test, flush=True)
                 #print("Truth", truth, flush=True)
+
+                elapsed_time = time.perf_counter() - start_time
                 acc = Primitives.check_accuracy(truth, test)
                 Primitives.accuracy.append( acc )
                 record.push("Recall", acc[0])
                 record.push("Distance", acc[1])
 
                 if verbose:
-                    print("Iteration:", it, "Recall:", acc, flush=True)
+                    print("Iteration:", it, "Recall:", acc, "Elapsed:", elapsed_time, flush=True)
+                #if acc[0] > threshold:
+                #    break_flag = True
+
+            #break_flag = self.comm.bcast(break_flag, root=0)
+
+            if rank == 0:
+                print("End of iteration", flush=True)
+
+            #print("End of iteration")
+            #memory()
+            #print("-----")
             timer.pop("Forest: Compare")
+
+            if break_flag:
+                break
+
         timer.pop("Total Time")
 
         return result

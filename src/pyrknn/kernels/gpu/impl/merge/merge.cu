@@ -100,14 +100,22 @@ void merge_neighbors(dvec<float> &nborDist, dvec<int> &nborID, int m, int n, int
     float &t_sort, float &t_copy, float &t_unique) {
   
   TimerGPU t;
+  size_t sfree, total;
 
   // sort and unique IDs
   t.start();
   dvec<int> idx(m*n);
+
+    
+  //cudaMemGetInfo(&sfree, &total);
+  //printf("Merge 5.1:  Check Available Memory : %.4f GB from %.4f \n", sfree/1e9, total/1e9);
+
   sort_matrix_rows_mgpu(nborID, idx, m, n);
   t.stop(); t_sort += t.elapsed_time();
   //std::cout<<"Finished sort"<<std::endl;
 
+  //cudaMemGetInfo(&sfree, &total);
+  //printf("Merge 5.2:  Check Available Memory : %.4f GB from %.4f \n", sfree/1e9, total/1e9);
 
   t.start();
   int *ID = thrust::raw_pointer_cast(nborID.data());
@@ -119,6 +127,8 @@ void merge_neighbors(dvec<float> &nborDist, dvec<int> &nborID, int m, int n, int
   t.stop(); t_unique += t.elapsed_time();
   //std::cout<<"Finished unique, unique size: "<<idx.size()<<std::endl;
 
+  //cudaMemGetInfo(&sfree, &total);
+  //printf("Merge 5.3:  Check Available Memory : %.4f GB from %.4f \n", sfree/1e9, total/1e9);
 
   // get (unique) distance and ID
   t.start();
@@ -128,6 +138,11 @@ void merge_neighbors(dvec<float> &nborDist, dvec<int> &nborID, int m, int n, int
   thrust::gather(count.begin(), count.end(), nborID.begin(), uniqueID.begin());
   free(count);
   t.stop(); t_copy += t.elapsed_time();
+
+  //cudaMemGetInfo(&sfree, &total);
+  //printf("Merge 5.4:  Check Available Memory : %.4f GB from %.4f \n", sfree/1e9, total/1e9);
+
+
   //std::cout<<"Finished copying unique"<<std::endl;
 
     
@@ -141,6 +156,8 @@ void merge_neighbors(dvec<float> &nborDist, dvec<int> &nborID, int m, int n, int
   t.stop(); t_sort += t.elapsed_time();
   //std::cout<<"Finished sort"<<std::endl;
     
+  //cudaMemGetInfo(&sfree, &total);
+  //printf("Merge 5.5:  Check Available Memory : %.4f GB from %.4f \n", sfree/1e9, total/1e9);
   
   // get first k-cols
   t.start();
@@ -161,6 +178,10 @@ void merge_neighbors(dvec<float> &nborDist, dvec<int> &nborID, int m, int n, int
   thrust::copy(thrust::device, permI, permI+m*k, PI);
   thrust::copy(thrust::device, permD, permD+m*k, PD);  
   t.stop(); t_copy += t.elapsed_time();
+
+  //cudaMemGetInfo(&sfree, &total);
+  //printf("Merge 5.6:  Check Available Memory : %.4f GB from %.4f \n", sfree/1e9, total/1e9);
+
   //std::cout<<"Finished merge"<<std::endl;
 }
 

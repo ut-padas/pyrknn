@@ -28,7 +28,7 @@ def neighbors(data, k, test_pt):
     d_norms = Snorms(data)
   else:
     d_norms = Dnorms(data)
-  print(type(d_norms))
+  #print(type(d_norms))
   d_norms = cp.reshape(d_norms, (n,1))
   kN0 = cp.ones((ppl, k), dtype = cp.float32) + 1e30
   kId0 = -cp.ones((ppl, k), dtype = cp.int32)
@@ -75,8 +75,8 @@ def neighbors(data, k, test_pt):
     kId0 = dtmp_c1[:, :k]
     #print(kN0[0,:5])    
     #print(kId0[0,:5])
-    if leaf%1000 == 0:
-      print("leaf = %d"%leaf)
+    #if leaf%1000 == 0:
+    #  print("leaf = %d"%leaf)
   kN0[kN0<0] = 0.0
   kN0 = kN0
   return kId0, kN0

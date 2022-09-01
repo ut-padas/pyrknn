@@ -195,16 +195,18 @@ print('Starting tree iteration')
 
 tic = time.time();
 gids = cp.arange(0, n, dtype = cp.int32)
+
 for i in range(leaves):
   gids[i*ppl:(i+1)*ppl] = cp.random.permutation(gids[i*ppl:(i+1)*ppl])
-knnidx, knndis = py_sfiknn(gids, X, leaves, K, knndis, knnidx)
 
+knnidx, knndis = py_sfiknn(gids, X, leaves, K, knndis, knnidx, 0)
+
+print(knndis)
 #knnidx, knndis = rt.rkdt_a2a_it(X,depth,knnidx, knndis, K,T,None,0, False)
 toc = time.time();
 
 print('RKDT took', '{:.2f}'.format(toc-tic), 'secs \n')
 
-print("computing the exact neghobors")
 '''
 for t in range(331, 332, leaves):
   hX = csr_matrix((cp.asnumpy(X.data), cp.asnumpy(X.indices), cp.asnumpy(X.indptr)), shape=(n,dim))
@@ -236,10 +238,10 @@ for i in range(1):
 test_pt = cp.arange(t*ppl, (t+1)*ppl, ppl)
 '''
 
-pt = 0
-l = 331 * ppl
-print(knnidx[l + pt, :]- l)
-print(knnidx_ex[pt, :] )
-print(knndis[l + pt, :])
-print(knndis_ex[pt, :])
+#pt = 0
+#l = 331 * ppl
+#print(knnidx[l + pt, :]- l)
+#print(knnidx_ex[pt, :] )
+#print(knndis[l + pt, :])
+#print(knndis_ex[pt, :])
 

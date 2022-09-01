@@ -426,6 +426,50 @@ def collect(comm, requested_global_ids, data, size_prefix, dtype=np.int64):
 
     return recv_data, requested_global_ids
 
+def test_send(comm, send_sizes, recv_sizes, send_buf, recv_buf, global_size):
+
+    send_sizes = np.array(send_sizes, dtype=np.int32)
+    recv_sizes = np.array(recv_sizes, dtype=np.int32)
+
+    size = comm.Get_size()
+    rank = comm.Get_rank()
+
+    send_n, send_k = send_buf.shape
+    recv_n, recv_k = recv_buf.shape
+
+    assert(send_k == recv_k)
+
+    total_send = np.sum(send_sizes)
+    assert(send_n == total_send)
+
+    total_recv = np.sum(recv_sizes)
+    assert(recv_n == total_recv)
+
+    global_send = comm.allreduce(send_n)
+    global_recv = comm.allreduce(recv_n)
+
+    assert(global_send == global_size)
+    assert(global_recv == global_size)
+
+    block = np.zeros((size, size), dtype=np.int32)
+    comm.Allgather(send_sizes, block)
+
+    assert(np.allclose(send_sizes, block[rank, :]))
+    assert(np.allclose(recv_sizes, block[:, rank]))
+
+    total_recv = np.sum(block[:, rank])
+    assert(recv_n == total_recv)
+    total_send = np.sum(block[rank, :])
+    assert(send_n == total_send)
+
+    global_send = comm.allreduce(total_send)
+    global_recv = comm.allreduce(total_recv)
+    assert(global_send == global_size)
+    assert(global_recv == global_size)
+
+    if rank == 0:
+        print("BLOCK", block, flush=True)
+    #assert(np.allclose(block.T, block))
 
 def redistribute(comm, global_ids, result, size_prefix):
     timer = Primitives.Profiler()
@@ -456,7 +500,7 @@ def redistribute(comm, global_ids, result, size_prefix):
     result_gids = np.zeros(N, dtype=global_ids.dtype)
     result_ids = np.zeros(neighbor_ids.shape, dtype=neighbor_ids.dtype)
     result_dist = np.zeros(neighbor_dist.shape, dtype=neighbor_dist.dtype)
-    #print(rank, neighbor_ids.shape, N, flush=True)
+    #print(rank, neighbor_dist.shape, N, flush=True)
     #print(rank, "HERE", flush=True)
     #print("Datatypes: ", result_ids.dtype, result_gids.dtype, result_dist.dtype)
     timer.pop("Redistribute: Allocate")
@@ -478,7 +522,7 @@ def redistribute(comm, global_ids, result, size_prefix):
     # Reorder everything to get contiguous bands to send
     timer.push("Redistribute: Reorder")
     #labels = reorder(labels, p)
-    labels = reindex(labels, p)
+    labels = Primitives.reindex(labels, p)
     #neighbor_ids = reorder(neighbor_ids, p)
     #neighbor_dist = reorder(neighbor_dist, p)
     #global_ids = reorder(global_ids, p)
@@ -498,7 +542,7 @@ def redistribute(comm, global_ids, result, size_prefix):
     starts, sizes = ordered_sizes(mpi_size, labels, prec=global_ids.dtype)
     timer.pop("Redistribute: Compute Targets")
 
-    print(rank, "targets", flush=True)
+    #print(rank, "targets", flush=True)
 
     # Exchange sizes with receiving processes
     timer.push("Redistribute: Exchange Recv")
@@ -507,6 +551,8 @@ def redistribute(comm, global_ids, result, size_prefix):
     timer.pop("Redistribute: Exchange Recv")
 
     #print(rank, "recv", flush=True)
+
+    #test_send(comm, sizes, rsizes, neighbor_dist, result_dist, 134217728) 
 
     # Communicate global ids
     timer.push("Redistribute: Alltoall GIDs")
@@ -517,8 +563,11 @@ def redistribute(comm, global_ids, result, size_prefix):
     else:
         req_gids = comm.Ialltoallv([global_ids, sizes, starts, MPI.LONG], [
                        result_gids, rsizes, rstarts, MPI.LONG])
+    req_gids.Wait()
     timer.pop("Redistribute: Alltoall GIDs")
 
+
+    comm.Barrier()
     #print(rank, "a2a gids",flush=True) 
     #print(rank, "global_ids recv", result_gids, flush=True)
 
@@ -537,40 +586,51 @@ def redistribute(comm, global_ids, result, size_prefix):
     starts = starts * k
     rstarts = rstarts * k
 
+    print(rank, "+sizes", sizes, flush=True)
+    print(rank, "+starts", starts, flush=True)
+    print(rank, "+rsizes", rsizes, flush=True)
+    print(rank, "+rstarts", rstarts, flush=True)
+
+
     #print(rank, sizes, rsizes, starts, rstarts, flush=True)
     #print(rank, "buffers", neighbor_ids.dtype, result_ids.dtype, flush=True)
     # Communicate neighbor ids
     timer.push("Redistribute: Alltoall IDs")
     if (neighbor_ids.dtype == np.int32):
-        #print(rank, "starting a2a id (int)", flush=True)
+        print(rank, "starting a2a id (int)", flush=True)
         req_ids = comm.Ialltoallv([neighbor_ids, sizes, starts, MPI.INT], [
                        result_ids, rsizes, rstarts, MPI.INT])
     elif ( neighbor_ids.dtype == np.uint32 ):
-        #print(rank, "starting a2a id (uint)", flush=True)
+        print(rank, "starting a2a id (uint)", flush=True)
         req_ids = comm.Ialltoallv([neighbor_ids, np.asarray(sizes, dtype=np.int32), np.asarray(starts, dtype=np.int32), MPI.UNSIGNED], [
                        result_ids, np.asarray(rsizes, dtype=np.int32), np.asarray(rstarts, dtype=np.int32), MPI.UNSIGNED])
     else:
-        #print(rank, "starting a2a id (long)", flush=True)
+        print(rank, "starting a2a id (long)", flush=True)
         req_ids = comm.Ialltoallv([neighbor_ids, sizes, starts, MPI.LONG], [
                        result_ids, rsizes, rstarts, MPI.LONG])
+    req_ids.Wait()
     timer.pop("Redistribute: Alltoall IDs")
 
 
-
+    comm.Barrier()
 
     #print(rank, "a2a nIDs", flush=True)
 
     # Communicate neighbor distances
     timer.push("Redistribute: Alltoall Dist")
-    req_dist = comm.Ialltoallv([neighbor_dist, sizes, starts, MPI.FLOAT], [
+
+
+    comm.Alltoallv([neighbor_dist, sizes, starts, MPI.FLOAT], [
         result_dist, rsizes, rstarts, MPI.FLOAT])
+    #req_dist.Wait()
     timer.pop("Redistribute: Alltoall Dist")
+
+    comm.Barrier()
 
     # Output results need to be sorted by global id
 
     timer.push("Redistribute: Sort Output")
     #lids = np.argsort(result_gids)
-    req_gids.Wait()
     lids = Primitives.argsort(result_gids)
     timer.pop("Redistribute: Sort Output")
 
@@ -578,9 +638,7 @@ def redistribute(comm, global_ids, result, size_prefix):
     #result_gids = result_gids[lids]
     result_gids = reindex(result_gids, lids)
     #print(result_gids.dtype, lids.dtype, result_ids.flags, flush=True)
-    req_ids.Wait()
     result_ids = Primitives.reindex(result_ids, lids)
-    req_dist.Wait()
     result_dist = Primitives.reindex(result_dist, lids)
     timer.pop("Redistribute: Reorder Output")
 
@@ -703,20 +761,18 @@ def exchange_send_info(comm, sizes):
     mpi_size = comm.Get_size()
     #print(rank, "dtype", dtype)
 
-    temp_sizes = np.ones(mpi_size, dtype=dtype)
-    temp_starts = np.arange(mpi_size, dtype=dtype)
     recv = np.zeros(mpi_size, dtype=dtype)
     #print("exchange")
     # Switch mpi4py call based on data type.
     # TODO: There is a better way to do this in mpi4py 3.10 which was just released, switch or keep for compatibility?
     if dtype == np.int32:
         #print(rank, "This should print ::: ", sizes, temp_sizes, temp_starts, flush=True)
-        comm.Alltoallv([sizes, temp_sizes, temp_starts, MPI.INT],
-                       [recv, temp_sizes, temp_starts, MPI.INT])
+        comm.Alltoall([sizes, 1, MPI.INT],
+                       [recv, 1, MPI.INT])
     else:
         print(rank, "This should NOT print ::: ", sizes, temp_sizes, temp_starts, flush=True)
-        comm.Alltoallv([sizes, temp_sizes, temp_starts, MPI.LONG],
-                       [recv, temp_sizes, temp_starts, MPI.LONG])
+        comm.Alltoall([sizes, 1, MPI.LONG],
+                       [recv, 1, MPI.LONG])
 
     temp = np.zeros(mpi_size+1, dtype=dtype)
     temp[1:] = recv
@@ -730,6 +786,9 @@ class RKDT:
     verbose = False
 
     def __init__(self, levels=0, leafsize=512, data=None, location="CPU", sparse=False, comm=None, cores=None):
+
+        timer = Primitives.Profiler()
+        timer.signal("Making tree")
 
         #TODO: Make this automatic with psutils
         if cores is None:
@@ -764,6 +823,8 @@ class RKDT:
             self.glb_id = id(self)
         self.glb_id = self.comm.bcast(self.glb_id)
 
+        timer.signal("Share ID")
+
         # Get size of locally owned points.
         # This balance will be maintained over the tree construction
         self.local_size = data.shape[0]
@@ -780,6 +841,7 @@ class RKDT:
         local_size_list = self.comm.allgather(self.local_size)
         local_size_list.insert(0, 0)
         self.global_size = np.sum(local_size_list)
+        timer.signal("Get local size")
 
         # Set precision for global ids based on global size
         self.gprec = np.int64
@@ -801,6 +863,7 @@ class RKDT:
         self.global_ids = np.arange(
             start_idx, start_idx+self.local_size, dtype=self.gprec)
 
+        timer.signal("Made arrays")
         #print(rank, self.global_ids, flush=True)
 
         #Check datatype
@@ -823,6 +886,7 @@ class RKDT:
 
         self.dim = self.host_data.shape[1]
 
+        timer.signal("Made data")
         # Assumes all trees have same location and datatype
         # TODO: Change this, have primitives take self.location, self.sparse as input (default: host, False)
         #Primitives.set_env(self.location, self.sparse)
@@ -835,6 +899,9 @@ class RKDT:
             min(np.ceil(np.log2(np.ceil(self.local_size/self.leafsize))), self.max_levels))
 
         self.built = False
+
+
+        timer.signal("Finished tree init")
 
         #print(self.rank, "Initialized Tree", flush=True)
 
@@ -891,14 +958,22 @@ class RKDT:
         #print("Generated vectors", flush=True)
 
     def distributed_build(self, projection=None):
+
         timer = Primitives.Profiler()
         comm = self.comm
         local_rank = comm.Get_rank()
         global_rank = comm.Get_rank()
         mpi_size = comm.Get_size()
+
+        print(global_rank, "in build.", flush=True)
+
         timer.push("Dist Build:")
         #print("Ranks:", global_rank, local_rank, flush=True)
+
         if mpi_size > 1:
+            if global_rank == 0:
+                print("Starting make proj.", flush=True)
+
             timer.push("Build: Generate Projection")
             # Generate orthogonal projection vectors
             if projection is not None:
@@ -907,8 +982,11 @@ class RKDT:
                 self.spill = np.arange(10)
             else:
                 self.generate_projection_vectors(self.dist_levels)
-                np.save("projections", self.vectors)
+                #np.save("projections", self.vectors)
             timer.pop("Build: Generate Projection")
+
+            if global_rank == 0:
+                print("Finish make proj.", flush=True)
 
             timer.push("Dist Build: Compute Projection")
             # Compute projection upfront.
@@ -916,6 +994,9 @@ class RKDT:
             vectors = self.vectors
             if self.spill is not None:
                 vectors = vectors[:, self.spill]
+
+            if global_rank == 0:
+                print("Expanded vectors.", flush=True)
                 
             #print("after", vectors.shape, flush=True)
             #print("data", self.host_data.shape, flush=True)
@@ -923,6 +1004,9 @@ class RKDT:
             #proj = proj.reshape(self.local_size, self.dist_levels)
             timer.pop("Dist Build: Compute Projection")
             
+            if global_rank == 0:
+                print("Generated Projections", flush=True)
+
             #print(global_rank, "proj", proj)
             #print(global_rank, "proj shape", proj.shape)
 
@@ -942,6 +1026,7 @@ class RKDT:
                 timer.pop("Dist Build: Get Global Size")
                 #print(global_rank, "Current Comm Size", mpi_size, flush=True)
 
+
                 # Compute median
                 # Get permutation vector for median partition (lids)
                 #print(global_rank, "Dist select", flush=True)
@@ -953,16 +1038,22 @@ class RKDT:
                 # We shrink it each time in the loop to pass less data
 
                 current_proj = np.copy(proj[:, l])
-                if global_rank == 0:
-                    print(l, "Copy:", time.perf_counter() - t, flush=True)
+                #if global_rank == 0:
+                #    print(l, "Copy:", time.perf_counter() - t, flush=True)
 
                 req_size.Wait()
+                if global_rank == 0:
+                    print("Start Dist Select.", flush=True)
+
                 t = time.perf_counter()
                 median, local_split = Primitives.dist_select(global_rank,
                     global_size/2, current_proj, lids, comm)
 
                 if global_rank == 0:
-                    print(l, "Select:", time.perf_counter() - t, flush=True)
+                    print("Finish Dist Select.", flush=True)
+
+                #if global_rank == 0:
+                #    print(l, "Select:", time.perf_counter() - t, flush=True)
                 timer.pop("Dist Build: Distributed Select")
                 #print(global_rank, "Finished Dist select", flush=True)
 
@@ -996,6 +1087,8 @@ class RKDT:
                 comm.Allgather(nright_sum, nright_prefix)
                 timer.pop("Dist Build: Compute Targets - Prefix Sums")
 
+                if global_rank == 0:
+                    print("Finish Prefix.", flush=True)
                 #print(global_rank, "(left prefix / right prefix)", nleft_prefix, nright_prefix, flush=True)
                 #print(global_rank, "(prefix sizes)", self.prefix_sizes, flush=True)
 
@@ -1005,6 +1098,8 @@ class RKDT:
                     local_rank, mpi_size, nleft, nleft_prefix, nright, nright_prefix, self.prefix_sizes)
                 timer.pop("Dist Build: Compute Targets - Balance")
 
+                if global_rank == 0:
+                    print("Finish Balance.", flush=True)
                 #print(global_rank, "starts/sizes", starts, sizes, flush=True)
 
                 # Get the size of what's being sent to me
@@ -1012,6 +1107,8 @@ class RKDT:
                 rsizes, rstarts = exchange_send_info(comm, sizes)
                 timer.pop("Dist Build: Compute Targets - Exchange Recv")
 
+                if global_rank == 0:
+                    print("Finish Targets.", flush=True)
                 #print(global_rank, "rstarts/rsizes", rstarts, rsizes, flush=True)
 
                 timer.pop("Dist Build: Compute Targets")
@@ -1024,6 +1121,9 @@ class RKDT:
                 #print(self.global_ids.dtype, lids.dtype, self.global_ids.shape, flush=True)
                 self.global_ids = reindex(self.global_ids, lids)
                 timer.pop("Dist Build: Reorder Global Ids")
+
+                if global_rank == 0:
+                    print("Finish Reorder.", flush=True)
 
                 # AlltoAllv Global ID vector
                 timer.push("Dist Build: Communicate IDs")
@@ -1039,11 +1139,12 @@ class RKDT:
                     req_ids = comm.Ialltoallv([self.global_ids, sizes, starts, MPI.INT], [
                                    recv_gids, rsizes, rstarts, MPI.INT])
                 else:
-                    req_ids = comm.IAlltoallv([self.global_ids, sizes, starts, MPI.LONG], [
+                    req_ids = comm.Ialltoallv([self.global_ids, sizes, starts, MPI.LONG], [
                                    recv_gids, rsizes, rstarts, MPI.LONG])
                 timer.pop("Dist Build: Communicate IDs - alltoall")
 
                 timer.pop("Dist Build: Communicate IDs")
+
                 #print(global_rank, "recv_ids", recv_gids, flush=True)
 
                 # Reorder left and right of projection to prepare for communication
@@ -1071,8 +1172,16 @@ class RKDT:
                     recv_proj, rsizes*rl, rstarts*rl, MPI.FLOAT])
                 timer.pop("Dist Build: Communicate Projections - alltoall")
 
+                if global_rank == 0:
+                    print("WAIT IDS", flush=True)
                 req_ids.Wait()
+
+                if global_rank == 0:
+                    print("WAIT PROJ", flush=True)
                 req_proj.Wait()
+
+                if global_rank == 0:
+                    print("Finish Projections", flush=True)
 
                 #print(global_rank, median, "recv_proj check", recv_proj[:, l], flush=True)
                 timer.pop("Dist Build: Communicate Projections")

@@ -38,12 +38,16 @@ def orthoproj(X,numdir):
     n,dim = X.shape 
     U = cp.random.randn(dim,numdir)
     U = cp.array(U, dtype = cp.float32)
-    Q,_ = cp.linalg.qr(U,mode='reduced')
-    U[:,:Q.shape[1]] = Q 
+    if dim < 10000:
+        Q,_ = cp.linalg.qr(U,mode='reduced')
+        U[:,:Q.shape[1]] = Q 
     Xr = cp.zeros((X.shape[0], U.shape[1]), dtype = cp.float32)
     nvecs = U.shape[1]
     batch = int(X.shape[0]//8)
-    del Q
+
+    if dim < 10000:
+        del Q
+
     Xr[:,:] = X.dot(U)   
     
     del U

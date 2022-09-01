@@ -761,13 +761,13 @@ cpdef dist_select(int grank, int k, float[:] X, int[:] ID, comm, prev=(0, 0, 0))
     if (math.isclose(gmax, gmin, rel_tol=1e-5, abs_tol=1e-20)):
         st0 = np.random.get_state()
         np.random.seed(None)
-        #print("Warning: Up to precision ", N, " points are the same.")
+        print("Warning: Up to precision ", N, " points are the same.")
         X = X + np.array(np.random.randn(nlocal), dtype=np.float32)*gmax*(3e-4)
         np.random.set_state(st0)
 
-    #if grank == 0:
-        #print("total", time.perf_counter() - t)
-        #print("sizes:", global_nleft, global_nright, N)
+    if grank == 0:
+        print("total", time.perf_counter() - t)
+        print("sizes:", global_nleft, global_nright, N)
 
     if (global_nleft == k) or (N == 1) or (global_nleft == globalN) or (global_nright == globalN):
         return (pivot, nL)
