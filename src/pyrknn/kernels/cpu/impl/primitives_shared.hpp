@@ -11,8 +11,6 @@
 #include <omp.h>
 //#include<ompUtils.h>
 
-#include<cblas.h>
-
 #include <cassert>
 #include <queue>
 #include <cmath>
@@ -20,10 +18,16 @@
 #include <iostream>
 #include <numeric>
 
+#ifndef PYRKNN_USE_MKL
+    #include <cblas.h>
+#else
+    #include<mkl.h>
+#endif
 
-//TODO: Remove conditionally on POWER systems
-//#include <mkl.h>
-//#include <gsknn.h>
+#ifdef PYRKNN_USE_GSKNN
+    #include<gsknn.h>
+#endif
+
 
 #include <limits>
 
@@ -32,9 +36,6 @@
 #include <string>
 
 #include "util.hpp"
-//#include<gsknn_ref.h>
-//#include<gsknn_ref_stl.hpp>
-
 
 
 #define KNN_MAX_BLOCK_SIZE 1024
@@ -53,6 +54,155 @@ template <typename T>
 using neigh_type = typename std::pair<T, idx_type<T>>;
 
 typedef std::vector<unsigned> ivec;
+
+
+template<typename index_t, typename value_t>
+void map_1D(index_t* idx, value_t *val, size_t length, value_t* output){
+    //Permute
+    #pragma omp parallel for
+    for(int i = 0; i < length; ++i){
+        output[i] = val[idx[i]];
+    }
+}
+
+template<typename index_t, typename value_t>
+void map_2D(index_t* idx, value_t *val, size_t length, size_t dim, value_t* output){
+    //Permute
+    #pragma omp parallel for
+    for(auto i = 0; i < length; ++i){
+        #pragma omp simd
+        for(auto j = 0; j < dim; ++j){
+            output[dim*i + j] = val[dim*idx[i] + j];
+        }
+    }
+}
+
+template<typename index_t, typename value_t>
+void reindex_1D(index_t* idx, value_t* val, size_t length, value_t* buffer){
+    //Fill buffer
+    #pragma omp parallel for simd schedule(static)
+    for(auto i = 0; i < length; ++i){
+        buffer[i] = val[i];
+    }
+
+    //Permute
+    #pragma omp parallel for simd schedule(static)
+    for(auto i = 0; i < length; ++i){
+        val[i] = buffer[idx[i]];
+    }
+}
+
+template<typename index_t, typename value_t>
+void reindex_2D(index_t* idx, value_t* val, size_t length, size_t dim, value_t* buffer){
+    //Fill buffer
+    #pragma omp parallel for schedule(static)
+    for(auto i = 0; i < length; ++i){
+        #pragma omp simd
+        for(auto j = 0; j < dim; ++j){
+            buffer[dim*i + j] = val[dim*i + j];
+        }
+    }
+
+    //Permute
+    #pragma omp parallel for schedule(static)
+    for(auto i = 0; i < length; ++i){
+        #pragma omp simd
+        for(auto j = 0; j < dim; ++j){
+            buffer[dim*i + j] = buffer[dim*idx[i] + j];
+        }
+    }
+}
+
+template<typename index_t, typename value_t>
+void arg_sort(index_t* idx, value_t* val, size_t length){
+    
+    #pragma omp parallel for simd schedule(static)
+    for(auto i = 0; i < length; ++i){
+        idx[i] = i;
+    }
+
+    auto compare = [&val](size_t a, size_t b){return val[a] < val[b];};
+    //std::stable_sort(std::execution::par_unseq, idx, idx+length, compare);
+    __gnu_parallel::stable_sort(idx, idx+length, compare);
+}
+
+void find_interval(int* starts, int* sizes, unsigned char* index, int len, int nleaves, unsigned char* leaf_ids){
+
+    #pragma omp parallel for
+    for(auto i = 0; i < nleaves; ++i){
+        unsigned char leaf = leaf_ids[i];
+        const auto p = std::equal_range(index, index+len, leaf);
+
+        int start = std::distance(index, std::get<0>(p));
+        int end = std::distance(index, std::get<1>(p));
+        starts[i] = start;
+        sizes[i] = end - start;
+    }
+
+}
+
+template<typename index_t, typename value_t>
+void bin_queries(size_t n, int levels, value_t* proj, value_t* medians, index_t* idx, value_t* rbuffer){
+
+    for(auto l = 0; l < levels; ++l){
+        #pragma omp simd
+        for(auto i = 0; i < n; ++i){
+            const auto base = 2*idx[i] + 1;
+            idx[i] = base + (proj[l*n+i] < medians[idx[i]]);
+        }
+    }
+}
+
+
+template<typename index_t, typename value_t>
+void bin_queries_pack(size_t n, int levels, value_t* proj, value_t* medians, index_t* idx, value_t* rbuffer){
+    for(auto l = 0; l < levels; ++l){
+        //#pragma omp parallel for schedule(static) simd
+        for(auto i = 0; i < n; i+=4){
+            #pragma omp simd
+            for(auto k = 0; k < 4; ++k){
+                rbuffer[i+k] = medians[idx[i]];
+            }
+            #pragma omp simd
+            for(auto k = 0; k < 4; ++k){
+                const auto base = 2*idx[i] + 1;
+                idx[i+k] = base + (proj[l*n+i+k] < rbuffer[i+k]);
+            }
+        }
+    }
+}
+
+
+void printVecps(__m256 vec)
+{
+    float tempps[8];
+    _mm256_store_ps(&tempps[0], vec);
+    printf(" [0]=%3.2f, [1]=%3.2f, [2]=%3.2f, [3]=%3.2f, [4]=%3.2f, [5]=%3.2f, [6]=%3.2f, [7]=%3.2f \n",
+    tempps[0],tempps[1],tempps[2],tempps[3],tempps[4],tempps[5],tempps[6],tempps[7]) ;
+
+}
+
+void bin_queries_simd(size_t n, int levels, float* proj, float* medians, int* idx, float* rbuffer){
+    __m256i one = _mm256_set1_epi32(1);
+    __m256  ones = _mm256_set1_ps(1.0);
+    for(auto l = 0; l < levels; ++l){
+        //#pragma omp parallel for schedule(static) simd
+        for(auto i = 0; i < n; i+=8){
+            __m256i basei, base1i, maski;
+            __m256 med, pro, base, mask;
+            basei = _mm256_loadu_si256(reinterpret_cast<__m256i*>(&idx[i]));
+            med = _mm256_i32gather_ps(&medians[0], basei, 4.0);
+            pro = _mm256_loadu_ps(&proj[l*n + i]);
+            basei = _mm256_add_epi32(basei, basei);
+            basei = _mm256_add_epi32(basei, one);
+            mask = _mm256_cmp_ps(med, pro, _CMP_GT_OS);
+            mask = _mm256_and_ps(mask, ones);
+            maski = _mm256_cvtps_epi32(mask);
+            base1i = _mm256_add_epi32(basei, maski);
+            _mm256_storeu_si256(reinterpret_cast<__m256i*>(&idx[i]), base1i);
+        }
+    }
+}
 
 /* reorder kernels*/
 template<typename index_t, typename value_t>
@@ -570,7 +720,7 @@ void batched_direct_knn_base(int** rid_list, float** ref_list, float** query_lis
 }
 
 
-#ifndef ARCH_POWER9
+#ifdef PYRKNN_USE_GSKNN
 
 void GSKNN(
            int *rgids,
@@ -582,19 +732,18 @@ void GSKNN(
            int* neighbor_list,
            float* neighbor_dist)
 {
-
     int maxt = omp_get_max_threads();
 
     float* sqnormr = new float[n];
     float* sqnormq = new float[m];
-    int* qgids = new float[m];
+    int* qgids = new int[m];
 
     #pragma omp simd
-    for (int z = 0; z < localn; ++z)
+    for (int z = 0; z < n; ++z)
         qgids[z] = z;
 
-    sqnorm(R, n, d, sqnormr);
-    sqnorm(Q, m, d, sqnormq);
+    sqnorm(R, n, d, sqnormr, false);
+    sqnorm(Q, m, d, sqnormq, false);
 
     heap_t *heap = heapCreate_s(m, k, 1.79E+30);
     sgsknn(n, m, d, k, R, sqnormr, rgids, Q, sqnormq, qgids, heap);
@@ -615,6 +764,7 @@ void GSKNN(
 
     delete[] sqnormr;
     delete[] sqnormq;
+    delete[] qgids;
 }
 
 //TODO: Make this a clean batchedGSKNN call for the a2a case.
@@ -668,7 +818,7 @@ void batchedGSKNN(
         float *sqnormr = new float[localn];
         float *sqnormq = new float[blocksize];
 
-        sqnorm(localR, localn, d, sqnormr);
+        sqnorm(localR, localn, d, sqnormr, false);
 
         //Loop over all blocks
         for (int i = 0; i < iters; ++i)
@@ -682,7 +832,7 @@ void batchedGSKNN(
             }
 
             const size_t offset = i * blocksize;
-            sqnorm(currquery, current_blocksize, d, sqnormq);
+            sqnorm(currquery, current_blocksize, d, sqnormq, false);
 
             heap_t *heap = heapCreate_s(current_blocksize, k, 1.79E+30);
             sgsknn(localn, current_blocksize, d, k, localR, sqnormr, local_qgids, currquery, sqnormq, local_qgids, heap);

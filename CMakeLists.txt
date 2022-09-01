@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 #--Setup Project
 project(pyrknn LANGUAGES C CXX)
 
+set( CMAKE_CXX_FLAGS "-march=core-avx2")
+
 #-- Define Macros
 
 macro(subdirlist result curdir)
@@ -57,9 +59,10 @@ find_package(Cython REQUIRED)
 #find_package(NumPy REQUIRED)
 
 
-set(Python3_ROOT_DIR "${CONDA_PREFIX}")
-set(Python3_ROOT "${CONDA_PREFIX}")
+set(Python3_ROOT_DIR "$ENV{CONDA_PREFIX}")
+set(Python3_ROOT "$ENV{CONDA_PREFIX}")
 set(Python3_FIND_STRATEGY "LOCATION")
+
 message("PYTHON3_ROOT ${Python3_ROOT_DIR}")
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 #include_directories(${NumPy_INCLUDE_DIRS})
@@ -97,11 +100,18 @@ message(STATUS "USE_MKL - ${USE_MKL}")
 message(STATUS "USE_GSKNN - ${USE_GSKNN}")
 message(STATUS "BUILD_SPARSE - ${BUILD_SPARSE}")
 
+if(USE_MKL)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPYRKNN_USE_MKL")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPYRKNN_USE_MKL")
+endif()
+
 if(USE_GSKNN)
-    set(CYTHON_FLAGS "-E USE_GSKNN=True") 
+    set(CYTHON_FLAGS "${CYTHON_FLAGS} -E USE_GSKNN=True") 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPYRKNN_USE_GSKNN")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPYRKNN_USE_GSKNN")
     add_subdirectory(extern/gsknn)
 else()
-    set(CYTHON_FLAGS "-E USE_GSKNN=False")
+    set(CYTHON_FLAGS "${CYTHON_FLAGS} -E USE_GSKNN=False")
 endif()
 
 if(BUILD_SPARSE)

@@ -3,6 +3,7 @@
 
 #include "matrix.hpp"
 
+
 // numerical linear algebra routines
 
 void orthonormalize(fMatrix&);
@@ -27,15 +28,7 @@ void compute_distance(const Points &P, const fvec&, fMatrix &Dt, dvec&);
 
 void inner_product(const Points&, const Points&, float*);
 
-
-namespace par {
-  void copy(unsigned, float*, float*);
+namespace par{
+    void copy(unsigned n, float *src, float *dst);
 }
-
-
-/*
-void orthonormal_bases(float*, unsigned, unsigned);
-
-*/
-
 #endif

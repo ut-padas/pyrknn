@@ -1,0 +1,6 @@
+ERROR: ld.so: object '/scratch1/06081/wlruys/envs/knn/lib/libmkl_core.so' from LD_PRELOAD cannot be preloaded: ignored.
+ERROR: ld.so: object '/scratch1/06081/wlruys/envs/knn/lib/libmkl_sequential.so' from LD_PRELOAD cannot be preloaded: ignored.
+ERROR: ld.so: object '/scratch1/06081/wlruys/envs/knn/lib/libmkl_intel_lp64.so' from LD_PRELOAD cannot be preloaded: ignored.
+ERROR: ld.so: object '/scratch1/06081/wlruys/envs/knn/lib/libmkl_avx512.so' from LD_PRELOAD cannot be preloaded: ignored.
+Using pip 21.2.4 from /scratch1/06081/wlruys/envs/knn/lib/python3.8/site-packages/pip (python 3.8)
+ERROR: Directory '.' is not installable. Neither 'setup.py' nor 'pyproject.toml' found.

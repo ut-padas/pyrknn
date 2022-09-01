@@ -30,8 +30,8 @@ path='/work/06081/wlruys/frontera/workspace/scikit-build-sample-projects/project
 
 def read_truth(path):
 
-    fpath_id = f"/avazu_id_${k}_${nq}.npy"
-    fpath_dist = f"/avazu_dist_${k}_${nq}.npy"
+    fpath_id = f"/kdd12_id_${k}_${nq}.npy"
+    fpath_dist = f"/kdd12_dist_${k}_${nq}.npy"
 
     ID = np.load(path+fpath_id)
     DIST = np.load(path+fpath_dist)
@@ -41,24 +41,21 @@ def read_truth(path):
 @mem.cache()
 def get_data():
     t = time.time()
-    data_app = load_svmlight_file(path+"/avazu-app", n_features=1000000)
-    data_site = load_svmlight_file(path+"/avazu-site", n_features=1000000)
-    print(data_app[0], data_app[1])
-    print(data_app[0].shape, data_app[1].shape)
+    data = load_svmlight_file(path+"/kdd12", n_features=54686452)
     t = time.time() - t
     print("It took ", t, " (s) to load the dataset")
-    return data_app[0], data_site[0]
+    return data[0]
 
 print("Starting to Read Data", flush=True)
-X_app, X_site = get_data()
-print(X_app.shape, X_site.shape)
-X = sparse_stack([X_app, X_site])
+X = get_data()
+#print(X_app.shape, X_site.shape)
+#X = sparse_stack([X_app, X_site])
 
 N, d = X.shape
 print(X)
 
 print("Finished Reading Data", flush=True)
-k = 4
+k = 32
 N  = X.shape[0]
 d  = X.shape[1]
 print("Data shape: ", (N, d))
@@ -84,12 +81,13 @@ record = Recorder()
 #Compute true solution with brute force on nq subset
 #C = X.copy()
 
-fpath_id = f"/avazu_id_${k}_${nq}.npy"
-fpath_dist = f"/avazu_dist_${k}_${nq}.npy"
+fpath_id = f"/kdd12_id_${k}_${nq}.npy"
+fpath_dist = f"/kdd12_dist_${k}_${nq}.npy"
 
 if not os.path.isfile(path+fpath_id):
     tree = RKDT(data=X, levels=0, leafsize=2048, location="HOST")
     truth = tree.distributed_exact(Q, k)
+    truth = merge_neighbors(truth, truth, k)
 
     np.save(path+fpath_id, truth[0])
     np.save(path+fpath_dist, truth[1])
@@ -109,11 +107,11 @@ print("Data Matrix Size is: ", N, d, flush=True)
 
 parser = argparse.ArgumentParser(description='Test HNSW parameters')
 
-parser.add_argument('-M', metavar='M', type=int, default=50)
+parser.add_argument('-M', metavar='M', type=int, default=40)
 parser.add_argument('-efC', metavar='efC', type=int, default=100)
 parser.add_argument('-efS', metavar='efS', type=int, default=100)
 parser.add_argument('-post', metavar='post', type=int, default=0)
-parser.add_argument('-type', metavar='type', type=int, default=0)
+parser.add_argument('-type', metavar='type', type=int, default=2)
 
 args = parser.parse_args()
 
@@ -130,7 +128,6 @@ index_time_params = {'delaunay_type':args.type, 'M': M, 'indexThreadQty':num_thr
 
 
 t = time.perf_counter()
-print("Starting Index", flush=True)
 index = nmslib.init(method='hnsw', space='l2_sparse', data_type=nmslib.DataType.SPARSE_VECTOR)
 index.addDataPointBatch(data_matrix)
 index.createIndex(index_time_params)
@@ -138,7 +135,7 @@ index_t = time.perf_counter() - t
 print(f"Index: {M}, {efC}, {index_t}", flush=True)
 
 efS = args.efS
-batch = 60000
+batch = 10000
 
 flag = True
 efS = 0
@@ -168,8 +165,7 @@ while flag:
     b = np.stack(b, axis=0)
 
     approx = (a[:nq], b[:nq]**2)
-    print("Truth: ", truth, flush=True)
-    print("Approx: ", approx, flush=True)
+
     hit_rate, rel_err, mean_sim = check_accuracy(truth, approx)
     print(f"Search: {M}, {efC}, {efS}, {search_t*(N/batch)}, {hit_rate}, {rel_err}, {mean_sim}", flush=True)
     #print(n/batch)

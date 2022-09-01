@@ -10,6 +10,8 @@ endif()
 
 find_package(NumPy REQUIRED)
 
+set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c++17")
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 add_cython_target(core core.pyx CXX PY3)
 add_library(core MODULE ${core})
