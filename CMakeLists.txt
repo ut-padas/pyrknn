@@ -109,6 +109,7 @@ if(BUILD_SPARSE)
 else()
     set(CYTHON_FLAGS "${CYTHON_FLAGS} -E BUILD_SPARSE=False")
 endif()
+message(STATUS "CYTHON_FLAGS - ${CYTHON_FLAGS}")
 
 #-- Install CPU Dense & Sparse
 add_subdirectory(src/pyrknn/kernels/gpu/impl/readSVM)
