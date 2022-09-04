@@ -746,6 +746,9 @@ class RKDT:
         self.location = location
         self.sparse = sparse
 
+        self.neighbor_ids = None
+        self.neighbor_dist = None
+
         # Setup MPI Communicator
         if comm is None:
             self.comm = MPI.COMM_WORLD
@@ -898,7 +901,7 @@ class RKDT:
                 self.spill = np.arange(10)
             else:
                 self.generate_projection_vectors(self.dist_levels)
-                np.save("projections", self.vectors)
+                #np.save("projections", self.vectors)
             timer.pop("Build: Generate Projection")
 
             timer.push("Dist Build: Compute Projection")
@@ -1176,17 +1179,19 @@ class RKDT:
 
             return result
 
-    def build_local(self, projection=None):
+    def build_local(self, projection=None, first=True):
         timer = Primitives.Profiler()
         timer.push("Build Local Tree")
         timer.push("Generate Local Projection Vectors")
 
-        if self.neighbor_ids is None:
-            self.backup_host_data = np.copy(self.host_data)
+        #if first:
+        #    self.backup_host_data = np.copy(self.host_data)
+        #    self.backup_local_ids = np.copy(self.local_ids)
+        #else:
+        #    self.host_data = np.copy(self.backup_host_data)
+        #    self.local_ids = np.copy(self.backup_local_ids)
 
-        self.host_data = np.copy(self.backup_host_data)
-
-        print(self.host_data)
+        #print(self.host_data)
 
         if projection is not None:
             self.vectors = projection
@@ -1216,7 +1221,7 @@ class RKDT:
         self.host_data = reindex(self.host_data, lids)
         self.offsets = offsets
         #self.local_ids = lids
-        self.local_ids = lids
+        self.local_ids = reindex(self.local_ids, lids)
         #self.global_ids = self.global_ids[lids]
 
         timer.pop("Build Local Tree")
@@ -1225,7 +1230,7 @@ class RKDT:
     #TODO: Simplify without extra copy.
     #TODO: Merge in shared orthogonal directions.
 
-    def search_local(self, k):
+    def search_local(self, k, result=None):
         timer = Primitives.Profiler()
 
         timer.push("Search")
@@ -1237,16 +1242,8 @@ class RKDT:
         N = self.local_size
         nleaves = len(self.offsets)
 
-        #Allocate space to store results
-        if self.neighbor_ids is None:
-            first_flag = True
-            self.neighbor_ids = np.zeros([N, k], dtype=np.int32)
-            self.neighbor_dist = np.zeros([N, k], dtype=np.float32)
-            neighbor_ids = self.neighbor_ids
-            neighbor_dist = self.neighbor_dist
-        else:
-            neighbor_ids = np.zeros([N, k], dtype=np.int32)
-            neighbor_dist = np.zeros([N, k], dtype=np.float32)
+        neighbor_ids = np.zeros([N, k], dtype=np.int32)
+        neighbor_dist = np.zeros([N, k], dtype=np.float32)
 
         ridsList = []
         RList = []
@@ -1265,16 +1262,23 @@ class RKDT:
         timer.pop("Stack")
 
         timer.push("Compute")
+
+        #print("Iter: ", self.neighbor_dist)
         neighbor_ids, neighbor_dist = Primitives.batched_knn(ridsList, RList, RList, k, qidsList=ridsList, neighbor_ids=neighbor_ids, neighbor_dist=neighbor_dist, n=len(self.local_ids), gids=self.global_ids, repack=True)
         timer.pop("Compute")
 
         timer.pop("Search")
 
-        timer.push("Local Merge")
-        Primitives.merge_neighbors((self.neighbor_ids, self.neighbor_dist), (neighbor_ids, neighbor_dist), k)
-        timer.pop("Local Merge")
+        neighbors = (neighbor_ids, neighbor_dist)
 
-        return self.neighbor_ids, self.neighbor_dist
+        if result is not None:
+            timer.push("Local Merge")
+            result = Primitives.merge_neighbors(result, neighbors, k, "HOST", 8)
+            timer.pop("Local Merge")
+        else:
+            result = neighbors
+
+        return result
 
 
 

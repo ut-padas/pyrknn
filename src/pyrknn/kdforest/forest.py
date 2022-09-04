@@ -474,8 +474,11 @@ class RKDForest:
             elif self.gpu_flag and self.sparse_flag:
                 neighbors = Primitives.gpu_sparse_knn(tree.global_ids, tree.host_data, tree.local_levels, ltrees, k, blockleaf, blocksize, self.device)
             elif (not self.gpu_flag) and (not self.sparse_flag):
-                tree.build_local()
-                neighbors = tree.search_local(k)
+                neighbors = None
+                for i in range(ltrees):
+                    tree.build_local(first=(True if neighbors is None else False))
+                    neighbors = tree.search_local(k, result=neighbors)
+
             elif (not self.gpu_flag) and (self.sparse_flag):
                 n, d = tree.host_data.shape
                 neighbors = Primitives.cpu_sparse_knn_3(tree.global_ids, tree.host_data.indptr, tree.host_data.indices, tree.host_data.data, len(tree.host_data.data), tree.local_levels, ltrees, k, blocksize, n, d, cores)
