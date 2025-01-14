@@ -126,6 +126,8 @@ def rkdt_a2a_it(X,levels,knnidx,knndis,K,maxit,monitor=None,overlap=0,dense=True
         for i in range(0,levels):
             
             segsize = n>>i
+            print("segment size", segsize)
+            print(P[:, i].shape, perm.shape)
             perm = ut.segpermute_f(P[:,i],segsize,perm)    
             P[:,:]=P[perm,:]
             

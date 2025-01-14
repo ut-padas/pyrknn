@@ -1,0 +1,25 @@
+# ninja log v5
+3471	5534	1736887658000000000	src/pyrknn/kernels/cpu/core.cxx	33f57a16245b4279
+132	2290	1736887655000000000	src/pyrknn/kernels/gpu/impl/readSVM/CMakeFiles/readSVM.dir/driver.cpp.o	dc40806ffa3bf707
+133	2710	1736887655000000000	src/pyrknn/kernels/cpu/impl/exact/CMakeFiles/exact.dir/driver.cpp.o	3da5fa3a0f30fda
+5535	27114	1736887679000000000	src/pyrknn/kernels/cpu/CMakeFiles/core.dir/core.cxx.o	47f34849dfb3459f
+3226	3471	1736887656000000000	src/pyrknn/kernels/cpu/impl/exact/libexact.so	9a2459775a697d3f
+133	3226	1736887656000000000	src/pyrknn/kernels/cpu/impl/exact/CMakeFiles/exact.dir/exact.cpp.o	aa9e932d780f36c7
+27413	27485	0	CMakeFiles/install.util	93d42a040a04ac94
+27114	27413	1736887680000000000	src/pyrknn/kernels/cpu/core.cpython-38-x86_64-linux-gnu.so	e65182d8ca097956
+132	2782	1736887655000000000	src/pyrknn/kernels/gpu/impl/readSVM/CMakeFiles/readSVM.dir/readSVM.cpp.o	58ffe1fd202d7c22
+132	436	1736887653000000000	src/pyrknn/kernels/gpu/impl/readSVM/CMakeFiles/readSVM.dir/timer.cpp.o	1d95bf6ae0d27951
+2783	3065	1736887655000000000	src/pyrknn/kernels/gpu/impl/readSVM/libreadSVM.so	937919a2151a1684
+3471	5534	1736887658000000000	/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/src/pyrknn/kernels/cpu/core.cxx	33f57a16245b4279
+14	306	1736889657000000000	src/pyrknn/kernels/gpu/impl/readSVM/CMakeFiles/readSVM.dir/timer.cpp.o	7d1f31eeaa650a95
+13	1867	1736889658000000000	src/pyrknn/kernels/gpu/impl/readSVM/CMakeFiles/readSVM.dir/driver.cpp.o	c6875327c7ae3fc1
+14	2243	1736889659000000000	src/pyrknn/kernels/cpu/impl/exact/CMakeFiles/exact.dir/driver.cpp.o	7fa2ffbb9efd2953
+13	2361	1736889659000000000	src/pyrknn/kernels/gpu/impl/readSVM/CMakeFiles/readSVM.dir/readSVM.cpp.o	91c16504e1a8f669
+2362	2613	1736889659000000000	src/pyrknn/kernels/gpu/impl/readSVM/libreadSVM.so	937919a2151a1684
+14	2773	1736889659000000000	src/pyrknn/kernels/cpu/impl/exact/CMakeFiles/exact.dir/exact.cpp.o	5f7d98aa6b294d77
+2773	2989	1736889659000000000	src/pyrknn/kernels/cpu/impl/exact/libexact.so	9a2459775a697d3f
+2989	4827	1736889661000000000	src/pyrknn/kernels/cpu/core.cxx	538345ad2caeb17c
+2989	4827	1736889661000000000	/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/src/pyrknn/kernels/cpu/core.cxx	538345ad2caeb17c
+4828	24170	1736889680000000000	src/pyrknn/kernels/cpu/CMakeFiles/core.dir/core.cxx.o	69816f16c96106bc
+24170	24562	1736889681000000000	src/pyrknn/kernels/cpu/core.cpython-38-x86_64-linux-gnu.so	e65182d8ca097956
+24562	24622	0	CMakeFiles/install.util	e67625caf2ee5781

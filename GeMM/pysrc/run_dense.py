@@ -17,15 +17,15 @@ import cupy as cp
 from filknn.utils.utilsExact import *
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
-parser.add_argument('-n', type=int, default=2**22)
-parser.add_argument('-d', type=int, default=15)
+parser.add_argument('-n', type=int, default=1000000)
+parser.add_argument('-d', type=int, default=128)
 parser.add_argument('-iter', type=int, default=120)
-parser.add_argument('-dataset', default="gauss")
-parser.add_argument('-bs', type=int, default=64)
-parser.add_argument('-bl', type=int, default=128)
+parser.add_argument('-dataset', default="")
+parser.add_argument('-bs', type=int, default=128)
+parser.add_argument('-bl', type=int, default=124)
 parser.add_argument('-cores', type=int, default=56)
 parser.add_argument('-use_gpu', type=bool, default=0)
-parser.add_argument('-levels', type=int, default=13)
+parser.add_argument('-levels', type=int, default=10)
 parser.add_argument('-k', type=int, default=32)
 parser.add_argument('-leafsize', type=int, default=1024)
 parser.add_argument('-ltrees', type=int, default=1)
@@ -37,14 +37,24 @@ parser.add_argument('-nq', type=int, default=1000)
 args = parser.parse_args()
 
 
-def read_sift(d):
+def fvecs_read(filename, c_contiguous=True):
+    fv = np.fromfile(filename, dtype=np.float32)
+    if fv.size == 0:
+        return np.zeros((0, 0))
+    dim = fv.view(np.int32)[0]
+    assert dim > 0
+    fv = fv.reshape(-1, 1 + dim)
+    if not all(fv.view(np.int32)[:, 0] == dim):
+        raise IOError("Non-uniform vector sizes in " + filename)
+    fv = fv[:, 1:]
+    if c_contiguous:
+        fv = fv.copy()
+    return fv
 
-  filename='dataset/sift/sift_learn.fvecs'
-  vsz = 4 + d
-  nc = 2
-  v = cp.fromfile(filename, dtype=cp.uint8, count=nc*vsz, offset=st*vsz)
-  X = v.reshape((nc, d+4))
-  
+def read_sift(d):
+  filename='/work/06081/wlruys/ls6/ggnn/data/sift/sift_learn.fvecs'
+  X = fvecs_read(filename)
+  X = cp.array(X)
   return X  
 
 def read_gaussian(n, dim):
@@ -113,8 +123,9 @@ K = args.k
 T = args.iter
 depth = args.levels
 nq = args.nq
+
 if dataset == 'sift':
-  X = read_sift(d)
+  X = read_sift(dim)
 elif dataset == 'gaussian':
   X = read_gaussian(n,dim)
 else:
@@ -140,13 +151,16 @@ leaves = 1 << depth
 ppl = cp.ceil(n / leaves)
 n_true = int(ppl * leaves)
 diff = n_true - n
+print("DOES NOT FIT", diff, ppl)
 if diff > 0:
-  X = cp.pad(X, (0, diff), "constant")
+  print("BF", X.shape)
+  X = cp.pad(X, (diff, 0), "constant")
+  print("AFTER", X.shape)
   n, dim = X.shape
 
 points_per_leaf = int(n/leaves)
 
-print('Number of poitns =', n, ', and the dimension =', dim)
+print('Number of points =', n, ', and the dimension =', dim)
 print('Tree depth =', depth)
 print('points_per_leaf =', points_per_leaf)
 print('Warning depth<=dim, will use non-orthogonal directions')

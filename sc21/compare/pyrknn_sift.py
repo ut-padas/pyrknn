@@ -1,6 +1,6 @@
-from pyrknn.kdforest.mpi.tree import *
-from pyrknn.kdforest.mpi.util import *
-from pyrknn.kdforest.mpi.forest import *
+from pyrknn.kdforest.tree import *
+from pyrknn.kdforest.util import *
+from pyrknn.kdforest.forest import *
 
 from mpi4py import MPI
 import numpy as np
@@ -18,7 +18,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
 
 
-path = "/scratch1/06081/wlruys/datasets/sift/sift/sift_base.fvecs" 
+path = "/work/06081/wlruys/ls6/ggnn/data/sift/sift_base.fvecs" 
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
 parser.add_argument('-n', type=int, default=2**22)
@@ -28,14 +28,14 @@ parser.add_argument('-dataset', default="gauss")
 parser.add_argument('-bs', type=int, default=64)
 parser.add_argument('-bl', type=int, default=128)
 parser.add_argument('-cores', type=int, default=56)
-parser.add_argument('-use_gpu', type=bool, default=0)
+parser.add_argument('-use_gpu', type=bool, default=1)
 parser.add_argument('-levels', type=int, default=13)
 parser.add_argument('-k', type=int, default=32)
 parser.add_argument('-leafsize', type=int, default=1024)
 parser.add_argument('-ltrees', type=int, default=1)
 parser.add_argument('-q', type=int, default=100)
 parser.add_argument('-merge', type=int, default=1)
-parser.add_argument('-overlap', type=int, default=0)
+parser.add_argument('-overlap', type=int, default=1)
 parser.add_argument('-seed', type=int, default=15)
 parser.add_argument('-nq', type=int, default=1000)
 args = parser.parse_args()
@@ -69,6 +69,7 @@ X = fvecs_read(path).astype(np.float32)
 Q = X[:nq]
 
 N, d = X.shape
+
 
 timer = Profiler()
 record = Recorder() 

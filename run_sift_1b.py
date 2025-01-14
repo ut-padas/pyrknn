@@ -16,7 +16,7 @@ from joblib import Memory
 import argparse
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
-parser.add_argument('-n', type=int, default=2**23)
+parser.add_argument('-n', type=int, default=2**19)
 parser.add_argument('-d', type=int, default=128)
 parser.add_argument('-iter', type=int, default=10)
 parser.add_argument('-dataset', default="gauss")

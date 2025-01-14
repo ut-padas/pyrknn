@@ -1,0 +1,6 @@
+/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-install/lib/libreadSVM.so
+/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-install/include/readSVM.hpp
+/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-install/include/timer.hpp
+/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-install/lib/python3.8/site-packages/pyrknn/kernels/cpu/core.cpython-38-x86_64-linux-gnu.so
+/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-install/lib/libexact.so
+/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-install/include/exact.hpp

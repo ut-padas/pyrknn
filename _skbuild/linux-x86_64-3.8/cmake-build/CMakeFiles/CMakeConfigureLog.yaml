@@ -1,0 +1,1851 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineSystem.cmake:205 (message)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      The system is: Linux - 4.18.0-372.26.1.el8_6.x86_64 - x86_64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/bin/cc 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.out"
+      
+      The C compiler identification is GNU, found in:
+        /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/3.31.4/CompilerIdC/a.out
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/bin/c++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is GNU, found in:
+        /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/3.31.4/CompilerIdCXX/a.out
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:74 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:6 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Ami7Nm"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Ami7Nm"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Ami7Nm'
+        
+        Run Build Command(s): ninja -v cmTC_e07ce
+        [1/2] /usr/bin/cc   -v -o CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -c /tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeCCompilerABI.c
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/cc
+        OFFLOAD_TARGET_NAMES=nvptx-none
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-redhat-linux
+        Configured with: ../configure --enable-bootstrap --enable-languages=c,c++,fortran,lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux
+        Thread model: posix
+        gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64'
+         /usr/libexec/gcc/x86_64-redhat-linux/8/cc1 -quiet -v /tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeCCompilerABI.c -quiet -dumpbase CMakeCCompilerABI.c -mtune=generic -march=x86-64 -auxbase-strip CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -version -o /tmp/ccBO7Y9X.s
+        GNU C17 (GCC) version 8.5.0 20210514 (Red Hat 8.5.0-22) (x86_64-redhat-linux)
+        	compiled by GNU C version 8.5.0 20210514 (Red Hat 8.5.0-22), GMP version 6.1.2, MPFR version 3.1.6-p2, MPC version 1.1.0, isl version isl-0.18-GMP
+        
+        warning: GMP header version 6.1.2 differs from library version 6.2.1.
+        warning: MPC header version 1.1.0 differs from library version 1.2.1.
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/8/include-fixed"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/8/../../../../x86_64-redhat-linux/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include
+         /usr/lib/gcc/x86_64-redhat-linux/8/include
+         /usr/local/include
+         /usr/include
+        End of search list.
+        GNU C17 (GCC) version 8.5.0 20210514 (Red Hat 8.5.0-22) (x86_64-redhat-linux)
+        	compiled by GNU C version 8.5.0 20210514 (Red Hat 8.5.0-22), GMP version 6.1.2, MPFR version 3.1.6-p2, MPC version 1.1.0, isl version isl-0.18-GMP
+        
+        warning: GMP header version 6.1.2 differs from library version 6.2.1.
+        warning: MPC header version 1.1.0 differs from library version 1.2.1.
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: 85719aad64c5394c9231649189a70b44
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64'
+         as -v --64 -o CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o /tmp/ccBO7Y9X.s
+        GNU assembler version 2.32 (x86_64-pc-linux-gnu) using BFD version (GNU Binutils) 2.32
+        COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64'
+        [2/2] : && /usr/bin/cc  -v -Wl,-v CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -o cmTC_e07ce   && :
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/cc
+        COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper
+        OFFLOAD_TARGET_NAMES=nvptx-none
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-redhat-linux
+        Configured with: ../configure --enable-bootstrap --enable-languages=c,c++,fortran,lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux
+        Thread model: posix
+        gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) 
+        COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_e07ce' '-mtune=generic' '-march=x86-64'
+         /usr/libexec/gcc/x86_64-redhat-linux/8/collect2 -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccrHiveY.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_e07ce /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. -v CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -lgcc --as-needed -lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o
+        collect2 version 8.5.0 20210514 (Red Hat 8.5.0-22)
+        /opt/apps/xalt/xalt/bin/ld -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccrHiveY.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_e07ce /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. -v CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -lgcc --as-needed -lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o
+        GNU ld (GNU Binutils) 2.32
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_e07ce' '-mtune=generic' '-march=x86-64'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:182 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      Parsed C implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include]
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include]
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include]
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include]
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include]
+          add: [/usr/lib/gcc/x86_64-redhat-linux/8/include]
+          add: [/usr/local/include]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include]
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include]
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include]
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include]
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include]
+        collapse include dir [/usr/lib/gcc/x86_64-redhat-linux/8/include] ==> [/usr/lib/gcc/x86_64-redhat-linux/8/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include;/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include;/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include;/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include;/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include;/usr/lib/gcc/x86_64-redhat-linux/8/include;/usr/local/include;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:218 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?))("|,| |$)]
+        ignore line: [Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Ami7Nm']
+        ignore line: []
+        ignore line: [Run Build Command(s): ninja -v cmTC_e07ce]
+        ignore line: [[1/2] /usr/bin/cc   -v -o CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -c /tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeCCompilerABI.c]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/cc]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-redhat-linux]
+        ignore line: [Configured with: ../configure --enable-bootstrap --enable-languages=c c++ fortran lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux]
+        ignore line: [Thread model: posix]
+        ignore line: [gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64']
+        ignore line: [ /usr/libexec/gcc/x86_64-redhat-linux/8/cc1 -quiet -v /tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeCCompilerABI.c -quiet -dumpbase CMakeCCompilerABI.c -mtune=generic -march=x86-64 -auxbase-strip CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -version -o /tmp/ccBO7Y9X.s]
+        ignore line: [GNU C17 (GCC) version 8.5.0 20210514 (Red Hat 8.5.0-22) (x86_64-redhat-linux)]
+        ignore line: [	compiled by GNU C version 8.5.0 20210514 (Red Hat 8.5.0-22)  GMP version 6.1.2  MPFR version 3.1.6-p2  MPC version 1.1.0  isl version isl-0.18-GMP]
+        ignore line: []
+        ignore line: [warning: GMP header version 6.1.2 differs from library version 6.2.1.]
+        ignore line: [warning: MPC header version 1.1.0 differs from library version 1.2.1.]
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/8/include-fixed"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/8/../../../../x86_64-redhat-linux/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include]
+        ignore line: [ /usr/lib/gcc/x86_64-redhat-linux/8/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [GNU C17 (GCC) version 8.5.0 20210514 (Red Hat 8.5.0-22) (x86_64-redhat-linux)]
+        ignore line: [	compiled by GNU C version 8.5.0 20210514 (Red Hat 8.5.0-22)  GMP version 6.1.2  MPFR version 3.1.6-p2  MPC version 1.1.0  isl version isl-0.18-GMP]
+        ignore line: []
+        ignore line: [warning: GMP header version 6.1.2 differs from library version 6.2.1.]
+        ignore line: [warning: MPC header version 1.1.0 differs from library version 1.2.1.]
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [Compiler executable checksum: 85719aad64c5394c9231649189a70b44]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64']
+        ignore line: [ as -v --64 -o CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o /tmp/ccBO7Y9X.s]
+        ignore line: [GNU assembler version 2.32 (x86_64-pc-linux-gnu) using BFD version (GNU Binutils) 2.32]
+        ignore line: [COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o' '-c' '-mtune=generic' '-march=x86-64']
+        ignore line: [[2/2] : && /usr/bin/cc  -v -Wl -v CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -o cmTC_e07ce   && :]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/cc]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-redhat-linux]
+        ignore line: [Configured with: ../configure --enable-bootstrap --enable-languages=c c++ fortran lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux]
+        ignore line: [Thread model: posix]
+        ignore line: [gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) ]
+        ignore line: [COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_e07ce' '-mtune=generic' '-march=x86-64']
+        link line: [ /usr/libexec/gcc/x86_64-redhat-linux/8/collect2 -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccrHiveY.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_e07ce /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. -v CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -lgcc --as-needed -lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o]
+          arg [/usr/libexec/gcc/x86_64-redhat-linux/8/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccrHiveY.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--no-add-needed] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_e07ce] ==> ignore
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o]
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o]
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+          arg [-L/opt/intel/debugger_2020/libipt/intel64/lib] ==> dir [/opt/intel/debugger_2020/libipt/intel64/lib]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8/../../..] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../..]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o] ==> ignore
+          arg [-lgcc] ==> lib [gcc]
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--no-as-needed] ==> ignore
+          arg [-lc] ==> lib [c]
+          arg [-lgcc] ==> lib [gcc]
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--no-as-needed] ==> ignore
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/crtend.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/crtend.o]
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o]
+        ignore line: [collect2 version 8.5.0 20210514 (Red Hat 8.5.0-22)]
+        ignore line: [/opt/apps/xalt/xalt/bin/ld -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccrHiveY.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_e07ce /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. -v CMakeFiles/cmTC_e07ce.dir/CMakeCCompilerABI.c.o -lgcc --as-needed -lgcc_s --no-as-needed -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o]
+        linker tool for 'C': /opt/apps/xalt/xalt/bin/ld
+        collapse obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o] ==> [/usr/lib64/crt1.o]
+        collapse obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o] ==> [/usr/lib64/crti.o]
+        collapse obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o] ==> [/usr/lib64/crtn.o]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8] ==> [/usr/lib/gcc/x86_64-redhat-linux/8]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+        collapse library dir [/opt/intel/debugger_2020/libipt/intel64/lib] ==> [/opt/intel/debugger_2020/libipt/intel64/lib]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../..] ==> [/usr/lib]
+        implicit libs: [gcc;gcc_s;c;gcc;gcc_s]
+        implicit objs: [/usr/lib64/crt1.o;/usr/lib64/crti.o;/usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o;/usr/lib/gcc/x86_64-redhat-linux/8/crtend.o;/usr/lib64/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-redhat-linux/8;/usr/lib64;/lib64;/opt/intel/debugger_2020/libipt/intel64/lib;/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin;/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8;/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin;/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64;/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/Internal/CMakeDetermineLinkerId.cmake:40 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:255 (cmake_determine_linker_id)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      Running the C compiler's linker: "/opt/apps/xalt/xalt/bin/ld" "-v"
+      GNU ld (GNU Binutils) 2.32
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:74 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:6 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-FoJPS5"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-FoJPS5"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-FoJPS5'
+        
+        Run Build Command(s): ninja -v cmTC_01899
+        [1/2] /usr/bin/c++   -std=gnu++17   -v -o CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -c /tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        OFFLOAD_TARGET_NAMES=nvptx-none
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-redhat-linux
+        Configured with: ../configure --enable-bootstrap --enable-languages=c,c++,fortran,lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux
+        Thread model: posix
+        gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) 
+        COLLECT_GCC_OPTIONS='-std=gnu++17' '-v' '-o' 'CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+         /usr/libexec/gcc/x86_64-redhat-linux/8/cc1plus -quiet -v -D_GNU_SOURCE /tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpbase CMakeCXXCompilerABI.cpp -mtune=generic -march=x86-64 -auxbase-strip CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -std=gnu++17 -version -o /tmp/ccH3HaYf.s
+        GNU C++17 (GCC) version 8.5.0 20210514 (Red Hat 8.5.0-22) (x86_64-redhat-linux)
+        	compiled by GNU C version 8.5.0 20210514 (Red Hat 8.5.0-22), GMP version 6.1.2, MPFR version 3.1.6-p2, MPC version 1.1.0, isl version isl-0.18-GMP
+        
+        warning: GMP header version 6.1.2 differs from library version 6.2.1.
+        warning: MPC header version 1.1.0 differs from library version 1.2.1.
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/8/include-fixed"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/8/../../../../x86_64-redhat-linux/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include
+         /opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include
+         /usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8
+         /usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8/x86_64-redhat-linux
+         /usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8/backward
+         /usr/lib/gcc/x86_64-redhat-linux/8/include
+         /usr/local/include
+         /usr/include
+        End of search list.
+        GNU C++17 (GCC) version 8.5.0 20210514 (Red Hat 8.5.0-22) (x86_64-redhat-linux)
+        	compiled by GNU C version 8.5.0 20210514 (Red Hat 8.5.0-22), GMP version 6.1.2, MPFR version 3.1.6-p2, MPC version 1.1.0, isl version isl-0.18-GMP
+        
+        warning: GMP header version 6.1.2 differs from library version 6.2.1.
+        warning: MPC header version 1.1.0 differs from library version 1.2.1.
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: 5ae135574cc90db92bda6bc22648b79a
+        COLLECT_GCC_OPTIONS='-std=gnu++17' '-v' '-o' 'CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+         as -v --64 -o CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccH3HaYf.s
+        GNU assembler version 2.32 (x86_64-pc-linux-gnu) using BFD version (GNU Binutils) 2.32
+        COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-std=gnu++17' '-v' '-o' 'CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+        [2/2] : && /usr/bin/c++  -v -Wl,-v CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_01899   && :
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper
+        OFFLOAD_TARGET_NAMES=nvptx-none
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-redhat-linux
+        Configured with: ../configure --enable-bootstrap --enable-languages=c,c++,fortran,lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux
+        Thread model: posix
+        gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) 
+        COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_01899' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+         /usr/libexec/gcc/x86_64-redhat-linux/8/collect2 -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccHS0wIN.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_01899 /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. -v CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o
+        collect2 version 8.5.0 20210514 (Red Hat 8.5.0-22)
+        /opt/apps/xalt/xalt/bin/ld -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccHS0wIN.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_01899 /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. -v CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o
+        GNU ld (GNU Binutils) 2.32
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_01899' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:182 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include]
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include]
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include]
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include]
+          add: [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include]
+          add: [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8]
+          add: [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8/x86_64-redhat-linux]
+          add: [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8/backward]
+          add: [/usr/lib/gcc/x86_64-redhat-linux/8/include]
+          add: [/usr/local/include]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include]
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include]
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include]
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include]
+        collapse include dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include]
+        collapse include dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8] ==> [/usr/include/c++/8]
+        collapse include dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8/x86_64-redhat-linux] ==> [/usr/include/c++/8/x86_64-redhat-linux]
+        collapse include dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8/backward] ==> [/usr/include/c++/8/backward]
+        collapse include dir [/usr/lib/gcc/x86_64-redhat-linux/8/include] ==> [/usr/lib/gcc/x86_64-redhat-linux/8/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include;/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include;/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include;/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include;/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include;/usr/include/c++/8;/usr/include/c++/8/x86_64-redhat-linux;/usr/include/c++/8/backward;/usr/lib/gcc/x86_64-redhat-linux/8/include;/usr/local/include;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:218 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?))("|,| |$)]
+        ignore line: [Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-FoJPS5']
+        ignore line: []
+        ignore line: [Run Build Command(s): ninja -v cmTC_01899]
+        ignore line: [[1/2] /usr/bin/c++   -std=gnu++17   -v -o CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -c /tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-redhat-linux]
+        ignore line: [Configured with: ../configure --enable-bootstrap --enable-languages=c c++ fortran lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux]
+        ignore line: [Thread model: posix]
+        ignore line: [gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) ]
+        ignore line: [COLLECT_GCC_OPTIONS='-std=gnu++17' '-v' '-o' 'CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+        ignore line: [ /usr/libexec/gcc/x86_64-redhat-linux/8/cc1plus -quiet -v -D_GNU_SOURCE /tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpbase CMakeCXXCompilerABI.cpp -mtune=generic -march=x86-64 -auxbase-strip CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -std=gnu++17 -version -o /tmp/ccH3HaYf.s]
+        ignore line: [GNU C++17 (GCC) version 8.5.0 20210514 (Red Hat 8.5.0-22) (x86_64-redhat-linux)]
+        ignore line: [	compiled by GNU C version 8.5.0 20210514 (Red Hat 8.5.0-22)  GMP version 6.1.2  MPFR version 3.1.6-p2  MPC version 1.1.0  isl version isl-0.18-GMP]
+        ignore line: []
+        ignore line: [warning: GMP header version 6.1.2 differs from library version 6.2.1.]
+        ignore line: [warning: MPC header version 1.1.0 differs from library version 1.2.1.]
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/8/include-fixed"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/8/../../../../x86_64-redhat-linux/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/pstl/include]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/daal/include]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/include]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/include]
+        ignore line: [ /opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/include]
+        ignore line: [ /usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8]
+        ignore line: [ /usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8/x86_64-redhat-linux]
+        ignore line: [ /usr/lib/gcc/x86_64-redhat-linux/8/../../../../include/c++/8/backward]
+        ignore line: [ /usr/lib/gcc/x86_64-redhat-linux/8/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [GNU C++17 (GCC) version 8.5.0 20210514 (Red Hat 8.5.0-22) (x86_64-redhat-linux)]
+        ignore line: [	compiled by GNU C version 8.5.0 20210514 (Red Hat 8.5.0-22)  GMP version 6.1.2  MPFR version 3.1.6-p2  MPC version 1.1.0  isl version isl-0.18-GMP]
+        ignore line: []
+        ignore line: [warning: GMP header version 6.1.2 differs from library version 6.2.1.]
+        ignore line: [warning: MPC header version 1.1.0 differs from library version 1.2.1.]
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [Compiler executable checksum: 5ae135574cc90db92bda6bc22648b79a]
+        ignore line: [COLLECT_GCC_OPTIONS='-std=gnu++17' '-v' '-o' 'CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+        ignore line: [ as -v --64 -o CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccH3HaYf.s]
+        ignore line: [GNU assembler version 2.32 (x86_64-pc-linux-gnu) using BFD version (GNU Binutils) 2.32]
+        ignore line: [COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-std=gnu++17' '-v' '-o' 'CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+        ignore line: [[2/2] : && /usr/bin/c++  -v -Wl -v CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_01899   && :]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-redhat-linux]
+        ignore line: [Configured with: ../configure --enable-bootstrap --enable-languages=c c++ fortran lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux]
+        ignore line: [Thread model: posix]
+        ignore line: [gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) ]
+        ignore line: [COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_01899' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+        link line: [ /usr/libexec/gcc/x86_64-redhat-linux/8/collect2 -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccHS0wIN.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_01899 /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. -v CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o]
+          arg [/usr/libexec/gcc/x86_64-redhat-linux/8/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccHS0wIN.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--no-add-needed] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_01899] ==> ignore
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o]
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o]
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+          arg [-L/opt/intel/debugger_2020/libipt/intel64/lib] ==> dir [/opt/intel/debugger_2020/libipt/intel64/lib]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8/../../..] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../..]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lstdc++] ==> lib [stdc++]
+          arg [-lm] ==> lib [m]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/crtend.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/crtend.o]
+          arg [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o] ==> obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o]
+        ignore line: [collect2 version 8.5.0 20210514 (Red Hat 8.5.0-22)]
+        ignore line: [/opt/apps/xalt/xalt/bin/ld -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccHS0wIN.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_01899 /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. -v CMakeFiles/cmTC_01899.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o]
+        linker tool for 'CXX': /opt/apps/xalt/xalt/bin/ld
+        collapse obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o] ==> [/usr/lib64/crt1.o]
+        collapse obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o] ==> [/usr/lib64/crti.o]
+        collapse obj [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o] ==> [/usr/lib64/crtn.o]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8] ==> [/usr/lib/gcc/x86_64-redhat-linux/8]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+        collapse library dir [/opt/intel/debugger_2020/libipt/intel64/lib] ==> [/opt/intel/debugger_2020/libipt/intel64/lib]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../..] ==> [/usr/lib]
+        implicit libs: [stdc++;m;gcc_s;gcc;c;gcc_s;gcc]
+        implicit objs: [/usr/lib64/crt1.o;/usr/lib64/crti.o;/usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o;/usr/lib/gcc/x86_64-redhat-linux/8/crtend.o;/usr/lib64/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-redhat-linux/8;/usr/lib64;/lib64;/opt/intel/debugger_2020/libipt/intel64/lib;/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin;/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8;/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin;/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64;/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/Internal/CMakeDetermineLinkerId.cmake:40 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:255 (cmake_determine_linker_id)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:6 (project)"
+    message: |
+      Running the CXX compiler's linker: "/opt/apps/xalt/xalt/bin/ld" "-v"
+      GNU ld (GNU Binutils) 2.32
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CheckFunctionExists.cmake:93 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindBLAS.cmake:379 (check_function_exists)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindBLAS.cmake:423 (check_blas_libraries)"
+      - "CMakeLists.txt:74 (find_package)"
+    checks:
+      - "Looking for sgemm_"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-NNBGoC"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-NNBGoC"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "BLAS_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-NNBGoC'
+        
+        Run Build Command(s): ninja -v cmTC_cc6aa
+        [1/2] /usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sgemm_ -o CMakeFiles/cmTC_cc6aa.dir/CheckFunctionExists.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-NNBGoC/CheckFunctionExists.c
+        [2/2] : && /usr/bin/cc -DCHECK_FUNCTION_EXISTS=sgemm_  CMakeFiles/cmTC_cc6aa.dir/CheckFunctionExists.c.o -o cmTC_cc6aa   && :
+        FAILED: cmTC_cc6aa 
+        : && /usr/bin/cc -DCHECK_FUNCTION_EXISTS=sgemm_  CMakeFiles/cmTC_cc6aa.dir/CheckFunctionExists.c.o -o cmTC_cc6aa   && :
+        /opt/apps/gcc/9.4.0/bin/ld: CMakeFiles/cmTC_cc6aa.dir/CheckFunctionExists.c.o: in function `main':
+        CheckFunctionExists.c:(.text+0x10): undefined reference to `sgemm_'
+        collect2: error: ld returned 1 exit status
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake:108 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CheckCSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindThreads.cmake:97 (CHECK_C_SOURCE_COMPILES)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindBLAS.cmake:477 (find_package)"
+      - "CMakeLists.txt:74 (find_package)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-zbOAO5"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-zbOAO5"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-zbOAO5'
+        
+        Run Build Command(s): ninja -v cmTC_2f3cb
+        [1/2] /usr/bin/cc -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_2f3cb.dir/src.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-zbOAO5/src.c
+        [2/2] : && /usr/bin/cc   CMakeFiles/cmTC_2f3cb.dir/src.c.o -o cmTC_2f3cb   && :
+        FAILED: cmTC_2f3cb 
+        : && /usr/bin/cc   CMakeFiles/cmTC_2f3cb.dir/src.c.o -o cmTC_2f3cb   && :
+        /opt/apps/gcc/9.4.0/bin/ld: CMakeFiles/cmTC_2f3cb.dir/src.c.o: in function `main':
+        src.c:(.text+0x2d): undefined reference to `pthread_create'
+        /opt/apps/gcc/9.4.0/bin/ld: src.c:(.text+0x39): undefined reference to `pthread_detach'
+        /opt/apps/gcc/9.4.0/bin/ld: src.c:(.text+0x45): undefined reference to `pthread_cancel'
+        /opt/apps/gcc/9.4.0/bin/ld: src.c:(.text+0x56): undefined reference to `pthread_join'
+        collect2: error: ld returned 1 exit status
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CheckLibraryExists.cmake:78 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindThreads.cmake:112 (CHECK_LIBRARY_EXISTS)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindThreads.cmake:175 (_threads_check_lib)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindBLAS.cmake:477 (find_package)"
+      - "CMakeLists.txt:74 (find_package)"
+    checks:
+      - "Looking for pthread_create in pthreads"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-oCohf4"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-oCohf4"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "CMAKE_HAVE_PTHREADS_CREATE"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-oCohf4'
+        
+        Run Build Command(s): ninja -v cmTC_0ed79
+        [1/2] /usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_0ed79.dir/CheckFunctionExists.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-oCohf4/CheckFunctionExists.c
+        [2/2] : && /usr/bin/cc -DCHECK_FUNCTION_EXISTS=pthread_create  CMakeFiles/cmTC_0ed79.dir/CheckFunctionExists.c.o -o cmTC_0ed79  -lpthreads && :
+        FAILED: cmTC_0ed79 
+        : && /usr/bin/cc -DCHECK_FUNCTION_EXISTS=pthread_create  CMakeFiles/cmTC_0ed79.dir/CheckFunctionExists.c.o -o cmTC_0ed79  -lpthreads && :
+        /opt/apps/gcc/9.4.0/bin/ld: cannot find -lpthreads
+        collect2: error: ld returned 1 exit status
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CheckLibraryExists.cmake:78 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindThreads.cmake:112 (CHECK_LIBRARY_EXISTS)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindThreads.cmake:176 (_threads_check_lib)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindBLAS.cmake:477 (find_package)"
+      - "CMakeLists.txt:74 (find_package)"
+    checks:
+      - "Looking for pthread_create in pthread"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-BvAmRn"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-BvAmRn"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "CMAKE_HAVE_PTHREAD_CREATE"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-BvAmRn'
+        
+        Run Build Command(s): ninja -v cmTC_70ea5
+        [1/2] /usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_70ea5.dir/CheckFunctionExists.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-BvAmRn/CheckFunctionExists.c
+        [2/2] : && /usr/bin/cc -DCHECK_FUNCTION_EXISTS=pthread_create  CMakeFiles/cmTC_70ea5.dir/CheckFunctionExists.c.o -o cmTC_70ea5  -lpthread && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/CheckFunctionExists.cmake:93 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindBLAS.cmake:379 (check_function_exists)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindBLAS.cmake:673 (check_blas_libraries)"
+      - "CMakeLists.txt:74 (find_package)"
+    checks:
+      - "Looking for sgemm_"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-z1sJVU"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-z1sJVU"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "BLAS_mkl_intel_lp64_deps_mkl_intel_thread_deps_mkl_core_deps_iomp5_deps_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-z1sJVU'
+        
+        Run Build Command(s): ninja -v cmTC_031c7
+        [1/2] /usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sgemm_ -o CMakeFiles/cmTC_031c7.dir/CheckFunctionExists.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-z1sJVU/CheckFunctionExists.c
+        [2/2] : && /usr/bin/cc -DCHECK_FUNCTION_EXISTS=sgemm_  CMakeFiles/cmTC_031c7.dir/CheckFunctionExists.c.o -o cmTC_031c7  -lmkl_intel_lp64  -lmkl_intel_thread  -lmkl_core  /opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/libiomp5.so  -lpthread  -lm  -ldl && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-PYWGdS"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-PYWGdS"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-PYWGdS'
+        
+        Run Build Command(s): ninja -v cmTC_ac26a
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_ac26a.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-PYWGdS/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_ac26a.dir/test_mpi.c.o -o cmTC_ac26a  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-cwIrbi"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-cwIrbi"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-cwIrbi'
+        
+        Run Build Command(s): ninja -v cmTC_0be03
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_0be03.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-cwIrbi/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_0be03.dir/test_mpi.cpp.o -o cmTC_0be03  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ugk4O2"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ugk4O2"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ugk4O2'
+        
+        Run Build Command(s): ninja -v cmTC_0fb01
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_0fb01.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ugk4O2/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_0fb01.dir/test_mpi.cpp.o -o cmTC_0fb01  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:252 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:522 (_OPENMP_GET_FLAGS)"
+      - "CMakeLists.txt:87 (find_package)"
+    description: "Detecting C OpenMP compiler info"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Dt4v4b"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Dt4v4b"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "OpenMP_COMPILE_RESULT_C_fopenmp"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Dt4v4b'
+        
+        Run Build Command(s): ninja -v cmTC_9985c
+        [1/2] /usr/bin/cc   -fopenmp -o CMakeFiles/cmTC_9985c.dir/OpenMPTryFlag.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Dt4v4b/OpenMPTryFlag.c
+        [2/2] : && /usr/bin/cc -fopenmp -v CMakeFiles/cmTC_9985c.dir/OpenMPTryFlag.c.o -o cmTC_9985c   && :
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/cc
+        COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper
+        OFFLOAD_TARGET_NAMES=nvptx-none
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-redhat-linux
+        Configured with: ../configure --enable-bootstrap --enable-languages=c,c++,fortran,lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux
+        Thread model: posix
+        gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) 
+        COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/
+        Reading specs from /usr/lib/gcc/x86_64-redhat-linux/8/libgomp.spec
+        COLLECT_GCC_OPTIONS='-fopenmp' '-v' '-o' 'cmTC_9985c' '-mtune=generic' '-march=x86-64' '-pthread'
+         /usr/libexec/gcc/x86_64-redhat-linux/8/collect2 -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccr1ItqD.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_9985c /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o /usr/lib/gcc/x86_64-redhat-linux/8/crtoffloadbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. CMakeFiles/cmTC_9985c.dir/OpenMPTryFlag.c.o -lgomp -lgcc --as-needed -lgcc_s --no-as-needed -lpthread -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o /usr/lib/gcc/x86_64-redhat-linux/8/crtoffloadend.o
+        COLLECT_GCC_OPTIONS='-fopenmp' '-v' '-o' 'cmTC_9985c' '-mtune=generic' '-march=x86-64' '-pthread'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:296 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:522 (_OPENMP_GET_FLAGS)"
+      - "CMakeLists.txt:87 (find_package)"
+    message: |
+      Parsed C OpenMP implicit link information from above output:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        ignore line: [Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Dt4v4b']
+        ignore line: []
+        ignore line: [Run Build Command(s): ninja -v cmTC_9985c]
+        ignore line: [[1/2] /usr/bin/cc   -fopenmp -o CMakeFiles/cmTC_9985c.dir/OpenMPTryFlag.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Dt4v4b/OpenMPTryFlag.c]
+        ignore line: [[2/2] : && /usr/bin/cc -fopenmp -v CMakeFiles/cmTC_9985c.dir/OpenMPTryFlag.c.o -o cmTC_9985c   && :]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/cc]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-redhat-linux]
+        ignore line: [Configured with: ../configure --enable-bootstrap --enable-languages=c c++ fortran lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux]
+        ignore line: [Thread model: posix]
+        ignore line: [gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) ]
+        ignore line: [COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/]
+        ignore line: [Reading specs from /usr/lib/gcc/x86_64-redhat-linux/8/libgomp.spec]
+        ignore line: [COLLECT_GCC_OPTIONS='-fopenmp' '-v' '-o' 'cmTC_9985c' '-mtune=generic' '-march=x86-64' '-pthread']
+        link line: [ /usr/libexec/gcc/x86_64-redhat-linux/8/collect2 -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccr1ItqD.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_9985c /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o /usr/lib/gcc/x86_64-redhat-linux/8/crtoffloadbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. CMakeFiles/cmTC_9985c.dir/OpenMPTryFlag.c.o -lgomp -lgcc --as-needed -lgcc_s --no-as-needed -lpthread -lc -lgcc --as-needed -lgcc_s --no-as-needed /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o /usr/lib/gcc/x86_64-redhat-linux/8/crtoffloadend.o]
+          arg [/usr/libexec/gcc/x86_64-redhat-linux/8/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccr1ItqD.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lpthread] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--no-add-needed] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_9985c] ==> ignore
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+          arg [-L/opt/intel/debugger_2020/libipt/intel64/lib] ==> dir [/opt/intel/debugger_2020/libipt/intel64/lib]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8/../../..] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../..]
+          arg [CMakeFiles/cmTC_9985c.dir/OpenMPTryFlag.c.o] ==> ignore
+          arg [-lgomp] ==> lib [gomp]
+          arg [-lgcc] ==> lib [gcc]
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--no-as-needed] ==> ignore
+          arg [-lpthread] ==> lib [pthread]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc] ==> lib [gcc]
+          arg [--as-needed] ==> ignore
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [--no-as-needed] ==> ignore
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8] ==> [/usr/lib/gcc/x86_64-redhat-linux/8]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+        collapse library dir [/opt/intel/debugger_2020/libipt/intel64/lib] ==> [/opt/intel/debugger_2020/libipt/intel64/lib]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../..] ==> [/usr/lib]
+        implicit libs: [gomp;gcc;gcc_s;pthread;c;gcc;gcc_s]
+        implicit objs: []
+        implicit dirs: [/usr/lib/gcc/x86_64-redhat-linux/8;/usr/lib64;/lib64;/opt/intel/debugger_2020/libipt/intel64/lib;/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin;/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8;/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin;/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64;/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:252 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:522 (_OPENMP_GET_FLAGS)"
+      - "CMakeLists.txt:87 (find_package)"
+    description: "Detecting CXX OpenMP compiler info"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-La7MdE"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-La7MdE"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "OpenMP_COMPILE_RESULT_CXX_fopenmp"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-La7MdE'
+        
+        Run Build Command(s): ninja -v cmTC_50a41
+        [1/2] /usr/bin/c++   -march=core-avx2 -fopenmp -std=gnu++17 -o CMakeFiles/cmTC_50a41.dir/OpenMPTryFlag.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-La7MdE/OpenMPTryFlag.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -fopenmp -v CMakeFiles/cmTC_50a41.dir/OpenMPTryFlag.cpp.o -o cmTC_50a41   && :
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper
+        OFFLOAD_TARGET_NAMES=nvptx-none
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-redhat-linux
+        Configured with: ../configure --enable-bootstrap --enable-languages=c,c++,fortran,lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux
+        Thread model: posix
+        gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) 
+        COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/
+        Reading specs from /usr/lib/gcc/x86_64-redhat-linux/8/libgomp.spec
+        COLLECT_GCC_OPTIONS='-march=core-avx2' '-fopenmp' '-v' '-o' 'cmTC_50a41' '-shared-libgcc' '-pthread'
+         /usr/libexec/gcc/x86_64-redhat-linux/8/collect2 -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccvFdYux.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_50a41 /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o /usr/lib/gcc/x86_64-redhat-linux/8/crtoffloadbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. CMakeFiles/cmTC_50a41.dir/OpenMPTryFlag.cpp.o -lstdc++ -lm -lgomp -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o /usr/lib/gcc/x86_64-redhat-linux/8/crtoffloadend.o
+        COLLECT_GCC_OPTIONS='-march=core-avx2' '-fopenmp' '-v' '-o' 'cmTC_50a41' '-shared-libgcc' '-pthread'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:296 (message)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:522 (_OPENMP_GET_FLAGS)"
+      - "CMakeLists.txt:87 (find_package)"
+    message: |
+      Parsed CXX OpenMP implicit link information from above output:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        ignore line: [Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-La7MdE']
+        ignore line: []
+        ignore line: [Run Build Command(s): ninja -v cmTC_50a41]
+        ignore line: [[1/2] /usr/bin/c++   -march=core-avx2 -fopenmp -std=gnu++17 -o CMakeFiles/cmTC_50a41.dir/OpenMPTryFlag.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-La7MdE/OpenMPTryFlag.cpp]
+        ignore line: [[2/2] : && /usr/bin/c++ -march=core-avx2 -fopenmp -v CMakeFiles/cmTC_50a41.dir/OpenMPTryFlag.cpp.o -o cmTC_50a41   && :]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-redhat-linux]
+        ignore line: [Configured with: ../configure --enable-bootstrap --enable-languages=c c++ fortran lto --prefix=/usr --mandir=/usr/share/man --infodir=/usr/share/info --with-bugurl=https://bugs.rockylinux.org/ --enable-shared --enable-threads=posix --enable-checking=release --enable-multilib --with-system-zlib --enable-__cxa_atexit --disable-libunwind-exceptions --enable-gnu-unique-object --enable-linker-build-id --with-gcc-major-version-only --with-linker-hash-style=gnu --enable-plugin --enable-initfini-array --with-isl --disable-libmpx --enable-offload-targets=nvptx-none --without-cuda-driver --enable-gnu-indirect-function --enable-cet --with-tune=generic --with-arch_32=x86-64 --build=x86_64-redhat-linux]
+        ignore line: [Thread model: posix]
+        ignore line: [gcc version 8.5.0 20210514 (Red Hat 8.5.0-22) (GCC) ]
+        ignore line: [COMPILER_PATH=/opt/apps/xalt/xalt/bin/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/8/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/8/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/opt/intel/debugger_2020/libipt/intel64/lib/:/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8/:/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin/:/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64/:/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin/:/usr/lib/gcc/x86_64-redhat-linux/8/../../../:/lib/:/usr/lib/]
+        ignore line: [Reading specs from /usr/lib/gcc/x86_64-redhat-linux/8/libgomp.spec]
+        ignore line: [COLLECT_GCC_OPTIONS='-march=core-avx2' '-fopenmp' '-v' '-o' 'cmTC_50a41' '-shared-libgcc' '-pthread']
+        link line: [ /usr/libexec/gcc/x86_64-redhat-linux/8/collect2 -plugin /usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so -plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccvFdYux.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o cmTC_50a41 /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/8/crtbegin.o /usr/lib/gcc/x86_64-redhat-linux/8/crtoffloadbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/8 -L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/intel/debugger_2020/libipt/intel64/lib -L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin -L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin -L/usr/lib/gcc/x86_64-redhat-linux/8/../../.. CMakeFiles/cmTC_50a41.dir/OpenMPTryFlag.cpp.o -lstdc++ -lm -lgomp -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/8/crtend.o /usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64/crtn.o /usr/lib/gcc/x86_64-redhat-linux/8/crtoffloadend.o]
+          arg [/usr/libexec/gcc/x86_64-redhat-linux/8/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/libexec/gcc/x86_64-redhat-linux/8/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/libexec/gcc/x86_64-redhat-linux/8/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccvFdYux.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lpthread] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--no-add-needed] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_50a41] ==> ignore
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64]
+          arg [-L/lib/../lib64] ==> dir [/lib/../lib64]
+          arg [-L/usr/lib/../lib64] ==> dir [/usr/lib/../lib64]
+          arg [-L/opt/intel/debugger_2020/libipt/intel64/lib] ==> dir [/opt/intel/debugger_2020/libipt/intel64/lib]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64]
+          arg [-L/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin] ==> dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin]
+          arg [-L/usr/lib/gcc/x86_64-redhat-linux/8/../../..] ==> dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../..]
+          arg [CMakeFiles/cmTC_50a41.dir/OpenMPTryFlag.cpp.o] ==> ignore
+          arg [-lstdc++] ==> lib [stdc++]
+          arg [-lm] ==> lib [m]
+          arg [-lgomp] ==> lib [gomp]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lpthread] ==> lib [pthread]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8] ==> [/usr/lib/gcc/x86_64-redhat-linux/8]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../../../lib64] ==> [/usr/lib64]
+        collapse library dir [/lib/../lib64] ==> [/lib64]
+        collapse library dir [/usr/lib/../lib64] ==> [/usr/lib64]
+        collapse library dir [/opt/intel/debugger_2020/libipt/intel64/lib] ==> [/opt/intel/debugger_2020/libipt/intel64/lib]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64]
+        collapse library dir [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin] ==> [/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin]
+        collapse library dir [/usr/lib/gcc/x86_64-redhat-linux/8/../../..] ==> [/usr/lib]
+        implicit libs: [stdc++;m;gomp;gcc_s;gcc;pthread;c;gcc_s;gcc]
+        implicit objs: []
+        implicit dirs: [/usr/lib/gcc/x86_64-redhat-linux/8;/usr/lib64;/lib64;/opt/intel/debugger_2020/libipt/intel64/lib;/opt/intel/compilers_and_libraries_2020.1.217/linux/daal/lib/intel64_lin;/opt/intel/compilers_and_libraries_2020.1.217/linux/tbb/lib/intel64/gcc4.8;/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64_lin;/opt/intel/compilers_and_libraries_2020.1.217/linux/ipp/lib/intel64;/opt/intel/compilers_and_libraries_2020.1.217/linux/compiler/lib/intel64_lin;/usr/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:456 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:596 (_OPENMP_GET_SPEC_DATE)"
+      - "CMakeLists.txt:87 (find_package)"
+    description: "Detecting C OpenMP version"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-qxg7ZY"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-qxg7ZY"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "OpenMP_SPECTEST_C_"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-qxg7ZY'
+        
+        Run Build Command(s): ninja -v cmTC_5bb98
+        [1/2] /usr/bin/cc   -fopenmp -o CMakeFiles/cmTC_5bb98.dir/OpenMPCheckVersion.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-qxg7ZY/OpenMPCheckVersion.c
+        [2/2] : && /usr/bin/cc -fopenmp  CMakeFiles/cmTC_5bb98.dir/OpenMPCheckVersion.c.o -o cmTC_5bb98   && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:456 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindOpenMP.cmake:596 (_OPENMP_GET_SPEC_DATE)"
+      - "CMakeLists.txt:87 (find_package)"
+    description: "Detecting CXX OpenMP version"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-mIecUh"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-mIecUh"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "OpenMP_SPECTEST_CXX_"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-mIecUh'
+        
+        Run Build Command(s): ninja -v cmTC_8d502
+        [1/2] /usr/bin/c++   -march=core-avx2 -fopenmp -std=gnu++17 -o CMakeFiles/cmTC_8d502.dir/OpenMPCheckVersion.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-mIecUh/OpenMPCheckVersion.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -fopenmp  CMakeFiles/cmTC_8d502.dir/OpenMPCheckVersion.cpp.o -o cmTC_8d502   && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake/targetLinkLibrariesWithDynamicLookup.cmake:405 (try_compile)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake/targetLinkLibrariesWithDynamicLookup.cmake:522 (_test_weak_link_project)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake/targetLinkLibrariesWithDynamicLookup.cmake:481 (_check_dynamic_lookup)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake/targetLinkLibrariesWithDynamicLookup.cmake:556 (check_dynamic_lookup)"
+      - "/tmp/pip-build-env-h8f5sa43/overlay/lib/python3.8/site-packages/skbuild/resources/cmake/FindPythonExtensions.cmake:456 (target_link_libraries_with_dynamic_lookup)"
+      - "src/pyrknn/kernels/cpu/CMakeLists.txt:21 (python_extension_module)"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/src"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/build"
+    buildResult:
+      variable: "project_compiles"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/build'
+        
+        Run Build Command(s): ninja -v
+        [1/6] /usr/bin/cc -Dcounter_EXPORTS -I/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/src -fPIC -o CMakeFiles/counter.dir/counter.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/src/counter.c
+        [2/6] /usr/bin/cc -Dnumber_EXPORTS -I/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/src -fPIC -o CMakeFiles/number.dir/number.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/src/number.c
+        [3/6] /usr/bin/cc -Dmain_EXPORTS -I/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/src  -o CMakeFiles/main.dir/main.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/src/main.c
+        [4/6] : && /usr/bin/cc -fPIC    -shared -Wl,-soname,libnumber.so -o libnumber.so CMakeFiles/number.dir/number.c.o   && :
+        [5/6] : && /usr/bin/cc -fPIC   -Wl,--unresolved-symbols=ignore-all -shared  -o counter.so CMakeFiles/counter.dir/counter.c.o   && :
+        [6/6] : && /usr/bin/cc  -Wl,--export-dynamic -rdynamic CMakeFiles/main.dir/main.c.o -o main  -Wl,-rpath,/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeTmp/link_flags/gnu_ld_ignore/MODULE/SHARED/build  libnumber.so  -ldl && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-z4eUDO"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-z4eUDO"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-z4eUDO'
+        
+        Run Build Command(s): ninja -v cmTC_77431
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_77431.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-z4eUDO/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_77431.dir/test_mpi.c.o -o cmTC_77431  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-QEAX3g"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-QEAX3g"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-QEAX3g'
+        
+        Run Build Command(s): ninja -v cmTC_d373a
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_d373a.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-QEAX3g/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_d373a.dir/test_mpi.cpp.o -o cmTC_d373a  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-dBmCEf"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-dBmCEf"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-inz3nn3g/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-dBmCEf'
+        
+        Run Build Command(s): ninja -v cmTC_b6f0c
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_b6f0c.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-dBmCEf/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_b6f0c.dir/test_mpi.cpp.o -o cmTC_b6f0c  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-qUFRTd"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-qUFRTd"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-qUFRTd'
+        
+        Run Build Command(s): ninja -v cmTC_ae5f3
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_ae5f3.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-qUFRTd/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_ae5f3.dir/test_mpi.c.o -o cmTC_ae5f3  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ulLULp"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ulLULp"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ulLULp'
+        
+        Run Build Command(s): ninja -v cmTC_afe3c
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_afe3c.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ulLULp/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_afe3c.dir/test_mpi.cpp.o -o cmTC_afe3c  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-HzqJay"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-HzqJay"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-_y6rzav7/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-HzqJay'
+        
+        Run Build Command(s): ninja -v cmTC_e6a73
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_e6a73.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-HzqJay/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_e6a73.dir/test_mpi.cpp.o -o cmTC_e6a73  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-bYAhoE"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-bYAhoE"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-bYAhoE'
+        
+        Run Build Command(s): ninja -v cmTC_48a75
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_48a75.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-bYAhoE/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_48a75.dir/test_mpi.c.o -o cmTC_48a75  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-6E1NsF"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-6E1NsF"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-6E1NsF'
+        
+        Run Build Command(s): ninja -v cmTC_c2001
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_c2001.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-6E1NsF/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_c2001.dir/test_mpi.cpp.o -o cmTC_c2001  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:84 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-o56P9y"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-o56P9y"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-qn8mk6b4/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-o56P9y'
+        
+        Run Build Command(s): ninja -v cmTC_e07be
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_e07be.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-o56P9y/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_e07be.dir/test_mpi.cpp.o -o cmTC_e07be  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-3k4Lpe"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-3k4Lpe"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-3k4Lpe'
+        
+        Run Build Command(s): ninja -v cmTC_2b20a
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_2b20a.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-3k4Lpe/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_2b20a.dir/test_mpi.c.o -o cmTC_2b20a  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-OWQQUC"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-OWQQUC"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-OWQQUC'
+        
+        Run Build Command(s): ninja -v cmTC_6f4bc
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_6f4bc.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-OWQQUC/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_6f4bc.dir/test_mpi.cpp.o -o cmTC_6f4bc  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-OBvr7B"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-OBvr7B"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-ccmnrq42/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-OBvr7B'
+        
+        Run Build Command(s): ninja -v cmTC_abd2f
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_abd2f.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-OBvr7B/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_abd2f.dir/test_mpi.cpp.o -o cmTC_abd2f  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Ykb665"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Ykb665"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Ykb665'
+        
+        Run Build Command(s): ninja -v cmTC_e109f
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_e109f.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Ykb665/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_e109f.dir/test_mpi.c.o -o cmTC_e109f  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-dtrEXi"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-dtrEXi"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-dtrEXi'
+        
+        Run Build Command(s): ninja -v cmTC_38308
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_38308.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-dtrEXi/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_38308.dir/test_mpi.cpp.o -o cmTC_38308  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-vQYLmR"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-vQYLmR"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-1lvw9wbu/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-vQYLmR'
+        
+        Run Build Command(s): ninja -v cmTC_665cf
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_665cf.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-vQYLmR/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_665cf.dir/test_mpi.cpp.o -o cmTC_665cf  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-AzhwdE"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-AzhwdE"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-AzhwdE'
+        
+        Run Build Command(s): ninja -v cmTC_b223a
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_b223a.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-AzhwdE/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_b223a.dir/test_mpi.c.o -o cmTC_b223a  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Yi6lwR"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Yi6lwR"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Yi6lwR'
+        
+        Run Build Command(s): ninja -v cmTC_d0e33
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_d0e33.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Yi6lwR/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_d0e33.dir/test_mpi.cpp.o -o cmTC_d0e33  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-17lpIo"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-17lpIo"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: " "
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-0kub6hok/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-17lpIo'
+        
+        Run Build Command(s): ninja -v cmTC_dd4ce
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_dd4ce.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-17lpIo/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_dd4ce.dir/test_mpi.cpp.o -o cmTC_dd4ce  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-H6j7H9"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-H6j7H9"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-H6j7H9'
+        
+        Run Build Command(s): ninja -v cmTC_678f1
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_678f1.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-H6j7H9/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_678f1.dir/test_mpi.c.o -o cmTC_678f1  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ezyxEi"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ezyxEi"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ezyxEi'
+        
+        Run Build Command(s): ninja -v cmTC_0012f
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_0012f.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-ezyxEi/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_0012f.dir/test_mpi.cpp.o -o cmTC_0012f  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Vs2Jw2"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Vs2Jw2"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-7cfqzau3/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Vs2Jw2'
+        
+        Run Build Command(s): ninja -v cmTC_551cb
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_551cb.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-Vs2Jw2/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_551cb.dir/test_mpi.cpp.o -o cmTC_551cb  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for C in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-HgOOt8"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-HgOOt8"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_C_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-HgOOt8'
+        
+        Run Build Command(s): ninja -v cmTC_8cfd0
+        [1/2] /usr/bin/cc  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include  -o CMakeFiles/cmTC_8cfd0.dir/test_mpi.c.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-HgOOt8/test_mpi.c
+        [2/2] : && /usr/bin/cc  -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags -L/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib CMakeFiles/cmTC_8cfd0.dir/test_mpi.c.o -o cmTC_8cfd0  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1327 (_MPI_try_staged_settings)"
+      - "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1650 (_MPI_check_lang_works)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode normal"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-3HDGjL"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-3HDGjL"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_normal"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-3HDGjL'
+        
+        Run Build Command(s): ninja -v cmTC_b573d
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_b573d.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-3HDGjL/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_b573d.dir/test_mpi.cpp.o -o cmTC_b573d  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1283 (try_compile)"
+      - "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/cmake/data/share/cmake-3.31/Modules/FindMPI.cmake:1677 (_MPI_try_staged_settings)"
+      - "CMakeLists.txt:85 (find_package)"
+    description: "The MPI test test_mpi for CXX in mode MPICXX"
+    directories:
+      source: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-aEwH5V"
+      binary: "/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-aEwH5V"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "-march=core-avx2"
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_MODULE_PATH: "/tmp/pip-build-env-vyztiirb/overlay/lib/python3.8/site-packages/skbuild/resources/cmake"
+    buildResult:
+      variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
+      cached: true
+      stdout: |
+        Change Dir: '/work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-aEwH5V'
+        
+        Run Build Command(s): ninja -v cmTC_21ae5
+        [1/2] /usr/bin/c++  -isystem /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/include -march=core-avx2  -std=gnu++17 -o CMakeFiles/cmTC_21ae5.dir/test_mpi.cpp.o -c /work/06081/wlruys/ls6/pyrknn/_skbuild/linux-x86_64-3.8/cmake-build/CMakeFiles/CMakeScratch/TryCompile-aEwH5V/test_mpi.cpp
+        [2/2] : && /usr/bin/c++ -march=core-avx2 -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release -Xlinker -rpath -Xlinker /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib -Xlinker --enable-new-dtags CMakeFiles/cmTC_21ae5.dir/test_mpi.cpp.o -o cmTC_21ae5  -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/libmpicxx.so  /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release/libmpi.so  /usr/lib64/librt.so  /usr/lib64/libpthread.so  /usr/lib64/libdl.so && :
+        
+      exitCode: 0
+...

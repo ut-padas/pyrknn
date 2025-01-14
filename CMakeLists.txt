@@ -72,11 +72,12 @@ include_directories(${NUMPY_INCLUDE})
 #set(BLA_VENDOR intel10_64lp)
 #TODO: Ensure MKL is found (not openblas due to sparse library requirement)
 find_package(BLAS REQUIRED)
+message(STATUS "BLAS libraries ${BLAS_LIBRARIES} ${BLAS_LINKER_FLAGS}")
 
 if (BLAS_FOUND)
-    link_libraries(${BLAS_LIBRARIES})
+    #link_libraries(${BLAS_LIBRARIES})
     #This is still missing something.... currently need to Preload with mkl Python modules.
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
+    #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 endif()
 
 #-- Look for MPI
@@ -99,10 +100,11 @@ endif()
 message(STATUS "USE_MKL - ${USE_MKL}")
 message(STATUS "USE_GSKNN - ${USE_GSKNN}")
 message(STATUS "BUILD_SPARSE - ${BUILD_SPARSE}")
+set(USE_MKL True)
 
 if(USE_MKL)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPYRKNN_USE_MKL")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPYRKNN_USE_MKL")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPYRKNN_USE_MKL -static -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lm -ldl")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPYRKNN_USE_MKL -static -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lm -ldl")
 endif()
 
 if(USE_GSKNN)
