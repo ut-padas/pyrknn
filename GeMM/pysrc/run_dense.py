@@ -4,7 +4,7 @@ import sys
 import filknn.tree.rkdtgpu as rt
 from sklearn.neighbors import NearestNeighbors
 from sklearn.datasets import load_svmlight_file
-
+import math 
 import time
 import platform 
 import os 
@@ -17,7 +17,7 @@ import cupy as cp
 from filknn.utils.utilsExact import *
 
 parser = argparse.ArgumentParser(description="Test Sparse KNN")
-parser.add_argument('-n', type=int, default=2**22)
+parser.add_argument('-n', type=int, default=1000000)
 parser.add_argument('-d', type=int, default=15)
 parser.add_argument('-iter', type=int, default=120)
 parser.add_argument('-dataset', default="gauss")
@@ -25,7 +25,7 @@ parser.add_argument('-bs', type=int, default=64)
 parser.add_argument('-bl', type=int, default=128)
 parser.add_argument('-cores', type=int, default=56)
 parser.add_argument('-use_gpu', type=bool, default=0)
-parser.add_argument('-levels', type=int, default=13)
+parser.add_argument('-levels', type=int, default=9)
 parser.add_argument('-k', type=int, default=32)
 parser.add_argument('-leafsize', type=int, default=1024)
 parser.add_argument('-ltrees', type=int, default=1)
@@ -112,6 +112,7 @@ dim = args.d
 K = args.k
 T = args.iter
 depth = args.levels
+leafsize = args.leafsize
 nq = args.nq
 if dataset == 'sift':
   X = read_sift(d)
@@ -127,24 +128,54 @@ knnidx = -cp.ones((n,K), dtype = cp.int32)
 
 print("Finished Reading Data", flush=True)
 
-N  = X.shape[0]
+n  = X.shape[0]
 d  = X.shape[1]
 
-print("Init Data shape: ", (N, d))
+print("Init Data shape: ", (n, d))
 
 cp.random.seed(args.seed)
 
 print('Padding the data')
 
-leaves = 1 << depth 
-ppl = cp.ceil(n / leaves)
-n_true = int(ppl * leaves)
-diff = n_true - n
-if diff > 0:
-  X = cp.pad(X, (0, diff), "constant")
-  n, dim = X.shape
 
-points_per_leaf = int(n/leaves)
+
+def find_p_k_L(Z, N, max_L=64):
+    if N == 0 and Z == 0:
+        return 0, 0, 0
+    best, best_dist = (float("inf"), 0, 0), float("inf")
+    for L in range(max_L + 1):
+        # Minimal M to satisfy 2^L * M >= N
+        M_needed = 0 if N == 0 else math.ceil(N / (1 << L))
+        # Check multiples of 32 around M_needed (floor & ceil)
+        floor_32 = 32 * (M_needed // 32)
+        ceil_32 = 32 * ((M_needed + 31) // 32)
+        for M in (floor_32, ceil_32):
+            if M < 0:
+                continue
+            if Z > 0 and not (Z / 2 <= M <= 2 * Z):
+                continue
+            p = (1 << L) * M - N
+            if p < 0:
+                continue
+            dist = abs(M - Z)
+            if p < best[0] or (p == best[0] and dist < best_dist):
+                best, best_dist = (p, M // 32, L), dist
+    return best
+  
+p_best, k_best, L_best = find_p_k_L(leafsize, n, max_L=32)
+
+
+ppl = k_best * 32
+depth = L_best
+
+
+if p_best > 0:
+  print("PADDING", p_best)
+  padding = np.zeros((p_best, d), dtype=np.float32)
+  X = cp.vstack([X, padding])
+  n, dim = X.shape
+  print("X shape after padding: ", X.shape)
+points_per_leaf = ppl 
 
 print('Number of poitns =', n, ', and the dimension =', dim)
 print('Tree depth =', depth)
@@ -157,7 +188,7 @@ print("computing the exact neghobors")
 #nbrs = NearestNeighbors(n_neighbors=K,algorithm='brute').fit(cp.asnumpy(X))
 #knndis_ex, knnidx_ex = nbrs.kneighbors(cp.asnumpy(X[:nex,]))
 
-test_pt = cp.random.randint(0, N, size=nq)
+test_pt = cp.random.randint(0, n, size=nq)
 knnidx_ex , knndis_ex = neighbors(X, K, test_pt)
 
 
